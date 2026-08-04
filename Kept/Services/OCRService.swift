@@ -2,19 +2,32 @@ import Foundation
 import UIKit
 import Vision
 
-struct RecognizedLine: Sendable, Identifiable {
-    let id = UUID()
+struct RecognizedLine: Sendable, Identifiable, Equatable {
+    let id: UUID
     let text: String
     let confidence: Float
     /// Normalized Vision coordinates (origin bottom-left, 0...1).
     let boundingBox: CGRect
+
+    init(
+        id: UUID = UUID(),
+        text: String,
+        confidence: Float,
+        boundingBox: CGRect
+    ) {
+        self.id = id
+        self.text = text
+        self.confidence = confidence
+        self.boundingBox = boundingBox
+    }
 }
 
-protocol TextRecognizing: Sendable {
+protocol OCRService: Sendable {
+    /// Recognizes text and returns lines ordered top-to-bottom on the page.
     func recognize(in image: UIImage) async throws -> [RecognizedLine]
 }
 
-enum TextRecognitionError: Error, LocalizedError {
+enum OCRServiceError: Error, LocalizedError {
     case invalidImage
     case underlying(Error)
 
@@ -26,13 +39,13 @@ enum TextRecognitionError: Error, LocalizedError {
     }
 }
 
-struct VisionTextRecognizer: TextRecognizing {
+struct VisionOCRService: OCRService {
     var recognitionLevel: VNRequestTextRecognitionLevel = .accurate
     var usesLanguageCorrection: Bool = true
     var recognitionLanguages: [String] = ["en-US"]
 
     func recognize(in image: UIImage) async throws -> [RecognizedLine] {
-        guard let cgImage = image.cgImage else { throw TextRecognitionError.invalidImage }
+        guard let cgImage = image.cgImage else { throw OCRServiceError.invalidImage }
         let orientation = CGImagePropertyOrientation(image.imageOrientation)
         let level = recognitionLevel
         let correction = usesLanguageCorrection
@@ -48,11 +61,11 @@ struct VisionTextRecognizer: TextRecognizing {
             do {
                 try handler.perform([request])
             } catch {
-                throw TextRecognitionError.underlying(error)
+                throw OCRServiceError.underlying(error)
             }
 
             let observations = request.results ?? []
-            return observations.compactMap { observation -> RecognizedLine? in
+            let lines = observations.compactMap { observation -> RecognizedLine? in
                 guard let best = observation.topCandidates(1).first else { return nil }
                 return RecognizedLine(
                     text: best.string,
@@ -60,6 +73,9 @@ struct VisionTextRecognizer: TextRecognizing {
                     boundingBox: observation.boundingBox
                 )
             }
+
+            // Vision origin is bottom-left; higher maxY is nearer the top of the page.
+            return lines.sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
         }.value
     }
 }
@@ -79,3 +95,8 @@ private extension CGImagePropertyOrientation {
         }
     }
 }
+
+/// Back-compat alias while call sites migrate.
+typealias TextRecognizing = OCRService
+typealias VisionTextRecognizer = VisionOCRService
+typealias TextRecognitionError = OCRServiceError

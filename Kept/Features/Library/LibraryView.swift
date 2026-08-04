@@ -13,6 +13,7 @@ struct LibraryView: View {
 
     @State private var isCapturing = false
     #if DEBUG
+    @State private var isPhotoPickerPresented = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: UIImage?
     #endif
@@ -56,8 +57,24 @@ struct LibraryView: View {
                 }
                 #if DEBUG
                 ToolbarItem(placement: .secondaryAction) {
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Label("Pick from Photos (debug)", systemImage: "photo.on.rectangle")
+                    Menu("Debug") {
+                        Button {
+                            // PhotosPicker inside Menu never presents — flip a flag instead.
+                            isPhotoPickerPresented = true
+                        } label: {
+                            Label("Pick from Photos", systemImage: "photo.on.rectangle")
+                        }
+                        if !ReceiptFixtures.names.isEmpty {
+                            Section("Fixtures") {
+                                ForEach(ReceiptFixtures.names, id: \.self) { name in
+                                    Button(name) {
+                                        if let image = ReceiptFixtures.image(named: name) {
+                                            pickedImage = image
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 #endif
@@ -66,6 +83,11 @@ struct LibraryView: View {
                 CaptureView()
             }
             #if DEBUG
+            .photosPicker(
+                isPresented: $isPhotoPickerPresented,
+                selection: $pickerItem,
+                matching: .images
+            )
             .sheet(item: Binding(
                 get: { pickedImage.map(IdentifiedImage.init) },
                 set: { if $0 == nil { pickedImage = nil } }
@@ -167,12 +189,12 @@ struct LibraryView: View {
 
 #Preview("Empty") {
     LibraryView()
-        .modelContainer(for: [Purchase.self, WarrantyTerm.self], inMemory: true)
+        .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
 }
 
 #Preview("With items") {
     let container = try! ModelContainer(
-        for: Purchase.self, WarrantyTerm.self,
+        for: Purchase.self, WarrantyTerm.self, PassRecord.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
     let context = container.mainContext
@@ -184,12 +206,8 @@ struct LibraryView: View {
         currency: "AUD",
         purchaseDate: Calendar.current.date(byAdding: .day, value: -30, to: .now)!
     )
-    apple.warranty = WarrantyTerm(
-        durationMonths: 12,
-        expiryDate: Calendar.current.date(byAdding: .month, value: 11, to: .now)!,
-        source: .inferred,
-        confidence: 0.92
-    )
+    _ = apple.setDuration(months: 12, byUser: false)
+    apple.primaryWarranty?.confidence = 0.92
     context.insert(apple)
 
     let primark = Purchase(
@@ -199,12 +217,8 @@ struct LibraryView: View {
         currency: "GBP",
         purchaseDate: Calendar.current.date(byAdding: .day, value: -400, to: .now)!
     )
-    primark.warranty = WarrantyTerm(
-        durationMonths: 12,
-        expiryDate: Calendar.current.date(byAdding: .day, value: -35, to: .now)!,
-        source: .inferred,
-        confidence: 0.75
-    )
+    _ = primark.setDuration(months: 12, byUser: false)
+    primark.primaryWarranty?.confidence = 0.75
     context.insert(primark)
 
     let woolies = Purchase(

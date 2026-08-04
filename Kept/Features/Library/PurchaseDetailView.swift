@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct PurchaseDetailView: View {
-    @Environment(\.modelContext) private var modelContext
     @Bindable var purchase: Purchase
 
     @State private var warrantyMonthsText: String = ""
@@ -62,7 +61,7 @@ struct PurchaseDetailView: View {
                         .onChange(of: warrantyMonthsText) { _, newValue in
                             applyWarrantyChange(months: Int(newValue) ?? 0)
                         }
-                    if purchase.warranty?.source == .inferred {
+                    if purchase.primaryWarranty?.source == .inferred {
                         Text("inferred")
                             .font(.caption2.weight(.medium))
                             .padding(.horizontal, 6)
@@ -71,7 +70,7 @@ struct PurchaseDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                if let warranty = purchase.warranty {
+                if let warranty = purchase.primaryWarranty {
                     LabeledContent("Expires") {
                         Text(warranty.expiryDate, format: .dateTime.day().month().year())
                             .foregroundStyle(.secondary)
@@ -80,9 +79,9 @@ struct PurchaseDetailView: View {
             } header: {
                 Text("Warranty")
             } footer: {
-                if purchase.warranty == nil {
+                if purchase.primaryWarranty == nil {
                     Text("No warranty tracked. Enter a duration to add one.")
-                } else if purchase.warranty?.source == .inferred {
+                } else if purchase.primaryWarranty?.source == .inferred {
                     Text("Kept guessed this length. Edit it to override.")
                 }
             }
@@ -93,9 +92,9 @@ struct PurchaseDetailView: View {
             }
         }
         .navigationTitle(displayTitle)
-        .toolbarTitleDisplayMode(.inlineLarge)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
-            warrantyMonthsText = purchase.warranty.map { String($0.durationMonths) } ?? ""
+            warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
             priceText = purchase.price > 0 ? formatDecimal(purchase.price) : ""
         }
         .fullScreenCover(isPresented: $isShowingFullImage) {
@@ -111,42 +110,12 @@ struct PurchaseDetailView: View {
     }
 
     private func applyWarrantyChange(months: Int) {
-        if months <= 0 {
-            if let existing = purchase.warranty {
-                modelContext.delete(existing)
-                purchase.warranty = nil
-            }
-            return
-        }
-
-        let expiry = Calendar.current.date(
-            byAdding: .month,
-            value: months,
-            to: purchase.purchaseDate
-        ) ?? purchase.purchaseDate
-
-        if let existing = purchase.warranty {
-            existing.durationMonths = months
-            existing.expiryDate = expiry
-            existing.source = .userSet
-        } else {
-            let warranty = WarrantyTerm(
-                durationMonths: months,
-                expiryDate: expiry,
-                source: .userSet,
-                confidence: 1.0
-            )
-            purchase.warranty = warranty
-        }
+        _ = purchase.setDuration(months: months, byUser: true)
     }
 
     private func recomputeExpiry() {
-        guard let warranty = purchase.warranty else { return }
-        warranty.expiryDate = Calendar.current.date(
-            byAdding: .month,
-            value: warranty.durationMonths,
-            to: purchase.purchaseDate
-        ) ?? purchase.purchaseDate
+        guard let warranty = purchase.primaryWarranty else { return }
+        _ = purchase.setDuration(months: warranty.durationMonths, byUser: warranty.source == .userProvided)
     }
 
     private func formatDecimal(_ value: Decimal) -> String {
@@ -180,4 +149,24 @@ private struct FullReceiptViewer: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
+}
+
+#Preview {
+    let container = try! ModelContainer(
+        for: Purchase.self, WarrantyTerm.self, PassRecord.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let purchase = Purchase(
+        merchant: "Apple",
+        itemName: "iPhone 16 Pro Max",
+        price: 1999,
+        currency: "USD",
+        purchaseDate: .now
+    )
+    _ = purchase.setDuration(months: 12, byUser: false)
+    container.mainContext.insert(purchase)
+    return NavigationStack {
+        PurchaseDetailView(purchase: purchase)
+    }
+    .modelContainer(container)
 }

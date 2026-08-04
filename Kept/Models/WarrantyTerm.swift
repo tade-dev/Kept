@@ -1,29 +1,39 @@
 import Foundation
 import SwiftData
 
-enum WarrantySource: String, Codable {
+enum WarrantySource: String, Sendable {
     case inferred
-    case userSet
+    case userProvided
+
+    /// Accepts legacy `userSet` raw values written before the rename.
+    init(stored: String) {
+        switch stored {
+        case Self.userProvided.rawValue, "userSet":
+            self = .userProvided
+        default:
+            self = .inferred
+        }
+    }
 }
 
 @Model
 final class WarrantyTerm {
-    var durationMonths: Int
-    var expiryDate: Date
-    var sourceRaw: String
-    var confidence: Double
+    var durationMonths: Int = 0
+    var expiryDate: Date = Date(timeIntervalSinceReferenceDate: 0)
+    var sourceRaw: String = "inferred"
+    var confidence: Double = 0
     var purchase: Purchase?
 
     var source: WarrantySource {
-        get { WarrantySource(rawValue: sourceRaw) ?? .inferred }
+        get { WarrantySource(stored: sourceRaw) }
         set { sourceRaw = newValue.rawValue }
     }
 
     init(
-        durationMonths: Int,
-        expiryDate: Date,
-        source: WarrantySource,
-        confidence: Double
+        durationMonths: Int = 0,
+        expiryDate: Date = .now,
+        source: WarrantySource = .inferred,
+        confidence: Double = 0
     ) {
         self.durationMonths = durationMonths
         self.expiryDate = expiryDate

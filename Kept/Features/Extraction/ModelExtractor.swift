@@ -1,64 +1,79 @@
-import CoreGraphics
 import Foundation
 import FoundationModels
 
-protocol ReceiptExtracting: Sendable {
-    func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt
-}
-
-enum ReceiptExtractionError: Error, LocalizedError {
-    case modelUnavailable(reason: String)
-    case emptyInput
-    case underlying(Error)
-
-    var errorDescription: String? {
-        switch self {
-        case .modelUnavailable(let reason):
-            "The on-device model isn't available: \(reason)."
-        case .emptyInput:
-            "No text was recognized on the receipt."
-        case .underlying(let error):
-            error.localizedDescription
+/// Foundation Models enrichment. Optional — never required for a complete product.
+struct ModelExtractor: Sendable {
+    var isAvailable: Bool {
+        if case .available = SystemLanguageModel.default.availability {
+            return true
         }
+        return false
     }
-}
 
-struct FoundationReceiptExtractor: ReceiptExtracting {
-    func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        guard !lines.isEmpty else { throw ReceiptExtractionError.emptyInput }
-
+    func enrich(lines: [RecognizedLine], using floor: ExtractedReceipt) async throws -> ExtractedReceipt {
+        guard !lines.isEmpty else { throw ExtractionError.emptyInput }
         try assertAvailable()
 
-        // Vision uses a bottom-left origin, so max Y is the top of the image.
-        // Sort top-to-bottom to anchor the model on the header, per CLAUDE.md's
-        // thermal-receipt rule.
-        let orderedText = lines
-            .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
-            .map(\.text)
-            .joined(separator: "\n")
-
+        let orderedText = lines.map(\.text).joined(separator: "\n")
         let session = LanguageModelSession(instructions: Self.instructions)
         do {
             let response = try await session.respond(
-                to: "Extract the purchase and warranty details from this receipt. Lines are ordered top-to-bottom.\n\n---\n\(orderedText)\n---",
+                to: """
+                Extract the purchase and warranty details from this receipt. Lines are ordered top-to-bottom.
+
+                Rules-parser hints (prefer these for price/date/currency when they look right):
+                merchant=\(floor.merchant)
+                price=\(floor.price)
+                currency=\(floor.currency)
+                purchaseDate=\(floor.purchaseDate)
+
+                ---
+                \(orderedText)
+                ---
+                """,
                 generating: ExtractedReceipt.self
             )
-            return response.content
+            return Self.merge(rules: floor, model: response.content)
         } catch {
-            throw ReceiptExtractionError.underlying(error)
+            throw ExtractionError.underlying(error)
         }
     }
 
     private func assertAvailable() throws {
-        let availability = SystemLanguageModel.default.availability
-        switch availability {
+        switch SystemLanguageModel.default.availability {
         case .available:
             return
         case .unavailable(let reason):
-            throw ReceiptExtractionError.modelUnavailable(reason: String(describing: reason))
+            throw ExtractionError.modelUnavailable(reason: String(describing: reason))
         @unknown default:
-            throw ReceiptExtractionError.modelUnavailable(reason: "unknown")
+            throw ExtractionError.modelUnavailable(reason: "unknown")
         }
+    }
+
+    /// Rules own money/date when present; model owns item naming and warranty inference.
+    static func merge(rules: ExtractedReceipt, model: ExtractedReceipt) -> ExtractedReceipt {
+        let merchant = model.merchant.trimmingCharacters(in: .whitespaces).isEmpty
+            ? rules.merchant : model.merchant
+        let itemName = model.itemName.trimmingCharacters(in: .whitespaces).isEmpty
+            ? rules.itemName : model.itemName
+        let price = rules.price > 0 ? rules.price : model.price
+        let currency = rules.currency.trimmingCharacters(in: .whitespaces).isEmpty
+            ? model.currency.uppercased() : rules.currency.uppercased()
+        let purchaseDate = rules.purchaseDate.isEmpty ? model.purchaseDate : rules.purchaseDate
+        let warrantyMonths = model.warrantyDurationMonths > 0
+            ? model.warrantyDurationMonths
+            : rules.warrantyDurationMonths
+
+        return ExtractedReceipt(
+            merchant: merchant,
+            itemName: itemName,
+            price: price,
+            currency: currency,
+            purchaseDate: purchaseDate,
+            warrantyDurationMonths: warrantyMonths,
+            warrantyIsInferred: warrantyMonths > 0 ? model.warrantyIsInferred : false,
+            confidence: max(rules.confidence, min(model.confidence, 1.0))
+        )
     }
 
     private static let instructions = """

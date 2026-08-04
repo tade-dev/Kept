@@ -34,7 +34,7 @@ struct PurchaseRow: View {
                     .foregroundStyle(.tint)
                     .lineLimit(1)
 
-                WarrantyStatusBadge(warranty: purchase.warranty)
+                WarrantyStatusBadge(warranty: purchase.primaryWarranty)
             }
         }
         .padding(.vertical, 4)

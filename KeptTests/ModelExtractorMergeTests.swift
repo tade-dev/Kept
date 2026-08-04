@@ -1,0 +1,39 @@
+import Foundation
+import Testing
+@testable import Kept
+
+@Suite("ModelExtractor.merge")
+struct ModelExtractorMergeTests {
+    @Test("rules keep price and date; model fills item and warranty")
+    func mergePrefersRulesMoney() {
+        let rules = ExtractedReceipt(
+            merchant: "APPLE STORE",
+            itemName: "",
+            price: 2849,
+            currency: "AUD",
+            purchaseDate: "2024-11-26",
+            warrantyDurationMonths: 0,
+            warrantyIsInferred: false,
+            confidence: 0.7
+        )
+        let model = ExtractedReceipt(
+            merchant: "Apple Store",
+            itemName: "iPhone 16 Pro Max 1TB",
+            price: 99,
+            currency: "USD",
+            purchaseDate: "2026-01-01",
+            warrantyDurationMonths: 12,
+            warrantyIsInferred: true,
+            confidence: 0.9
+        )
+
+        let merged = ModelExtractor.merge(rules: rules, model: model)
+        #expect(merged.merchant == "Apple Store")
+        #expect(merged.itemName == "iPhone 16 Pro Max 1TB")
+        #expect(merged.price == 2849)
+        #expect(merged.currency == "AUD")
+        #expect(merged.purchaseDate == "2024-11-26")
+        #expect(merged.warrantyDurationMonths == 12)
+        #expect(merged.warrantyIsInferred == true)
+    }
+}

@@ -7,6 +7,7 @@ struct KeptApp: App {
         let schema = Schema([
             Purchase.self,
             WarrantyTerm.self,
+            PassRecord.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

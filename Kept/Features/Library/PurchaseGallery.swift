@@ -119,7 +119,7 @@ struct PurchaseGallery: View {
 
                 Spacer(minLength: 8)
 
-                WarrantyStatusBadge(warranty: purchase.warranty)
+                WarrantyStatusBadge(warranty: purchase.primaryWarranty)
             }
         }
         .padding(16)

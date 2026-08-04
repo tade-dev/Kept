@@ -4,6 +4,9 @@ import SwiftData
 struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @Namespace private var receiptNamespace
 
     @State private var isScannerPresented: Bool
     @State private var capturedImage: UIImage?
@@ -21,17 +24,17 @@ struct CaptureView: View {
     @State private var warrantyInferred: Bool = false
     @State private var warrantyEditedByUser: Bool = false
 
-    private let recognizer: any TextRecognizing
-    private let extractor: any ReceiptExtracting
+    private let ocr: any OCRService
+    private let extractionService: any ExtractionService
     private let preloadedImage: UIImage?
 
     init(
         image: UIImage? = nil,
-        recognizer: any TextRecognizing = VisionTextRecognizer(),
-        extractor: any ReceiptExtracting = FoundationReceiptExtractor()
+        ocr: any OCRService = VisionOCRService(),
+        extractionService: any ExtractionService = DefaultExtractionService()
     ) {
-        self.recognizer = recognizer
-        self.extractor = extractor
+        self.ocr = ocr
+        self.extractionService = extractionService
         self.preloadedImage = image
         self._isScannerPresented = State(initialValue: image == nil)
         self._capturedImage = State(initialValue: image)
@@ -44,6 +47,10 @@ struct CaptureView: View {
         case extracting
         case review
         case failed
+    }
+
+    private var isHoldingReceipt: Bool {
+        capturedImage != nil && status != .idle && status != .scanning
     }
 
     var body: some View {
@@ -80,63 +87,131 @@ struct CaptureView: View {
     private var navigationTitle: String {
         switch status {
         case .review: "Review receipt"
+        case .recognizing, .extracting: "Reading receipt"
         default: "Scan receipt"
         }
     }
 
     @ViewBuilder
     private var content: some View {
+        if isHoldingReceipt {
+            heldReceiptFlow
+        } else {
+            switch status {
+            case .failed:
+                failureState
+            default:
+                emptyScannerState
+            }
+        }
+    }
+
+    // MARK: - Hold-the-receipt flow
+
+    @ViewBuilder
+    private var heldReceiptFlow: some View {
+        Group {
+            if status == .review {
+                reviewForm
+            } else {
+                processingHero
+            }
+        }
+    }
+
+    private var processingHero: some View {
+        ZStack(alignment: .bottom) {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 12)
+
+                if let image = capturedImage {
+                    receiptImage(image, maxHeight: 520, cornerRadius: 20)
+                        .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
+                        .padding(.horizontal, 28)
+                        .transition(.identity)
+                }
+
+                Spacer(minLength: 12)
+            }
+
+            processingChrome
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+        }
+    }
+
+    private var processingChrome: some View {
+        HStack(spacing: 12) {
+            if status != .failed {
+                ProgressView()
+                    .controlSize(.regular)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(processingTitle)
+                    .font(.subheadline.weight(.semibold))
+                if let extractionErrorMessage, status == .failed {
+                    Text(extractionErrorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                } else {
+                    Text(processingSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if status == .failed {
+                Button("Edit anyway") {
+                    transition(to: .review)
+                }
+                .font(.subheadline.weight(.semibold))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .animation(statusAnimation, value: status)
+    }
+
+    private var processingTitle: String {
         switch status {
-        case .idle, .scanning:
-            emptyScannerState
-        case .recognizing:
-            progress("Reading receipt…")
-        case .extracting:
-            progress("Understanding warranty…")
-        case .review:
-            reviewForm
-        case .failed:
-            failureState
+        case .recognizing: "Reading receipt…"
+        case .extracting: "Understanding warranty…"
+        case .failed: "Couldn't finish reading"
+        default: "Working…"
         }
     }
 
-    private var emptyScannerState: some View {
-        ContentUnavailableView(
-            "Point at a receipt",
-            systemImage: "doc.viewfinder",
-            description: Text("Kept will crop, straighten, and read it on-device.")
-        )
-    }
-
-    private func progress(_ label: String) -> some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .controlSize(.large)
-            Text(label)
-                .foregroundStyle(.secondary)
+    private var processingSubtitle: String {
+        switch status {
+        case .recognizing: "On-device OCR"
+        case .extracting: "Filling what we can"
+        default: ""
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var failureState: some View {
-        ContentUnavailableView(
-            "Couldn't read that",
-            systemImage: "exclamationmark.triangle",
-            description: Text(extractionErrorMessage ?? "Try again with better light.")
-        )
-    }
+    // MARK: - Review
 
     private var reviewForm: some View {
         Form {
             if let image = capturedImage {
                 Section {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 220)
+                    receiptImage(image, maxHeight: 240, cornerRadius: 16)
+                        .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
                         .frame(maxWidth: .infinity)
-                        .listRowInsets(.init())
                 }
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                .listRowBackground(Color.clear)
             }
 
             Section("Purchase") {
@@ -153,6 +228,7 @@ struct CaptureView: View {
                 }
                 DatePicker("Purchased", selection: $purchaseDate, displayedComponents: .date)
             }
+            .transition(formTransition)
 
             Section {
                 HStack {
@@ -181,16 +257,71 @@ struct CaptureView: View {
                     Text("Kept guessed this length from the merchant. Edit if you know better.")
                 }
             }
+            .transition(formTransition)
 
             if let extractionErrorMessage {
                 Section {
-                    Label(extractionErrorMessage, systemImage: "sparkles")
-                        .foregroundStyle(.orange)
+                    Label(extractionErrorMessage, systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
                         .font(.footnote)
                 }
+                .transition(formTransition)
             }
         }
     }
+
+    private func receiptImage(_ image: UIImage, maxHeight: CGFloat, cornerRadius: CGFloat) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: maxHeight)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
+    }
+
+    private var formTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .opacity
+            )
+    }
+
+    private var statusAnimation: Animation? {
+        reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.28)
+    }
+
+    private func transition(to newStatus: Status) {
+        if reduceMotion {
+            status = newStatus
+        } else {
+            withAnimation(.snappy(duration: 0.28)) {
+                status = newStatus
+            }
+        }
+    }
+
+    // MARK: - Empty / failure
+
+    private var emptyScannerState: some View {
+        ContentUnavailableView(
+            "Point at a receipt",
+            systemImage: "doc.viewfinder",
+            description: Text("Kept will crop, straighten, and read it on-device.")
+        )
+    }
+
+    private var failureState: some View {
+        ContentUnavailableView(
+            "Couldn't read that",
+            systemImage: "exclamationmark.triangle",
+            description: Text(extractionErrorMessage ?? "Try again with better light.")
+        )
+    }
+
+    // MARK: - Logic
 
     private var expiryDate: Date? {
         guard let months = Int(warrantyMonthsText), months > 0 else { return nil }
@@ -199,7 +330,6 @@ struct CaptureView: View {
 
     private var canSave: Bool {
         !merchant.trimmingCharacters(in: .whitespaces).isEmpty
-            && !itemName.trimmingCharacters(in: .whitespaces).isEmpty
             && (Decimal(string: priceText.replacingOccurrences(of: ",", with: ".")) ?? 0) > 0
     }
 
@@ -216,50 +346,44 @@ struct CaptureView: View {
             dismiss()
         case .failure(let error):
             extractionErrorMessage = error.errorDescription
-            status = .failed
+            transition(to: .failed)
         }
     }
 
     private func runPipeline(on image: UIImage) async {
-        status = .recognizing
+        transition(to: .recognizing)
         let lines: [RecognizedLine]
         do {
-            lines = try await recognizer.recognize(in: image)
+            lines = try await ocr.recognize(in: image)
         } catch {
             extractionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            status = .failed
+            transition(to: .failed)
             return
         }
         recognizedLines = lines
 
         if lines.isEmpty {
             extractionErrorMessage = "No text was recognised on this receipt."
-            enterManualReview()
+            transition(to: .review)
             return
         }
 
-        status = .extracting
+        transition(to: .extracting)
         do {
-            let result = try await extractor.extract(from: lines)
+            let result = try await extractionService.extract(from: lines)
             extraction = result
             applyExtraction(result)
-            status = .review
+            transition(to: .review)
         } catch {
             extractionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            enterManualReview()
+            transition(to: .review)
         }
-    }
-
-    private func enterManualReview() {
-        // Fall back to a blank editable form so the user isn't blocked when
-        // the on-device model is unavailable (e.g., pre-Apple-Intelligence devices).
-        status = .review
     }
 
     private func applyExtraction(_ result: ExtractedReceipt) {
         merchant = result.merchant
         itemName = result.itemName
-        priceText = formatted(result.price)
+        priceText = result.price > 0 ? formatted(result.price) : ""
         currencyText = result.currency.uppercased()
         purchaseDate = parseISODate(result.purchaseDate) ?? .now
         warrantyMonthsText = result.warrantyDurationMonths > 0 ? String(result.warrantyDurationMonths) : ""
@@ -301,16 +425,12 @@ struct CaptureView: View {
         )
 
         if months > 0 {
-            let expiry = Calendar.current.date(byAdding: .month, value: months, to: purchaseDate) ?? purchaseDate
-            let source: WarrantySource = warrantyEditedByUser ? .userSet
-                : (extraction?.warrantyIsInferred == true ? .inferred : .userSet)
-            let warranty = WarrantyTerm(
-                durationMonths: months,
-                expiryDate: expiry,
-                source: source,
-                confidence: extraction?.confidence ?? 1.0
-            )
-            purchase.warranty = warranty
+            let byUser = warrantyEditedByUser || extraction?.warrantyIsInferred != true
+            _ = purchase.setDuration(months: months, byUser: byUser)
+            if !byUser, let term = purchase.primaryWarranty {
+                term.source = .inferred
+                term.confidence = extraction?.confidence ?? 0.7
+            }
         }
 
         modelContext.insert(purchase)
@@ -320,44 +440,44 @@ struct CaptureView: View {
 
 #Preview("Scanning empty state") {
     CaptureView(
-        recognizer: PreviewRecognizer(),
-        extractor: PreviewExtractor()
+        ocr: PreviewOCR(),
+        extractionService: PreviewExtraction()
     )
-    .modelContainer(for: [Purchase.self, WarrantyTerm.self], inMemory: true)
+    .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
 }
 
 #Preview("Review with extracted data") {
     CaptureView(
         image: PreviewSampleImage.receipt,
-        recognizer: PreviewRecognizer(),
-        extractor: PreviewExtractor()
+        ocr: PreviewOCR(delayNanoseconds: 800_000_000),
+        extractionService: PreviewExtraction(delayNanoseconds: 700_000_000)
     )
-    .modelContainer(for: [Purchase.self, WarrantyTerm.self], inMemory: true)
+    .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
 }
 
-private struct PreviewRecognizer: TextRecognizing {
+private struct PreviewOCR: OCRService {
+    var delayNanoseconds: UInt64 = 0
+
     func recognize(in image: UIImage) async throws -> [RecognizedLine] {
-        [
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        return [
             RecognizedLine(text: "APPLE STORE", confidence: 0.99, boundingBox: CGRect(x: 0, y: 0.9, width: 1, height: 0.05)),
             RecognizedLine(text: "MacBook Pro 14\"", confidence: 0.96, boundingBox: CGRect(x: 0, y: 0.7, width: 1, height: 0.05)),
-            RecognizedLine(text: "$1,999.00", confidence: 0.98, boundingBox: CGRect(x: 0, y: 0.5, width: 1, height: 0.05))
+            RecognizedLine(text: "TOTAL $1,999.00", confidence: 0.98, boundingBox: CGRect(x: 0, y: 0.2, width: 1, height: 0.05)),
         ]
     }
 }
 
-private struct PreviewExtractor: ReceiptExtracting {
+private struct PreviewExtraction: ExtractionService {
+    var delayNanoseconds: UInt64 = 0
+
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        try await Task.sleep(nanoseconds: 400_000_000)
-        return ExtractedReceipt(
-            merchant: "Apple Store",
-            itemName: "MacBook Pro 14\"",
-            price: 1999.00,
-            currency: "USD",
-            purchaseDate: "2026-08-01",
-            warrantyDurationMonths: 12,
-            warrantyIsInferred: true,
-            confidence: 0.92
-        )
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        return RulesExtractor().extract(from: lines)
     }
 }
 
@@ -367,6 +487,8 @@ private enum PreviewSampleImage {
         return renderer.image { ctx in
             UIColor.systemGray6.setFill()
             ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 400))
+            UIColor.darkGray.setFill()
+            UIBezierPath(roundedRect: CGRect(x: 40, y: 40, width: 220, height: 320), cornerRadius: 8).fill()
         }
     }()
 }
