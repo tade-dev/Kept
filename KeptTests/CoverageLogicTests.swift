@@ -88,6 +88,38 @@ struct CoverageLogicTests {
         #expect(term.source == .userProvided)
     }
 
+    @Test("return window and warranty coexist; nextDeadline prefers the sooner one")
+    func returnAndWarrantyCoexist() throws {
+        let purchase = Purchase(
+            merchant: "Apple",
+            itemName: "iPhone",
+            price: 999,
+            currency: "USD",
+            purchaseDate: date(2026, 8, 1)
+        )
+
+        #expect(purchase.setReturnWindow(days: 14, byUser: false))
+        #expect(purchase.setDuration(months: 12, byUser: false))
+        #expect(purchase.returnWindow?.durationDays == 14)
+        #expect(purchase.primaryWarranty?.durationMonths == 12)
+        #expect(purchase.nextDeadline?.kind == .returnWindow)
+        #expect(purchase.coverageEndsAt == date(2027, 8, 1))
+    }
+
+    @Test("user return window is not overwritten by inference")
+    func userReturnWins() throws {
+        let purchase = Purchase(
+            merchant: "Primark",
+            itemName: "Cargo Navy",
+            price: 22,
+            currency: "GBP",
+            purchaseDate: date(2026, 8, 1)
+        )
+        #expect(purchase.setReturnWindow(days: 14, byUser: true))
+        #expect(purchase.setReturnWindow(days: 28, byUser: false) == false)
+        #expect(purchase.returnWindow?.durationDays == 14)
+    }
+
     private func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
         var components = DateComponents()
         components.year = year

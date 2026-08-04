@@ -3,7 +3,8 @@ import SwiftUI
 /// Finder Icons orientation — date-grouped grid of receipt previews.
 struct PurchaseGrid: View {
     let purchases: [Purchase]
-    var namespace: Namespace.ID
+    var zoomNamespace: Namespace.ID
+    var layoutNamespace: Namespace.ID
     let onDelete: (Purchase) -> Void
 
     private let columns = [
@@ -24,7 +25,8 @@ struct PurchaseGrid: View {
                                 NavigationLink(value: purchase) {
                                     FinderIconItem(
                                         purchase: purchase,
-                                        namespace: namespace
+                                        zoomNamespace: zoomNamespace,
+                                        layoutNamespace: layoutNamespace
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -55,14 +57,16 @@ struct PurchaseGrid: View {
 
 private struct FinderIconItem: View {
     let purchase: Purchase
-    var namespace: Namespace.ID
+    var zoomNamespace: Namespace.ID
+    var layoutNamespace: Namespace.ID
 
     var body: some View {
         VStack(spacing: 6) {
             ReceiptThumbnail(data: purchase.receiptImage, cornerRadius: 6)
                 .frame(width: 88, height: 110)
                 .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-                .matchedTransitionSource(id: purchase.transitionID, in: namespace)
+                .layoutMatchedThumbnail(id: purchase.transitionID, in: layoutNamespace)
+                .matchedTransitionSource(id: purchase.transitionID, in: zoomNamespace)
 
             Text(purchase.displayMerchant)
                 .font(.caption)

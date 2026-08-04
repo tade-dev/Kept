@@ -4,9 +4,11 @@ import SwiftUI
 /// Finder Gallery orientation — large preview, glass inspector, filmstrip.
 struct PurchaseGallery: View {
     let purchases: [Purchase]
-    var namespace: Namespace.ID
+    var zoomNamespace: Namespace.ID
+    var layoutNamespace: Namespace.ID
     let onDelete: (Purchase) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selection: PersistentIdentifier?
 
     private var selected: Purchase? {
@@ -50,7 +52,8 @@ struct PurchaseGallery: View {
             NavigationLink(value: purchase) {
                 ZStack(alignment: .bottom) {
                     previewImage(for: purchase)
-                        .matchedTransitionSource(id: purchase.transitionID, in: namespace)
+                        .layoutMatchedThumbnail(id: purchase.transitionID, in: layoutNamespace)
+                        .matchedTransitionSource(id: purchase.transitionID, in: zoomNamespace)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.horizontal, 28)
                         .padding(.top, 8)
@@ -119,7 +122,7 @@ struct PurchaseGallery: View {
 
                 Spacer(minLength: 8)
 
-                WarrantyStatusBadge(warranty: purchase.primaryWarranty)
+                CoverageStatusBadge(term: purchase.nextDeadline)
             }
         }
         .padding(16)
@@ -134,12 +137,18 @@ struct PurchaseGallery: View {
                     ForEach(purchases) { purchase in
                         let isSelected = purchase.persistentModelID == selected?.persistentModelID
                         Button {
-                            withAnimation(.snappy(duration: 0.25)) {
+                            withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .snappy(duration: 0.25)) {
                                 selection = purchase.persistentModelID
                             }
                         } label: {
                             ReceiptThumbnail(data: purchase.receiptImage, cornerRadius: 6)
                                 .frame(width: 54, height: 68)
+                                // Selected item's geometry lives on the large preview.
+                                .modifier(FilmstripLayoutMatch(
+                                    id: purchase.transitionID,
+                                    namespace: layoutNamespace,
+                                    enabled: !isSelected
+                                ))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                                         .strokeBorder(
@@ -158,10 +167,24 @@ struct PurchaseGallery: View {
             }
             .onChange(of: selection) { _, newValue in
                 guard let newValue else { return }
-                withAnimation(.snappy(duration: 0.25)) {
+                withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .snappy(duration: 0.25)) {
                     proxy.scrollTo(newValue, anchor: .center)
                 }
             }
+        }
+    }
+}
+
+private struct FilmstripLayoutMatch: ViewModifier {
+    let id: String
+    let namespace: Namespace.ID
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.layoutMatchedThumbnail(id: id, in: namespace)
+        } else {
+            content
         }
     }
 }

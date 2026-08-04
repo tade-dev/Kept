@@ -100,7 +100,7 @@ Three `@Model` types: `Purchase`, `WarrantyTerm`, `PassRecord`.
 
 **The schema is already CloudKit-shaped.** Every stored property has a default value, every relationship is optional, nothing uses `@Attribute(.unique)`. CloudKit's constraints are non-negotiable and retrofitting them in week 4 means a migration. Do not add a non-defaulted property or a required relationship.
 
-**Warranties are one-to-many.** A laptop can carry a manufacturer term, a retailer guarantee, and card protection running different lengths. `primaryWarranty` is the longest-running one. Collapsing these into a single term costs the user real claims.
+**Coverage terms are one-to-many.** A purchase can carry a short retailer **return window** (days) and a longer **warranty** (months) at the same time — clothing often has only a return window. `CoverageKind` is stored as a raw String (`warranty` / `returnWindow`). `primaryWarranty` is the longest warranty-kind term; `returnWindow` is the return-kind term; `nextDeadline` is the soonest actionable date for badges. Collapsing these into a single term costs the user real claims.
 
 **`coverageEndsAt` is denormalised onto `Purchase`.** SwiftData `#Predicate` breaks when it traverses into an optional to-many relationship, and the library filters by expiry constantly. The stored date keeps queries translatable to SQL. It is `private(set)`; call `refreshCoverage()` after any mutation touching warranties.
 

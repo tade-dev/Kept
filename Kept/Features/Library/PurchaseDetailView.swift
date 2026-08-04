@@ -5,6 +5,7 @@ struct PurchaseDetailView: View {
     @Bindable var purchase: Purchase
 
     @State private var warrantyMonthsText: String = ""
+    @State private var returnDaysText: String = ""
     @State private var priceText: String = ""
     @State private var isShowingFullImage = false
 
@@ -56,18 +57,40 @@ struct PurchaseDetailView: View {
 
             Section {
                 HStack {
+                    TextField("Days to return", text: $returnDaysText)
+                        .keyboardType(.numberPad)
+                        .onChange(of: returnDaysText) { _, newValue in
+                            _ = purchase.setReturnWindow(days: Int(newValue) ?? 0, byUser: true)
+                        }
+                    if purchase.returnWindow?.source == .inferred {
+                        inferredChip
+                    }
+                }
+                if let term = purchase.returnWindow {
+                    LabeledContent("Return by") {
+                        Text(term.expiryDate, format: .dateTime.day().month().year())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Return window")
+            } footer: {
+                if purchase.returnWindow == nil {
+                    Text("Optional. Clothing and many retailers allow returns for a short window.")
+                } else if purchase.returnWindow?.source == .inferred {
+                    Text("Kept guessed this return window. Edit it to override.")
+                }
+            }
+
+            Section {
+                HStack {
                     TextField("Duration (months)", text: $warrantyMonthsText)
                         .keyboardType(.numberPad)
                         .onChange(of: warrantyMonthsText) { _, newValue in
-                            applyWarrantyChange(months: Int(newValue) ?? 0)
+                            _ = purchase.setDuration(months: Int(newValue) ?? 0, byUser: true)
                         }
                     if purchase.primaryWarranty?.source == .inferred {
-                        Text("inferred")
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.15), in: Capsule())
-                            .foregroundStyle(.secondary)
+                        inferredChip
                     }
                 }
                 if let warranty = purchase.primaryWarranty {
@@ -80,7 +103,7 @@ struct PurchaseDetailView: View {
                 Text("Warranty")
             } footer: {
                 if purchase.primaryWarranty == nil {
-                    Text("No warranty tracked. Enter a duration to add one.")
+                    Text("No repair warranty tracked. Leave blank for fashion and consumables.")
                 } else if purchase.primaryWarranty?.source == .inferred {
                     Text("Kept guessed this length. Edit it to override.")
                 }
@@ -95,6 +118,7 @@ struct PurchaseDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
+            returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? ""
             priceText = purchase.price > 0 ? formatDecimal(purchase.price) : ""
         }
         .fullScreenCover(isPresented: $isShowingFullImage) {
@@ -104,23 +128,41 @@ struct PurchaseDetailView: View {
         }
     }
 
+    private var inferredChip: some View {
+        Text("inferred")
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.15), in: Capsule())
+            .foregroundStyle(.secondary)
+    }
+
     private var displayTitle: String {
         let trimmed = purchase.merchant.trimmingCharacters(in: .whitespaces)
         return trimmed.isEmpty ? "Receipt" : trimmed
     }
 
-    private func applyWarrantyChange(months: Int) {
-        _ = purchase.setDuration(months: months, byUser: true)
-    }
-
     private func recomputeExpiry() {
-        guard let warranty = purchase.primaryWarranty else { return }
-        _ = purchase.setDuration(months: warranty.durationMonths, byUser: warranty.source == .userProvided)
+        if let warranty = purchase.primaryWarranty {
+            _ = purchase.setDuration(
+                months: warranty.durationMonths,
+                byUser: warranty.source == .userProvided
+            )
+        }
+        if let returnTerm = purchase.returnWindow {
+            _ = purchase.setReturnWindow(
+                days: returnTerm.durationDays,
+                byUser: returnTerm.source == .userProvided
+            )
+        }
     }
 
     private func formatDecimal(_ value: Decimal) -> String {
+        // POSIX, no grouping — avoids "2,849" → Decimal("2.849") on edit.
         let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
@@ -157,13 +199,13 @@ private struct FullReceiptViewer: View {
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
     let purchase = Purchase(
-        merchant: "Apple",
-        itemName: "iPhone 16 Pro Max",
-        price: 1999,
-        currency: "USD",
+        merchant: "Primark",
+        itemName: "Cargo Navy",
+        price: 22,
+        currency: "GBP",
         purchaseDate: .now
     )
-    _ = purchase.setDuration(months: 12, byUser: false)
+    _ = purchase.setReturnWindow(days: 28, byUser: false)
     container.mainContext.insert(purchase)
     return NavigationStack {
         PurchaseDetailView(purchase: purchase)

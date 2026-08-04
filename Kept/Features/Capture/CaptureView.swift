@@ -23,6 +23,9 @@ struct CaptureView: View {
     @State private var warrantyMonthsText: String = ""
     @State private var warrantyInferred: Bool = false
     @State private var warrantyEditedByUser: Bool = false
+    @State private var returnDaysText: String = ""
+    @State private var returnInferred: Bool = false
+    @State private var returnEditedByUser: Bool = false
 
     private let ocr: any OCRService
     private let extractionService: any ExtractionService
@@ -110,37 +113,47 @@ struct CaptureView: View {
 
     @ViewBuilder
     private var heldReceiptFlow: some View {
-        Group {
-            if status == .review {
-                reviewForm
-            } else {
-                processingHero
-            }
-        }
-    }
-
-    private var processingHero: some View {
         ZStack(alignment: .bottom) {
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer(minLength: 12)
-
                 if let image = capturedImage {
-                    receiptImage(image, maxHeight: 520, cornerRadius: 20)
-                        .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
-                        .padding(.horizontal, 28)
-                        .transition(.identity)
+                    heldReceiptImage(image)
                 }
 
-                Spacer(minLength: 12)
+                if status == .review {
+                    reviewForm
+                        .transition(formTransition)
+                } else {
+                    Spacer(minLength: 0)
+                }
             }
 
-            processingChrome
-                .padding(.horizontal, 20)
-                .padding(.bottom, 28)
+            if status != .review {
+                processingChrome
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+    }
+
+    /// Single shared image so loading → review morphs via matchedGeometryEffect.
+    private func heldReceiptImage(_ image: UIImage) -> some View {
+        let reviewing = status == .review
+        return Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: reviewing ? 240 : 520)
+            .clipShape(RoundedRectangle(cornerRadius: reviewing ? 16 : 20, style: .continuous))
+            .shadow(color: .black.opacity(reviewing ? 0.1 : 0.16), radius: reviewing ? 10 : 18, y: reviewing ? 4 : 8)
+            .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
+            .padding(.horizontal, reviewing ? 16 : 28)
+            .padding(.top, reviewing ? 8 : 16)
+            .padding(.bottom, reviewing ? 4 : 0)
+            .animation(statusAnimation, value: status)
     }
 
     private var processingChrome: some View {
@@ -204,16 +217,6 @@ struct CaptureView: View {
 
     private var reviewForm: some View {
         Form {
-            if let image = capturedImage {
-                Section {
-                    receiptImage(image, maxHeight: 240, cornerRadius: 16)
-                        .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
-                        .frame(maxWidth: .infinity)
-                }
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                .listRowBackground(Color.clear)
-            }
-
             Section("Purchase") {
                 TextField("Merchant", text: $merchant)
                 TextField("Item", text: $itemName)
@@ -232,19 +235,38 @@ struct CaptureView: View {
 
             Section {
                 HStack {
+                    TextField("Days to return", text: $returnDaysText)
+                        .keyboardType(.numberPad)
+                        .onChange(of: returnDaysText) { _, _ in returnEditedByUser = true }
+                    if returnInferred && !returnEditedByUser {
+                        inferredChip
+                    }
+                }
+                if let returnBy = returnExpiryDate {
+                    LabeledContent("Return by") {
+                        Text(returnBy, format: .dateTime.day().month().year())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Return window")
+            } footer: {
+                if returnInferred && !returnEditedByUser {
+                    Text("Kept guessed the return window. Edit if the receipt says otherwise.")
+                }
+            }
+            .transition(formTransition)
+
+            Section {
+                HStack {
                     TextField("Duration (months)", text: $warrantyMonthsText)
                         .keyboardType(.numberPad)
                         .onChange(of: warrantyMonthsText) { _, _ in warrantyEditedByUser = true }
                     if warrantyInferred && !warrantyEditedByUser {
-                        Text("inferred")
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.15), in: Capsule())
-                            .foregroundStyle(.secondary)
+                        inferredChip
                     }
                 }
-                if let expiry = expiryDate {
+                if let expiry = warrantyExpiryDate {
                     LabeledContent("Expires") {
                         Text(expiry, format: .dateTime.day().month().year())
                             .foregroundStyle(.secondary)
@@ -255,6 +277,8 @@ struct CaptureView: View {
             } footer: {
                 if warrantyInferred && !warrantyEditedByUser {
                     Text("Kept guessed this length from the merchant. Edit if you know better.")
+                } else if (Int(warrantyMonthsText) ?? 0) == 0 {
+                    Text("Leave blank for clothing and other purchases with no repair warranty.")
                 }
             }
             .transition(formTransition)
@@ -270,16 +294,6 @@ struct CaptureView: View {
         }
     }
 
-    private func receiptImage(_ image: UIImage, maxHeight: CGFloat, cornerRadius: CGFloat) -> some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .frame(maxWidth: .infinity)
-            .frame(maxHeight: maxHeight)
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
-    }
-
     private var formTransition: AnyTransition {
         reduceMotion
             ? .opacity
@@ -290,14 +304,14 @@ struct CaptureView: View {
     }
 
     private var statusAnimation: Animation? {
-        reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.28)
+        reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.32)
     }
 
     private func transition(to newStatus: Status) {
         if reduceMotion {
             status = newStatus
         } else {
-            withAnimation(.snappy(duration: 0.28)) {
+            withAnimation(.snappy(duration: 0.32)) {
                 status = newStatus
             }
         }
@@ -323,9 +337,23 @@ struct CaptureView: View {
 
     // MARK: - Logic
 
-    private var expiryDate: Date? {
+    private var inferredChip: some View {
+        Text("inferred")
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.15), in: Capsule())
+            .foregroundStyle(.secondary)
+    }
+
+    private var warrantyExpiryDate: Date? {
         guard let months = Int(warrantyMonthsText), months > 0 else { return nil }
         return Calendar.current.date(byAdding: .month, value: months, to: purchaseDate)
+    }
+
+    private var returnExpiryDate: Date? {
+        guard let days = Int(returnDaysText), days > 0 else { return nil }
+        return Calendar.current.date(byAdding: .day, value: days, to: purchaseDate)
     }
 
     private var canSave: Bool {
@@ -389,11 +417,17 @@ struct CaptureView: View {
         warrantyMonthsText = result.warrantyDurationMonths > 0 ? String(result.warrantyDurationMonths) : ""
         warrantyInferred = result.warrantyIsInferred
         warrantyEditedByUser = false
+        returnDaysText = result.returnWindowDays > 0 ? String(result.returnWindowDays) : ""
+        returnInferred = result.returnWindowIsInferred
+        returnEditedByUser = false
     }
 
     private func formatted(_ value: Double) -> String {
+        // POSIX, no grouping — "2,849" would round-trip as 2.849 via comma→dot replace.
         let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
         return formatter.string(from: NSNumber(value: value)) ?? String(value)
@@ -413,6 +447,7 @@ struct CaptureView: View {
         let normalisedPrice = priceText.replacingOccurrences(of: ",", with: ".")
         let price = Decimal(string: normalisedPrice) ?? 0
         let months = Int(warrantyMonthsText) ?? 0
+        let returnDays = Int(returnDaysText) ?? 0
 
         let purchase = Purchase(
             merchant: merchant.trimmingCharacters(in: .whitespaces),
@@ -423,6 +458,15 @@ struct CaptureView: View {
             notes: "",
             receiptImage: capturedImage?.jpegData(compressionQuality: 0.85)
         )
+
+        if returnDays > 0 {
+            let byUser = returnEditedByUser || extraction?.returnWindowIsInferred != true
+            _ = purchase.setReturnWindow(days: returnDays, byUser: byUser)
+            if !byUser, let term = purchase.returnWindow {
+                term.source = .inferred
+                term.confidence = extraction?.confidence ?? 0.7
+            }
+        }
 
         if months > 0 {
             let byUser = warrantyEditedByUser || extraction?.warrantyIsInferred != true

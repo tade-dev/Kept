@@ -3,16 +3,21 @@ import SwiftUI
 /// Finder List orientation row — thumbnail, name, blue metadata.
 struct PurchaseRow: View {
     let purchase: Purchase
-    var namespace: Namespace.ID?
+    var zoomNamespace: Namespace.ID?
+    var layoutNamespace: Namespace.ID?
 
     var body: some View {
         HStack(spacing: 12) {
             ReceiptThumbnail(data: purchase.receiptImage, cornerRadius: 5)
                 .frame(width: 36, height: 44)
                 .shadow(color: .black.opacity(0.08), radius: 1, y: 0.5)
+                .modifier(OptionalLayoutMatch(
+                    id: purchase.transitionID,
+                    namespace: layoutNamespace
+                ))
                 .modifier(OptionalMatchedTransition(
                     id: purchase.transitionID,
-                    namespace: namespace
+                    namespace: zoomNamespace
                 ))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -34,10 +39,24 @@ struct PurchaseRow: View {
                     .foregroundStyle(.tint)
                     .lineLimit(1)
 
-                WarrantyStatusBadge(warranty: purchase.primaryWarranty)
+                CoverageStatusBadge(term: purchase.nextDeadline)
             }
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct OptionalLayoutMatch: ViewModifier {
+    let id: String
+    let namespace: Namespace.ID?
+
+    func body(content: Content) -> some View {
+        if let namespace {
+            content.layoutMatchedThumbnail(id: id, in: namespace)
+        } else {
+            content
+        }
     }
 }
 
@@ -54,8 +73,8 @@ private struct OptionalMatchedTransition: ViewModifier {
     }
 }
 
-struct WarrantyStatusBadge: View {
-    let warranty: WarrantyTerm?
+struct CoverageStatusBadge: View {
+    let term: WarrantyTerm?
 
     var body: some View {
         Text(label)
@@ -74,29 +93,33 @@ struct WarrantyStatusBadge: View {
     }
 
     private var status: Status {
-        guard let warranty else { return .none }
-        let days = Calendar.current.dateComponents([.day], from: .now, to: warranty.expiryDate).day ?? 0
+        guard let term else { return .none }
+        let days = Calendar.current.dateComponents([.day], from: .now, to: term.expiryDate).day ?? 0
         return days < 0 ? .expired(daysAgo: -days) : .active(daysLeft: days)
+    }
+
+    private var isReturn: Bool {
+        term?.kind == .returnWindow
     }
 
     private var label: String {
         switch status {
         case .none:
-            "no warranty"
+            "No Deadline"
         case .active(let days) where days == 0:
-            "Expires today"
+            isReturn ? "Return today" : "Expires today"
         case .active(let days) where days == 1:
-            "1 day left"
+            isReturn ? "Return · 1 day" : "1 day left"
         case .active(let days) where days < 60:
-            "\(days) days left"
+            isReturn ? "Return · \(days)d" : "\(days) days left"
         case .active(let days):
-            "\(days / 30) mo left"
+            isReturn ? "Return · \(days / 30)mo" : "\(days / 30) mo left"
         case .expired(let days) where days == 0:
-            "Expired today"
+            isReturn ? "Return ended" : "Expired today"
         case .expired(let days) where days < 30:
-            "Expired \(days)d ago"
+            isReturn ? "Return ended \(days)d ago" : "Expired \(days)d ago"
         case .expired(let days):
-            "Expired \(days / 30)mo ago"
+            isReturn ? "Return ended \(days / 30)mo ago" : "Expired \(days / 30)mo ago"
         }
     }
 
@@ -107,5 +130,14 @@ struct WarrantyStatusBadge: View {
         case .active: .green
         case .expired: .red
         }
+    }
+}
+
+/// Back-compat name used by older call sites.
+typealias WarrantyStatusBadge = CoverageStatusBadge
+
+extension CoverageStatusBadge {
+    init(warranty: WarrantyTerm?) {
+        self.init(term: warranty)
     }
 }

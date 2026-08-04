@@ -6,10 +6,14 @@ import PhotosUI
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
+    /// Zoom navigation into purchase detail.
     @Namespace private var receiptNamespace
+    /// Thumbnail morph between Icons / List / Gallery.
+    @Namespace private var layoutNamespace
 
     @State private var isCapturing = false
     #if DEBUG
@@ -25,7 +29,16 @@ struct LibraryView: View {
     private var viewModeBinding: Binding<LibraryViewMode> {
         Binding(
             get: { viewMode },
-            set: { viewModeRaw = $0.rawValue }
+            set: { newValue in
+                guard newValue != viewMode else { return }
+                if reduceMotion {
+                    viewModeRaw = newValue.rawValue
+                } else {
+                    withAnimation(.snappy(duration: 0.42, extraBounce: 0.04)) {
+                        viewModeRaw = newValue.rawValue
+                    }
+                }
+            }
         )
     }
 
@@ -114,34 +127,22 @@ struct LibraryView: View {
         case .icons:
             PurchaseGrid(
                 purchases: purchases,
-                namespace: receiptNamespace,
+                zoomNamespace: receiptNamespace,
+                layoutNamespace: layoutNamespace,
                 onDelete: delete(_:)
             )
         case .list:
-            List {
-                ForEach(DateGroupedPurchases.sections(from: purchases)) { section in
-                    Section(section.title) {
-                        ForEach(section.purchases) { purchase in
-                            NavigationLink(value: purchase) {
-                                PurchaseRow(
-                                    purchase: purchase,
-                                    namespace: receiptNamespace
-                                )
-                            }
-                        }
-                        .onDelete { offsets in
-                            for index in offsets {
-                                delete(section.purchases[index])
-                            }
-                        }
-                    }
-                }
-            }
-            .listStyle(.plain)
+            PurchaseList(
+                purchases: purchases,
+                zoomNamespace: receiptNamespace,
+                layoutNamespace: layoutNamespace,
+                onDelete: delete(_:)
+            )
         case .gallery:
             PurchaseGallery(
                 purchases: purchases,
-                namespace: receiptNamespace,
+                zoomNamespace: receiptNamespace,
+                layoutNamespace: layoutNamespace,
                 onDelete: delete(_:)
             )
         }
@@ -217,8 +218,8 @@ struct LibraryView: View {
         currency: "GBP",
         purchaseDate: Calendar.current.date(byAdding: .day, value: -400, to: .now)!
     )
-    _ = primark.setDuration(months: 12, byUser: false)
-    primark.primaryWarranty?.confidence = 0.75
+    _ = primark.setReturnWindow(days: 28, byUser: false)
+    primark.returnWindow?.confidence = 0.75
     context.insert(primark)
 
     let woolies = Purchase(
