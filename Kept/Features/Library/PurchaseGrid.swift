@@ -1,0 +1,81 @@
+import SwiftUI
+
+/// Finder Icons orientation — date-grouped grid of receipt previews.
+struct PurchaseGrid: View {
+    let purchases: [Purchase]
+    var namespace: Namespace.ID
+    let onDelete: (Purchase) -> Void
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 96, maximum: 120), spacing: 20, alignment: .top)
+    ]
+
+    private var sections: [PurchaseDateSection] {
+        DateGroupedPurchases.sections(from: purchases)
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 28, pinnedViews: [.sectionHeaders]) {
+                ForEach(sections) { section in
+                    Section {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
+                            ForEach(section.purchases) { purchase in
+                                NavigationLink(value: purchase) {
+                                    FinderIconItem(
+                                        purchase: purchase,
+                                        namespace: namespace
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        onDelete(purchase)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    } header: {
+                        Text(section.title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 6)
+                    }
+                }
+            }
+            .padding(.vertical, 12)
+        }
+    }
+}
+
+private struct FinderIconItem: View {
+    let purchase: Purchase
+    var namespace: Namespace.ID
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ReceiptThumbnail(data: purchase.receiptImage, cornerRadius: 6)
+                .frame(width: 88, height: 110)
+                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                .matchedTransitionSource(id: purchase.transitionID, in: namespace)
+
+            Text(purchase.displayMerchant)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 96)
+
+            Text(purchase.finderMetadata)
+                .font(.caption2)
+                .foregroundStyle(.tint)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+}
