@@ -1,4 +1,5 @@
 import { extractWithLLM, UpstreamError } from "./llm";
+import { buildSignedPass, parsePassRequest } from "./pass";
 import type { Env, ExtractRequest, OCRLine } from "./types";
 
 export default {
@@ -6,11 +7,11 @@ export default {
     try {
       return await handle(request, env);
     } catch (error) {
-      // Never log request bodies or OCR text — errors may otherwise echo prompts.
+      // Never log request bodies, OCR text, or cert material.
       if (error instanceof UpstreamError) {
         return json({ error: error.message }, error.status);
       }
-      console.error("extract_failed", { reason: "unhandled" });
+      console.error("request_failed", { reason: "unhandled" });
       return json({ error: "Internal error." }, 500);
     }
   },
@@ -23,20 +24,28 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ ok: true });
   }
 
-  if (request.method !== "POST" || url.pathname !== "/extract") {
+  if (request.method !== "POST") {
     return json({ error: "Not found." }, 404);
   }
 
+  if (url.pathname === "/extract") {
+    return handleExtract(request, env);
+  }
+  if (url.pathname === "/pass") {
+    return handlePass(request, env);
+  }
+
+  return json({ error: "Not found." }, 404);
+}
+
+async function handleExtract(request: Request, env: Env): Promise<Response> {
   if (!checkAuth(request, env)) {
     return json({ error: "Unauthorized." }, 401);
   }
 
   // TODO(week 3): replace shared-secret header with App Attest attestation.
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const { success } = await env.EXTRACT_RATE_LIMIT.limit({ key: `ip:${ip}` });
-  if (!success) {
-    return json({ error: "Too many requests." }, 429);
-  }
+  const limited = await rateLimit(request, env);
+  if (limited) return limited;
 
   let body: unknown;
   try {
@@ -63,6 +72,53 @@ async function handle(request: Request, env: Env): Promise<Response> {
   return json(extraction, 200);
 }
 
+async function handlePass(request: Request, env: Env): Promise<Response> {
+  if (!checkAuth(request, env)) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  // TODO(week 3): replace shared-secret header with App Attest attestation.
+  const limited = await rateLimit(request, env);
+  if (limited) return limited;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const passRequest = parsePassRequest(body);
+  if (!passRequest) {
+    return json(
+      {
+        error:
+          "Body must be { merchant, itemName, total, currencyCode, purchaseDate, coverageEndsAt, serialNumber }.",
+      },
+      400,
+    );
+  }
+
+  const pkpass = await buildSignedPass(env, passRequest);
+  return new Response(pkpass, {
+    status: 200,
+    headers: {
+      "content-type": "application/vnd.apple.pkpass",
+      "content-disposition": `attachment; filename="${passRequest.serialNumber}.pkpass"`,
+      "cache-control": "no-store",
+    },
+  });
+}
+
+async function rateLimit(request: Request, env: Env): Promise<Response | null> {
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const { success } = await env.EXTRACT_RATE_LIMIT.limit({ key: `ip:${ip}` });
+  if (!success) {
+    return json({ error: "Too many requests." }, 429);
+  }
+  return null;
+}
+
 function checkAuth(request: Request, env: Env): boolean {
   const expected = env.EXTRACT_SECRET;
   if (!expected) return false;
@@ -79,7 +135,6 @@ function timingSafeEqual(a: string, b: string): boolean {
   const left = encoder.encode(a);
   const right = encoder.encode(b);
   if (left.byteLength !== right.byteLength) {
-    // Still compare to keep timing flatter on length mismatch.
     let dig = 0;
     for (let i = 0; i < left.byteLength; i++) dig |= left[i];
     return false;

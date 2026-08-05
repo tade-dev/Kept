@@ -11,12 +11,18 @@ AI_GATEWAY_ID = "kept"
 #   openai/gpt-4o-mini
 #   anthropic/claude-haiku-4-5
 LLM_MODEL = "openai/gpt-4o-mini"
+# Wallet pass identity (public). PEMs are secrets — see docs/PASS_CERTS.md
+PASS_TYPE_IDENTIFIER = "pass.com.tade.Kept"
+TEAM_IDENTIFIER = "TU566926VK"
 
 # Secrets (wrangler secret put / .dev.vars — never commit):
 #   EXTRACT_SECRET
 #   OPENAI_API_KEY          — if using openai/*
 #   ANTHROPIC_API_KEY       — if using anthropic/*
 #   CF_AIG_TOKEN            — if AI Gateway auth is ON
+#   SIGNER_CERT_PEM
+#   SIGNER_KEY_PKCS8_PEM
+#   WWDR_PEM
 
 [[ratelimits]]
 name = "EXTRACT_RATE_LIMIT"

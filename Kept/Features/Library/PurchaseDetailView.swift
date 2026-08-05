@@ -151,6 +151,11 @@ struct PurchaseDetailView: View {
         }
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                AddToWalletButton(purchase: purchase)
+            }
+        }
         .task {
             warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
             returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? ""

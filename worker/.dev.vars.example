@@ -8,3 +8,10 @@ OPENAI_API_KEY=
 
 # If AI Gateway → Authenticated Gateway is ON:
 # CF_AIG_TOKEN=
+
+# --- Wallet pass signing (see docs/PASS_CERTS.md) ---
+# PASS_TYPE_IDENTIFIER / TEAM_IDENTIFIER can live in wrangler.toml [vars].
+# Paste PEMs with \n for newlines, or multiline quoted strings.
+# SIGNER_CERT_PEM=
+# SIGNER_KEY_PKCS8_PEM=
+# WWDR_PEM=

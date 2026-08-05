@@ -1,6 +1,13 @@
-node_modules/
+
+*.cer
+*.log
+*.p12
+*.pem
+.DS_Store
+.dev.vars
 .wrangler/
 dist/
-.dev.vars
-*.log
-.DS_Store
+node_modules/
+
+certs/
+*.key

@@ -10,6 +10,16 @@ export type ExtractRequest = {
   lines: OCRLine[];
 };
 
+export type PassRequest = {
+  merchant: string;
+  itemName: string;
+  total: number;
+  currencyCode: string;
+  purchaseDate: string;
+  coverageEndsAt: string;
+  serialNumber: string;
+};
+
 export type Env = {
   CF_ACCOUNT_ID: string;
   AI_GATEWAY_ID: string;
@@ -23,4 +33,10 @@ export type Env = {
   /** Optional — only required when the AI Gateway enforces auth. */
   CF_AIG_TOKEN?: string;
   EXTRACT_RATE_LIMIT: RateLimit;
+
+  PASS_TYPE_IDENTIFIER: string;
+  TEAM_IDENTIFIER: string;
+  SIGNER_CERT_PEM?: string;
+  SIGNER_KEY_PKCS8_PEM?: string;
+  WWDR_PEM?: string;
 };
