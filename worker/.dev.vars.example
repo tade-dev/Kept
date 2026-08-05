@@ -1,0 +1,10 @@
+EXTRACT_SECRET=dev-shared-secret-change-me
+
+# OpenAI (default model openai/gpt-4o-mini):
+OPENAI_API_KEY=
+
+# Or Claude (set LLM_MODEL=anthropic/claude-haiku-4-5 in wrangler.toml):
+# ANTHROPIC_API_KEY=
+
+# If AI Gateway → Authenticated Gateway is ON:
+# CF_AIG_TOKEN=

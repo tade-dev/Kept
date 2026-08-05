@@ -10,6 +10,10 @@ final class Purchase {
     var purchaseDate: Date = Date(timeIntervalSinceReferenceDate: 0)
     var notes: String = ""
     @Attribute(.externalStorage) var receiptImage: Data?
+    /// JSON `[OCRLinePayload]` — OCR text only, never the image. Used for deferred cloud re-extract.
+    var ocrLinesData: Data?
+    /// True when cloud extraction failed/offline at capture time.
+    var needsReextraction: Bool = false
     var createdAt: Date = Date(timeIntervalSinceReferenceDate: 0)
 
     /// Denormalised end of the longest coverage term. Kept queryable for `#Predicate`.

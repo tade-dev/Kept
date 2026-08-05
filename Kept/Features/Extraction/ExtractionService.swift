@@ -21,15 +21,28 @@ enum ExtractionError: Error, LocalizedError {
     }
 }
 
-/// Rules always run. Foundation Models enrich when available; failures fall back to rules.
+/// Rules always run. Cloud enriches when configured; offline / failures soft-fail back to rules.
+/// Foundation Models remain as a secondary enricher when cloud isn't configured.
 struct DefaultExtractionService: ExtractionService {
     var rules: RulesExtractor = RulesExtractor()
+    var cloud: CloudExtractor? = CloudExtractor.makeDefault()
     var model: ModelExtractor = ModelExtractor()
 
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
         guard !lines.isEmpty else { throw ExtractionError.emptyInput }
 
         let floor = rules.extract(from: lines)
+
+        if let cloud {
+            do {
+                let remote = try await cloud.extract(from: lines)
+                return CloudExtractor.merge(rules: floor, cloud: remote)
+            } catch {
+                // Soft-fail: never block capture. Caller should persist OCR for re-extract.
+                return floor
+            }
+        }
+
         guard model.isAvailable else { return floor }
 
         do {

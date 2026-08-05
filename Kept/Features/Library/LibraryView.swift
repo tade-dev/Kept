@@ -18,6 +18,7 @@ struct LibraryView: View {
     @State private var isCapturing = false
     #if DEBUG
     @State private var isPhotoPickerPresented = false
+    @State private var isFixtureCapturePresented = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: UIImage?
     #endif
@@ -72,6 +73,11 @@ struct LibraryView: View {
                 ToolbarItem(placement: .secondaryAction) {
                     Menu("Debug") {
                         Button {
+                            isFixtureCapturePresented = true
+                        } label: {
+                            Label("Capture OCR fixture", systemImage: "text.viewfinder")
+                        }
+                        Button {
                             // PhotosPicker inside Menu never presents — flip a flag instead.
                             isPhotoPickerPresented = true
                         } label: {
@@ -96,6 +102,9 @@ struct LibraryView: View {
                 CaptureView()
             }
             #if DEBUG
+            .sheet(isPresented: $isFixtureCapturePresented) {
+                FixtureCaptureView()
+            }
             .photosPicker(
                 isPresented: $isPhotoPickerPresented,
                 selection: $pickerItem,

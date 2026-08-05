@@ -13,6 +13,8 @@ struct CaptureView: View {
     @State private var recognizedLines: [RecognizedLine] = []
     @State private var extraction: ExtractedReceipt?
     @State private var extractionErrorMessage: String?
+    /// Cloud failed or offline — save still proceeds with rules floor + OCR for later.
+    @State private var needsReextraction = false
     @State private var status: Status = .idle
 
     @State private var merchant: String = ""
@@ -28,16 +30,19 @@ struct CaptureView: View {
     @State private var returnEditedByUser: Bool = false
 
     private let ocr: any OCRService
-    private let extractionService: any ExtractionService
+    private let rulesExtractor: RulesExtractor
+    private let cloudExtractor: CloudExtractor?
     private let preloadedImage: UIImage?
 
     init(
         image: UIImage? = nil,
         ocr: any OCRService = VisionOCRService(),
-        extractionService: any ExtractionService = DefaultExtractionService()
+        rulesExtractor: RulesExtractor = RulesExtractor(),
+        cloudExtractor: CloudExtractor? = CloudExtractor.makeDefault()
     ) {
         self.ocr = ocr
-        self.extractionService = extractionService
+        self.rulesExtractor = rulesExtractor
+        self.cloudExtractor = cloudExtractor
         self.preloadedImage = image
         self._isScannerPresented = State(initialValue: image == nil)
         self._capturedImage = State(initialValue: image)
