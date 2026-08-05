@@ -15,7 +15,7 @@ curl -sS -X POST "${BASE_URL}/pass" \
     "total": 18.13,
     "currencyCode": "GBP",
     "purchaseDate": "2026-06-16",
-    "coverageEndsAt": "2026-07-16T00:00:00.000Z",
+    "coverageEndsAt": "2026-11-20T00:00:00.000Z",
     "serialNumber": "kept-test-serial-001"
   }' \
   --output "${OUT}"

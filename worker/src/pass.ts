@@ -105,6 +105,25 @@ export async function buildSignedPass(
   return zipSync(zipInput, { level: 6 });
 }
 
+/** Ink warranty-stub palette — keep in sync with scripts/generate-pass-assets.py */
+const PASS_THEME = {
+  calm: {
+    backgroundColor: "rgb(24, 38, 48)",
+    foregroundColor: "rgb(245, 242, 236)",
+    labelColor: "rgb(214, 168, 106)",
+  },
+  urgent: {
+    backgroundColor: "rgb(42, 28, 24)",
+    foregroundColor: "rgb(245, 242, 236)",
+    labelColor: "rgb(232, 140, 90)",
+  },
+  expired: {
+    backgroundColor: "rgb(36, 36, 40)",
+    foregroundColor: "rgb(220, 218, 214)",
+    labelColor: "rgb(168, 160, 152)",
+  },
+} as const;
+
 function buildPassJson(env: Env, request: PassRequest) {
   const ends = new Date(request.coverageEndsAt);
   const endsValid = !Number.isNaN(ends.getTime());
@@ -114,6 +133,15 @@ function buildPassJson(env: Env, request: PassRequest) {
 
   const money = formatMoney(request.total, request.currencyCode);
   const expiryLabel = endsValid ? isoDateOnly(ends) : request.coverageEndsAt;
+  const theme =
+    daysRemaining <= 0
+      ? PASS_THEME.expired
+      : daysRemaining < 14
+        ? PASS_THEME.urgent
+        : PASS_THEME.calm;
+
+  const daysLabel =
+    daysRemaining <= 0 ? "ENDED" : daysRemaining === 1 ? "DAY LEFT" : "DAYS LEFT";
 
   return {
     formatVersion: 1,
@@ -121,38 +149,41 @@ function buildPassJson(env: Env, request: PassRequest) {
     serialNumber: request.serialNumber,
     teamIdentifier: env.TEAM_IDENTIFIER,
     organizationName: "Kept",
-    description: "Warranty countdown",
-    foregroundColor: "rgb(255, 255, 255)",
-    backgroundColor: "rgb(26, 26, 26)",
-    labelColor: "rgb(232, 93, 76)",
-    logoText: "Kept",
+    description: `${request.itemName} · coverage countdown`,
+    foregroundColor: theme.foregroundColor,
+    backgroundColor: theme.backgroundColor,
+    labelColor: theme.labelColor,
+    // Wordmark lives in logo.png — empty logoText avoids "Kept Kept".
+    logoText: "",
     expirationDate: endsValid ? ends.toISOString() : undefined,
     relevantDate: endsValid ? ends.toISOString() : undefined,
     generic: {
       headerFields: [
         {
-          key: "merchant",
-          label: "STORE",
-          value: request.merchant,
+          key: "days",
+          label: daysLabel,
+          value: String(daysRemaining),
+          textAlignment: "PKTextAlignmentRight",
         },
       ],
       primaryFields: [
-        {
-          key: "days",
-          label: "DAYS LEFT",
-          value: String(daysRemaining),
-        },
-      ],
-      secondaryFields: [
         {
           key: "item",
           label: "ITEM",
           value: request.itemName,
         },
+      ],
+      secondaryFields: [
+        {
+          key: "merchant",
+          label: "STORE",
+          value: request.merchant,
+        },
         {
           key: "price",
           label: "PAID",
           value: money,
+          textAlignment: "PKTextAlignmentRight",
         },
       ],
       auxiliaryFields: [
@@ -165,6 +196,7 @@ function buildPassJson(env: Env, request: PassRequest) {
           key: "purchased",
           label: "PURCHASED",
           value: request.purchaseDate,
+          textAlignment: "PKTextAlignmentRight",
         },
       ],
       backFields: [
@@ -175,9 +207,9 @@ function buildPassJson(env: Env, request: PassRequest) {
         },
         {
           key: "about",
-          label: "About",
+          label: "About Kept",
           value:
-            "Kept tracks when your warranty or return window ends. Add this pass so the countdown stays in Wallet.",
+            "Kept tracks when your warranty or return window ends. This pass keeps the countdown in Wallet until cover ends.",
         },
       ],
     },

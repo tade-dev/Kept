@@ -148,14 +148,23 @@ struct PurchaseDetailView: View {
                 TextField("Add a note", text: $purchase.notes, axis: .vertical)
                     .lineLimit(2...6)
             }
+
+            if purchase.coverageEndsAt != nil || purchase.nextDeadline != nil {
+                Section {
+                    AddToWalletButton(purchase: purchase)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                } footer: {
+                    Text(
+                        (purchase.passRecords ?? []).isEmpty
+                            ? "Adds a countdown pass for this purchase to Apple Wallet."
+                            : "Already in Wallet. You can add it again if you removed the pass."
+                    )
+                }
+            }
         }
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                AddToWalletButton(purchase: purchase)
-            }
-        }
         .task {
             warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
             returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? ""

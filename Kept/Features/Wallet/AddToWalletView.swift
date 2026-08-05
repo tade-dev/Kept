@@ -41,40 +41,76 @@ struct AddToWalletView: UIViewControllerRepresentable {
     }
 }
 
-/// Toolbar / button that requests a signed pass and presents Add to Wallet.
+/// System `PKAddPassButton` — required for in-app Add to Apple Wallet CTAs.
+private struct PKAddPassButtonView: UIViewRepresentable {
+    var style: PKAddPassButtonStyle
+    var isEnabled: Bool
+    var action: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(action: action)
+    }
+
+    func makeUIView(context: Context) -> PKAddPassButton {
+        let button = PKAddPassButton(addPassButtonStyle: style)
+        button.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.tapped),
+            for: .touchUpInside
+        )
+        button.isEnabled = isEnabled
+        return button
+    }
+
+    func updateUIView(_ button: PKAddPassButton, context: Context) {
+        context.coordinator.action = action
+        button.isEnabled = isEnabled
+        if button.addPassButtonStyle != style {
+            button.addPassButtonStyle = style
+        }
+    }
+
+    final class Coordinator: NSObject {
+        var action: () -> Void
+
+        init(action: @escaping () -> Void) {
+            self.action = action
+        }
+
+        @objc func tapped() {
+            action()
+        }
+    }
+}
+
+/// Requests a signed pass and presents Add to Apple Wallet via the system badge.
 struct AddToWalletButton: View {
     let purchase: Purchase
     var signingService: PassSigningService? = PassSigningService.makeDefault()
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isWorking = false
     @State private var errorMessage: String?
     @State private var passToAdd: PKPass?
     @State private var pendingSerial: String?
     @State private var isPresentingAddSheet = false
 
-    private var alreadyAdded: Bool {
-        !(purchase.passRecords ?? []).isEmpty
-    }
-
     private var hasCoverage: Bool {
         purchase.coverageEndsAt != nil || purchase.nextDeadline != nil
     }
 
+    private var buttonStyle: PKAddPassButtonStyle {
+        // Outline on dark surfaces per Apple Wallet badge guidelines.
+        colorScheme == .dark ? .blackOutline : .black
+    }
+
     var body: some View {
-        Button {
-            Task { await start() }
-        } label: {
-            if isWorking {
-                ProgressView()
-            } else {
-                Label(
-                    alreadyAdded ? "Add Again" : "Add to Wallet",
-                    systemImage: "wallet.pass"
-                )
+        Group {
+            if hasCoverage {
+                badge
             }
         }
-        .disabled(isWorking || signingService == nil || !hasCoverage)
         .sheet(isPresented: $isPresentingAddSheet, onDismiss: {
             passToAdd = nil
             pendingSerial = nil
@@ -97,6 +133,27 @@ struct AddToWalletButton: View {
         } message: {
             Text(errorMessage ?? "")
         }
+    }
+
+    private var badge: some View {
+        ZStack {
+            PKAddPassButtonView(
+                style: buttonStyle,
+                isEnabled: !isWorking && signingService != nil
+            ) {
+                Task { await start() }
+            }
+            .fixedSize()
+            .opacity(isWorking ? 0 : 1)
+            .accessibilityLabel("Add to Apple Wallet")
+
+            if isWorking {
+                ProgressView()
+                    .controlSize(.regular)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 48)
     }
 
     @MainActor
