@@ -574,6 +574,9 @@ struct CaptureView: View {
         }
 
         modelContext.insert(purchase)
+        Task {
+            await CoverageNotificationScheduler.reschedule(for: purchase)
+        }
         dismiss()
     }
 }

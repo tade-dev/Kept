@@ -57,6 +57,9 @@ struct LibraryView: View {
                 PurchaseDetailView(purchase: purchase)
                     .navigationTransition(.zoom(sourceID: purchase.transitionID, in: receiptNamespace))
             }
+            .task {
+                await CoverageNotificationScheduler.rescheduleAll(purchases)
+            }
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -186,6 +189,7 @@ struct LibraryView: View {
     }
 
     private func delete(_ purchase: Purchase) {
+        CoverageNotificationScheduler.cancel(for: purchase)
         modelContext.delete(purchase)
     }
 

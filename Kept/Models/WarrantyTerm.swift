@@ -16,7 +16,7 @@ enum WarrantySource: String, Sendable {
     }
 }
 
-enum CoverageKind: String, Sendable {
+enum CoverageKind: String, Sendable, CaseIterable {
     case warranty
     case returnWindow
 

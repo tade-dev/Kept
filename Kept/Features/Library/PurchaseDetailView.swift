@@ -38,6 +38,7 @@ struct PurchaseDetailView: View {
                 )
                 .onChange(of: purchase.purchaseDate) { _, _ in
                     recomputeExpiry()
+                    Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
                 }
                 if purchase.lineItems.isEmpty {
                     TextField("Item", text: $purchase.itemName)
@@ -96,6 +97,7 @@ struct PurchaseDetailView: View {
                         .keyboardType(.numberPad)
                         .onChange(of: returnDaysText) { _, newValue in
                             _ = purchase.setReturnWindow(days: Int(newValue) ?? 0, byUser: true)
+                            Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
                         }
                     if purchase.returnWindow?.source == .inferred {
                         inferredChip
@@ -123,6 +125,7 @@ struct PurchaseDetailView: View {
                         .keyboardType(.numberPad)
                         .onChange(of: warrantyMonthsText) { _, newValue in
                             _ = purchase.setDuration(months: Int(newValue) ?? 0, byUser: true)
+                            Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
                         }
                     if purchase.primaryWarranty?.source == .inferred {
                         inferredChip
@@ -169,6 +172,12 @@ struct PurchaseDetailView: View {
             warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
             returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? ""
             priceText = purchase.price > 0 ? formatDecimal(purchase.price) : ""
+        }
+        .onChange(of: purchase.itemName) { _, _ in
+            Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
+        }
+        .onChange(of: purchase.merchant) { _, _ in
+            Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
         }
         .fullScreenCover(isPresented: $isShowingFullImage) {
             if let data = purchase.receiptImage, let image = UIImage(data: data) {

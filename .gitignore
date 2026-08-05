@@ -8,3 +8,7 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Local AI / editor context
+.cursor/
+AGENTS.md

@@ -27,7 +27,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Kept.entitlements,
 			);
 			target = 1EFE94713021AE1900419591 /* Kept */;
 		};
