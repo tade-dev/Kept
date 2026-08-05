@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Codable OCR line for SwiftData storage and deferred re-extraction.

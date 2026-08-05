@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeptExtractBaseURL</key>
+	<string>$(KEPT_EXTRACT_BASE_URL)</string>
+	<key>KeptExtractSecret</key>
+	<string>$(KEPT_EXTRACT_SECRET)</string>
+	<!-- Allow http:// to LAN during device testing (wrangler dev). HTTPS production is fine. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- Required for iOS to reach Mac LAN IP (triggers Local Network permission). -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Kept talks to your Mac on the local network while developing receipt extraction.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+	</array>
+</dict>
+</plist>

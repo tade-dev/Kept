@@ -455,19 +455,26 @@ struct ExtractionAccuracyTests {
         )
     }
 
-    @Test("comparison mode: RulesExtractor vs DefaultExtractionService")
+    @Test("comparison mode: RulesExtractor vs CloudExtractor")
     func comparisonMode() async throws {
         let fixtures = try ExtractionAccuracyHarness.loadFixtures()
         #expect(!fixtures.isEmpty)
 
+        let cloudConfig = CloudExtractConfiguration.fromEnvironment()
+            ?? CloudExtractConfiguration.fromBundle()
+        try #require(
+            cloudConfig != nil,
+            "Set KEPT_EXTRACT_BASE_URL + KEPT_EXTRACT_SECRET (and run wrangler dev) for cloud comparison"
+        )
+
         let text = try await ExtractionAccuracyHarness.compare(
             fixtures: fixtures,
             lhs: (RulesExtractionService(), "Rules"),
-            rhs: (DefaultExtractionService(), "Default")
+            rhs: (CloudExtractor(configuration: cloudConfig!), "Cloud")
         )
         print("\n\(text)\n")
         try writeReport(text, name: "kept-accuracy-compare.txt")
-        // Informational — CloudExtractor lands in step 4.
+        // Informational — read /tmp/kept-accuracy-compare.txt for the worth-it number.
         #expect(true)
     }
 

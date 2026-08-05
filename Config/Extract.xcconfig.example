@@ -1,0 +1,7 @@
+// Optional local overrides. Copy to Extract.local.xcconfig (gitignored):
+//
+// KEPT_EXTRACT_BASE_URL = http:/$()/127.0.0.1:8787
+// KEPT_EXTRACT_SECRET = your-shared-secret
+//
+// Or a deployed worker:
+// KEPT_EXTRACT_BASE_URL = https:/$()/kept-extract.example.workers.dev

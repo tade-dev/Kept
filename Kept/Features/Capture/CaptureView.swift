@@ -19,6 +19,7 @@ struct CaptureView: View {
 
     @State private var merchant: String = ""
     @State private var itemName: String = ""
+    @State private var lineItems: [ReceiptLineItem] = []
     @State private var priceText: String = ""
     @State private var currencyText: String = Locale.current.currency?.identifier ?? "USD"
     @State private var purchaseDate: Date = .now
@@ -224,19 +225,60 @@ struct CaptureView: View {
         Form {
             Section("Purchase") {
                 TextField("Merchant", text: $merchant)
-                TextField("Item", text: $itemName)
-                HStack {
-                    TextField("Price", text: $priceText)
-                        .keyboardType(.decimalPad)
-                    TextField("CUR", text: $currencyText)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .frame(width: 60)
-                        .multilineTextAlignment(.trailing)
-                }
                 DatePicker("Purchased", selection: $purchaseDate, displayedComponents: .date)
+                if lineItems.isEmpty {
+                    TextField("Item", text: $itemName)
+                    HStack {
+                        TextField("Price", text: $priceText)
+                            .keyboardType(.decimalPad)
+                        TextField("CUR", text: $currencyText)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .frame(width: 60)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
             }
             .transition(formTransition)
+
+            if !lineItems.isEmpty {
+                Section {
+                    ForEach($lineItems) { $item in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            TextField("Item", text: $item.name)
+                            TextField(
+                                "Price",
+                                value: $item.price,
+                                format: .number.precision(.fractionLength(0...2))
+                            )
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 72, maxWidth: 96)
+                        }
+                    }
+                    .onDelete { lineItems.remove(atOffsets: $0) }
+
+                    HStack {
+                        Text("Total")
+                            .fontWeight(.semibold)
+                        Spacer()
+                        TextField("Total", text: $priceText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 72, maxWidth: 96)
+                        TextField("CUR", text: $currencyText)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .frame(width: 52)
+                            .multilineTextAlignment(.trailing)
+                    }
+                } header: {
+                    Text("Items")
+                } footer: {
+                    Text("Tracked for warranty: \(itemName.isEmpty ? "—" : itemName)")
+                }
+                .transition(formTransition)
+            }
 
             Section {
                 HStack {
@@ -296,6 +338,20 @@ struct CaptureView: View {
                 }
                 .transition(formTransition)
             }
+
+            #if DEBUG
+            if needsReextraction {
+                Section {
+                    Label(
+                        "Cloud extract failed — showing on-device rules parse. Check wrangler (0.0.0.0:8787) + Wi‑Fi.",
+                        systemImage: "antenna.radiowaves.left.and.right.slash"
+                    )
+                    .foregroundStyle(.orange)
+                    .font(.footnote)
+                }
+                .transition(formTransition)
+            }
+            #endif
         }
     }
 
@@ -402,20 +458,37 @@ struct CaptureView: View {
         }
 
         transition(to: .extracting)
-        do {
-            let result = try await extractionService.extract(from: lines)
-            extraction = result
-            applyExtraction(result)
-            transition(to: .review)
-        } catch {
-            extractionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            transition(to: .review)
+        needsReextraction = false
+        // Clear prior extract errors — cloud soft-fail must not surface mid-capture.
+        extractionErrorMessage = nil
+
+        let floor = rulesExtractor.extract(from: lines)
+        if let cloudExtractor {
+            do {
+                let remote = try await cloudExtractor.extractDetailed(from: lines)
+                let merged = CloudExtractor.merge(rules: floor, cloud: remote)
+                extraction = merged.receipt
+                applyExtraction(merged.receipt, lineItems: merged.lineItems)
+            } catch {
+                // Offline / 5xx / timeout: keep rules floor, mark for re-extract, no error UI.
+                needsReextraction = true
+                extraction = floor
+                applyExtraction(floor, lineItems: [])
+            }
+        } else {
+            extraction = floor
+            applyExtraction(floor, lineItems: [])
         }
+        transition(to: .review)
     }
 
-    private func applyExtraction(_ result: ExtractedReceipt) {
+    private func applyExtraction(_ result: ExtractedReceipt, lineItems items: [ReceiptLineItem]) {
         merchant = result.merchant
         itemName = result.itemName
+        lineItems = items
+        if itemName.isEmpty, let top = items.max(by: { $0.price < $1.price }) {
+            itemName = top.name
+        }
         priceText = result.price > 0 ? formatted(result.price) : ""
         currencyText = result.currency.uppercased()
         purchaseDate = parseISODate(result.purchaseDate) ?? .now
@@ -454,14 +527,32 @@ struct CaptureView: View {
         let months = Int(warrantyMonthsText) ?? 0
         let returnDays = Int(returnDaysText) ?? 0
 
+        let cleanedItems = lineItems
+            .map {
+                ReceiptLineItem(
+                    id: $0.id,
+                    name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    price: $0.price
+                )
+            }
+            .filter { !$0.name.isEmpty && $0.price > 0 }
+
+        var primaryName = itemName.trimmingCharacters(in: .whitespaces)
+        if primaryName.isEmpty, let top = cleanedItems.max(by: { $0.price < $1.price }) {
+            primaryName = top.name
+        }
+
         let purchase = Purchase(
             merchant: merchant.trimmingCharacters(in: .whitespaces),
-            itemName: itemName.trimmingCharacters(in: .whitespaces),
+            itemName: primaryName,
             price: price,
             currency: currencyText.uppercased(),
             purchaseDate: purchaseDate,
             notes: "",
-            receiptImage: capturedImage?.jpegData(compressionQuality: 0.85)
+            receiptImage: capturedImage?.jpegData(compressionQuality: 0.85),
+            ocrLinesData: OCRLinePayload.encode(recognizedLines),
+            lineItemsData: ReceiptLineItem.encodeList(cleanedItems),
+            needsReextraction: needsReextraction
         )
 
         if returnDays > 0 {
@@ -490,7 +581,7 @@ struct CaptureView: View {
 #Preview("Scanning empty state") {
     CaptureView(
         ocr: PreviewOCR(),
-        extractionService: PreviewExtraction()
+        cloudExtractor: nil
     )
     .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
 }
@@ -499,7 +590,7 @@ struct CaptureView: View {
     CaptureView(
         image: PreviewSampleImage.receipt,
         ocr: PreviewOCR(delayNanoseconds: 800_000_000),
-        extractionService: PreviewExtraction(delayNanoseconds: 700_000_000)
+        cloudExtractor: nil
     )
     .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
 }
@@ -516,17 +607,6 @@ private struct PreviewOCR: OCRService {
             RecognizedLine(text: "MacBook Pro 14\"", confidence: 0.96, boundingBox: CGRect(x: 0, y: 0.7, width: 1, height: 0.05)),
             RecognizedLine(text: "TOTAL $1,999.00", confidence: 0.98, boundingBox: CGRect(x: 0, y: 0.2, width: 1, height: 0.05)),
         ]
-    }
-}
-
-private struct PreviewExtraction: ExtractionService {
-    var delayNanoseconds: UInt64 = 0
-
-    func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        if delayNanoseconds > 0 {
-            try await Task.sleep(nanoseconds: delayNanoseconds)
-        }
-        return RulesExtractor().extract(from: lines)
     }
 }
 

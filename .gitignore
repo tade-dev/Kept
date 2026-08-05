@@ -1,0 +1,10 @@
+# Local extract secret overrides
+Config/Extract.local.xcconfig
+
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store

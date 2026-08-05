@@ -1,6 +1,6 @@
 /**
  * Structured extraction schema for OpenAI-compatible `response_format.json_schema`.
- * Every field independently nullable — never fabricate.
+ * Every field independently nullable (except items — use []). Never fabricate.
  */
 export const extractionResponseSchema = {
   type: "object",
@@ -14,7 +14,27 @@ export const extractionResponseSchema = {
     itemName: {
       type: ["string", "null"],
       description:
-        "Main purchased item short name, or a summary like Grocery shop. Null if unclear.",
+        "Primary item for warranty tracking: highest-value durable good, or a short summary like Grocery shop when many small lines. Null if unclear.",
+    },
+    items: {
+      type: "array",
+      description:
+        "Purchased line items with unit/line prices. Exclude subtotal, tax, tender, change, discounts-as-payment, and the grand total row. Empty array if none can be read.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          name: {
+            type: "string",
+            description: "Short product name as printed (cleaned).",
+          },
+          price: {
+            type: "number",
+            description: "Line price as a positive decimal. No currency symbol.",
+          },
+        },
+        required: ["name", "price"],
+      },
     },
     total: {
       type: ["number", "null"],
@@ -44,6 +64,7 @@ export const extractionResponseSchema = {
   required: [
     "merchant",
     "itemName",
+    "items",
     "total",
     "currencyCode",
     "purchaseDate",
@@ -54,6 +75,7 @@ export const extractionResponseSchema = {
 export type ExtractionResponse = {
   merchant: string | null;
   itemName: string | null;
+  items: Array<{ name: string; price: number }>;
   total: number | null;
   currencyCode: string | null;
   purchaseDate: string | null;

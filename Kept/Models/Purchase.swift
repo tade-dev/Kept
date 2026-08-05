@@ -10,11 +10,15 @@ final class Purchase {
     var purchaseDate: Date = Date(timeIntervalSinceReferenceDate: 0)
     var notes: String = ""
     @Attribute(.externalStorage) var receiptImage: Data?
-    /// JSON `[OCRLinePayload]` — OCR text only, never the image. Used for deferred cloud re-extract.
     var ocrLinesData: Data?
-    /// True when cloud extraction failed/offline at capture time.
+    var lineItemsData: Data?
     var needsReextraction: Bool = false
     var createdAt: Date = Date(timeIntervalSinceReferenceDate: 0)
+
+    var lineItems: [ReceiptLineItem] {
+        get { ReceiptLineItem.decodeList(lineItemsData) }
+        set { lineItemsData = ReceiptLineItem.encodeList(newValue) }
+    }
 
     /// Denormalised end of the longest coverage term. Kept queryable for `#Predicate`.
     private(set) var coverageEndsAt: Date?
@@ -32,7 +36,10 @@ final class Purchase {
         currency: String = Locale.current.currency?.identifier ?? "USD",
         purchaseDate: Date = .now,
         notes: String = "",
-        receiptImage: Data? = nil
+        receiptImage: Data? = nil,
+        ocrLinesData: Data? = nil,
+        lineItemsData: Data? = nil,
+        needsReextraction: Bool = false
     ) {
         self.merchant = merchant
         self.itemName = itemName
@@ -41,6 +48,9 @@ final class Purchase {
         self.purchaseDate = purchaseDate
         self.notes = notes
         self.receiptImage = receiptImage
+        self.ocrLinesData = ocrLinesData
+        self.lineItemsData = lineItemsData
+        self.needsReextraction = needsReextraction
         self.createdAt = .now
         self.warranties = []
         self.passRecords = []

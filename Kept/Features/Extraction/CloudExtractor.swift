@@ -109,6 +109,10 @@ struct CloudExtractor: ExtractionService {
     }
 
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
+        try await extractDetailed(from: lines).receipt
+    }
+
+    func extractDetailed(from lines: [RecognizedLine]) async throws -> CloudExtractionPayload {
         guard !lines.isEmpty else { throw CloudExtractionError.emptyInput }
 
         do {
@@ -122,7 +126,10 @@ struct CloudExtractor: ExtractionService {
 
     // MARK: - Transport
 
-    private func perform(lines: [RecognizedLine], allowRetry: Bool) async throws -> ExtractedReceipt {
+    private func perform(
+        lines: [RecognizedLine],
+        allowRetry: Bool
+    ) async throws -> CloudExtractionPayload {
         let url = configuration.baseURL.appendingPathComponent("extract")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -148,7 +155,7 @@ struct CloudExtractor: ExtractionService {
 
         switch http.statusCode {
         case 200:
-            return try decodeReceipt(from: data)
+            return try decodePayload(from: data)
         case 401, 403:
             throw CloudExtractionError.unauthorized
         case 429:
@@ -164,14 +171,14 @@ struct CloudExtractor: ExtractionService {
         }
     }
 
-    private func decodeReceipt(from data: Data) throws -> ExtractedReceipt {
+    private func decodePayload(from data: Data) throws -> CloudExtractionPayload {
         let decoded: CloudExtractResponse
         do {
             decoded = try JSONDecoder().decode(CloudExtractResponse.self, from: data)
         } catch {
             throw CloudExtractionError.invalidResponse
         }
-        return decoded.asExtractedReceipt()
+        return decoded.asPayload()
     }
 
     private func mapTransportError(_ error: Error) -> CloudExtractionError {
@@ -214,10 +221,16 @@ private struct CloudOCRLine: Encodable {
 private struct CloudExtractResponse: Decodable {
     var merchant: String?
     var itemName: String?
+    var items: [CloudLineItem]?
     var total: Double?
     var currencyCode: String?
     var purchaseDate: String?
     var confidence: Confidence?
+
+    struct CloudLineItem: Decodable {
+        var name: String?
+        var price: Double?
+    }
 
     struct Confidence: Decodable {
         var merchant: Double?
@@ -225,7 +238,7 @@ private struct CloudExtractResponse: Decodable {
         var purchaseDate: Double?
     }
 
-    func asExtractedReceipt() -> ExtractedReceipt {
+    func asPayload() -> CloudExtractionPayload {
         let confidences = [
             confidence?.merchant,
             confidence?.total,
@@ -247,9 +260,20 @@ private struct CloudExtractResponse: Decodable {
             return formatter.string(from: .now)
         }()
 
-        return ExtractedReceipt(
+        let lineItems: [ReceiptLineItem] = (items ?? []).compactMap { raw in
+            let name = raw.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !name.isEmpty, let price = raw.price, price > 0 else { return nil }
+            return ReceiptLineItem(name: name, price: price)
+        }
+
+        var primaryName = itemName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if primaryName.isEmpty, let top = lineItems.max(by: { $0.price < $1.price }) {
+            primaryName = top.name
+        }
+
+        let receipt = ExtractedReceipt(
             merchant: merchant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
-            itemName: itemName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            itemName: primaryName,
             price: total ?? 0,
             currency: (currencyCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
                 .flatMap { $0.isEmpty ? nil : $0 } ?? "USD",
@@ -260,6 +284,7 @@ private struct CloudExtractResponse: Decodable {
             returnWindowIsInferred: false,
             confidence: min(max(overall, 0), 1)
         )
+        return CloudExtractionPayload(receipt: receipt, lineItems: lineItems)
     }
 }
 
@@ -289,6 +314,16 @@ extension CloudExtractor {
             returnWindowDays: rules.returnWindowDays,
             returnWindowIsInferred: rules.returnWindowIsInferred,
             confidence: max(rules.confidence, cloud.confidence)
+        )
+    }
+
+    static func merge(
+        rules: ExtractedReceipt,
+        cloud: CloudExtractionPayload
+    ) -> CloudExtractionPayload {
+        CloudExtractionPayload(
+            receipt: merge(rules: rules, cloud: cloud.receipt),
+            lineItems: cloud.lineItems
         )
     }
 }

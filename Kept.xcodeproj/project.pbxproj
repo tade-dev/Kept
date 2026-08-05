@@ -19,11 +19,25 @@
 /* Begin PBXFileReference section */
 		1EFE94723021AE1900419591 /* Kept.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kept.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D53021AE1900419593 /* KeptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1D2E3F43021AE1900419501 /* Extract.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Extract.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C1D2E3F63021AE1900419503 /* Exceptions for "Kept" folder in "Kept" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1EFE94713021AE1900419591 /* Kept */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1EFE94743021AE1900419591 /* Kept */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C1D2E3F63021AE1900419503 /* Exceptions for "Kept" folder in "Kept" target */,
+			);
 			path = Kept;
 			sourceTree = "<group>";
 		};
@@ -55,6 +69,7 @@
 		1EFE94693021AE1900419591 = {
 			isa = PBXGroup;
 			children = (
+				C1D2E3F53021AE1900419502 /* Config */,
 				1EFE94743021AE1900419591 /* Kept */,
 				A1B2C3D63021AE1900419594 /* KeptTests */,
 				1EFE94733021AE1900419591 /* Products */,
@@ -68,6 +83,14 @@
 				A1B2C3D53021AE1900419593 /* KeptTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C1D2E3F53021AE1900419502 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				C1D2E3F43021AE1900419501 /* Extract.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -323,6 +346,7 @@
 		};
 		1EFE94803021AE1B00419591 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C1D2E3F43021AE1900419501 /* Extract.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -331,6 +355,7 @@
 				DEVELOPMENT_TEAM = TU566926VK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kept/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kept;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Kept uses the camera to scan your receipts on-device. Photos never leave your phone.";
@@ -358,6 +383,7 @@
 		};
 		1EFE94813021AE1B00419591 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C1D2E3F43021AE1900419501 /* Extract.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -366,6 +392,7 @@
 				DEVELOPMENT_TEAM = TU566926VK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kept/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kept;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Kept uses the camera to scan your receipts on-device. Photos never leave your phone.";

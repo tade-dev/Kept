@@ -31,20 +31,6 @@ struct PurchaseDetailView: View {
 
             Section("Purchase") {
                 TextField("Merchant", text: $purchase.merchant)
-                TextField("Item", text: $purchase.itemName)
-                HStack {
-                    TextField("Price", text: $priceText)
-                        .keyboardType(.decimalPad)
-                        .onChange(of: priceText) { _, newValue in
-                            let normalised = newValue.replacingOccurrences(of: ",", with: ".")
-                            purchase.price = Decimal(string: normalised) ?? 0
-                        }
-                    TextField("CUR", text: $purchase.currency)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .frame(width: 60)
-                        .multilineTextAlignment(.trailing)
-                }
                 DatePicker(
                     "Purchased",
                     selection: $purchase.purchaseDate,
@@ -52,6 +38,55 @@ struct PurchaseDetailView: View {
                 )
                 .onChange(of: purchase.purchaseDate) { _, _ in
                     recomputeExpiry()
+                }
+                if purchase.lineItems.isEmpty {
+                    TextField("Item", text: $purchase.itemName)
+                    HStack {
+                        TextField("Price", text: $priceText)
+                            .keyboardType(.decimalPad)
+                            .onChange(of: priceText) { _, newValue in
+                                let normalised = newValue.replacingOccurrences(of: ",", with: ".")
+                                purchase.price = Decimal(string: normalised) ?? 0
+                            }
+                        TextField("CUR", text: $purchase.currency)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .frame(width: 60)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+
+            if !purchase.lineItems.isEmpty {
+                Section {
+                    ForEach(purchase.lineItems) { item in
+                        LabeledContent {
+                            Text(item.price, format: .number.precision(.fractionLength(0...2)))
+                                .monospacedDigit()
+                        } label: {
+                            Text(item.name)
+                        }
+                    }
+                    LabeledContent {
+                        HStack(spacing: 8) {
+                            TextField("Total", text: $priceText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .onChange(of: priceText) { _, newValue in
+                                    let normalised = newValue.replacingOccurrences(of: ",", with: ".")
+                                    purchase.price = Decimal(string: normalised) ?? 0
+                                }
+                            Text(purchase.currency)
+                                .foregroundStyle(.secondary)
+                        }
+                    } label: {
+                        Text("Total")
+                            .fontWeight(.semibold)
+                    }
+                } header: {
+                    Text("Items")
+                } footer: {
+                    Text("Tracked for warranty: \(purchase.itemName)")
                 }
             }
 

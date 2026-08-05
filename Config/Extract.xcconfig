@@ -1,0 +1,7 @@
+// Checked in. Override locally via Extract.local.xcconfig (gitignored).
+// `//` starts a comment in xcconfig, so URLs use http:/$()/host.
+
+KEPT_EXTRACT_BASE_URL = http:/$()/127.0.0.1:8787
+KEPT_EXTRACT_SECRET = REPLACE_ME
+
+#include? "Extract.local.xcconfig"

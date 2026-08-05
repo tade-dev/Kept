@@ -163,6 +163,7 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
   return {
     merchant: nullableString(obj.merchant),
     itemName: nullableString(obj.itemName),
+    items: normaliseItems(obj.items),
     total: nullableNumber(obj.total),
     currencyCode: nullableString(obj.currencyCode)?.toUpperCase() ?? null,
     purchaseDate: nullableString(obj.purchaseDate),
@@ -172,6 +173,23 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
       purchaseDate: clamp01(confidenceRaw.purchaseDate),
     },
   };
+}
+
+function normaliseItems(
+  value: unknown,
+): Array<{ name: string; price: number }> {
+  if (!Array.isArray(value)) return [];
+  const out: Array<{ name: string; price: number }> = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as Record<string, unknown>;
+    const name = nullableString(row.name);
+    const price = nullableNumber(row.price);
+    if (!name || price == null || price <= 0) continue;
+    out.push({ name, price });
+    if (out.length >= 40) break;
+  }
+  return out;
 }
 
 function nullableString(value: unknown): string | null {
