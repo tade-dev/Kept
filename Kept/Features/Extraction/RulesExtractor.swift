@@ -18,18 +18,51 @@ struct RulesExtractor: Sendable {
         let returnWindow = Self.returnWindow(purchaseDate: date, merchant: merchant, lines: texts)
         if !returnWindow.isInferred, returnWindow.days > 0 { confidence += 0.1 }
 
+        let warrantyMonths = Self.explicitWarrantyMonths(from: texts)
+        if warrantyMonths > 0 { confidence += 0.1 }
+
         return ExtractedReceipt(
             merchant: merchant,
             itemName: itemName,
             price: price,
             currency: currency,
             purchaseDate: Self.isoDate(date),
-            warrantyDurationMonths: 0,
+            warrantyDurationMonths: warrantyMonths,
             warrantyIsInferred: false,
             returnWindowDays: returnWindow.days,
             returnWindowIsInferred: returnWindow.isInferred,
             confidence: min(confidence, 0.95)
         )
+    }
+
+    // MARK: - Warranty (printed only — never invent)
+
+    private static func explicitWarrantyMonths(from lines: [String]) -> Int {
+        let blob = lines.joined(separator: "\n").lowercased()
+
+        // "24 month warranty", "12 months guarantee"
+        if let match = blob.firstMatch(
+            of: #/(\d{1,2})\s*(?:month|months|mo)\s*(?:warranty|guarantee|guarentee)/#
+        ) ?? blob.firstMatch(
+            of: #/(?:warranty|guarantee|guarentee)[^\d]{0,24}(\d{1,2})\s*(?:month|months|mo)/#
+        ),
+           let months = Int(match.1),
+           (1...120).contains(months) {
+            return months
+        }
+
+        // "2 year warranty", "2-year guarantee"
+        if let match = blob.firstMatch(
+            of: #/(\d{1,2})\s*(?:-)?\s*(?:year|years|yr|yrs)\s*(?:warranty|guarantee|guarentee)/#
+        ) ?? blob.firstMatch(
+            of: #/(?:warranty|guarantee|guarentee)[^\d]{0,24}(\d{1,2})\s*(?:-)?\s*(?:year|years|yr|yrs)/#
+        ),
+           let years = Int(match.1),
+           (1...10).contains(years) {
+            return years * 12
+        }
+
+        return 0
     }
 
     // MARK: - Return window

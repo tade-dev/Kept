@@ -225,6 +225,10 @@ private struct CloudExtractResponse: Decodable {
     var total: Double?
     var currencyCode: String?
     var purchaseDate: String?
+    var returnWindowDays: Double?
+    var returnWindowIsInferred: Bool?
+    var warrantyDurationMonths: Double?
+    var warrantyIsInferred: Bool?
     var confidence: Confidence?
 
     struct CloudLineItem: Decodable {
@@ -260,48 +264,93 @@ private struct CloudExtractResponse: Decodable {
             return formatter.string(from: .now)
         }()
 
-        let lineItems: [ReceiptLineItem] = (items ?? []).compactMap { raw in
-            let name = raw.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !name.isEmpty, let price = raw.price, price > 0 else { return nil }
-            return ReceiptLineItem(name: name, price: price)
-        }
+        let lineItems = CloudExtractor.dedupeLineItems(
+            (items ?? []).compactMap { raw in
+                let name = raw.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !name.isEmpty, let price = raw.price, price > 0 else { return nil }
+                return ReceiptLineItem(name: name, price: price)
+            }
+        )
 
         var primaryName = itemName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if primaryName.isEmpty, let top = lineItems.max(by: { $0.price < $1.price }) {
-            primaryName = top.name
-        }
+        primaryName = CloudExtractor.refineItemName(primaryName, lineItems: lineItems)
+
+        let returnDays = positiveInt(returnWindowDays)
+        let warrantyMonths = positiveInt(warrantyDurationMonths)
+        let reconciledTotal = CloudExtractor.reconcileTotal(total ?? 0, lineItems: lineItems)
 
         let receipt = ExtractedReceipt(
             merchant: merchant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             itemName: primaryName,
-            price: total ?? 0,
+            price: reconciledTotal,
             currency: (currencyCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
                 .flatMap { $0.isEmpty ? nil : $0 } ?? "USD",
             purchaseDate: date.isEmpty ? today : date,
-            warrantyDurationMonths: 0,
+            warrantyDurationMonths: warrantyMonths,
             warrantyIsInferred: false,
-            returnWindowDays: 0,
+            returnWindowDays: returnDays,
             returnWindowIsInferred: false,
             confidence: min(max(overall, 0), 1)
         )
-        return CloudExtractionPayload(receipt: receipt, lineItems: lineItems)
+        let fieldConfidences = FieldConfidences(
+            merchant: confidence?.merchant,
+            total: confidence?.total,
+            purchaseDate: confidence?.purchaseDate
+        )
+        return CloudExtractionPayload(
+            receipt: receipt,
+            lineItems: lineItems,
+            fieldConfidences: fieldConfidences
+        )
+    }
+
+    private func positiveInt(_ value: Double?) -> Int {
+        guard let value, value > 0, value.isFinite else { return 0 }
+        return Int(value.rounded())
     }
 }
 
-// MARK: - Merge (cloud wins money/date when present; rules keep warranty/return)
+// MARK: - Merge (cloud wins money/date + printed coverage; rules fill gaps / inferences)
 
 extension CloudExtractor {
-    /// Prefer cloud merchant/item/total/date when the model returned a value.
-    /// Rules keep return windows and any warranty they already inferred.
-    static func merge(rules: ExtractedReceipt, cloud: ExtractedReceipt) -> ExtractedReceipt {
+    static func merge(
+        rules: ExtractedReceipt,
+        cloud: ExtractedReceipt,
+        lineItems: [ReceiptLineItem] = []
+    ) -> ExtractedReceipt {
         let merchant = cloud.merchant.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? rules.merchant : cloud.merchant
-        let itemName = cloud.itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        var itemName = cloud.itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? rules.itemName : cloud.itemName
-        let price = cloud.price > 0 ? cloud.price : rules.price
+        itemName = refineItemName(itemName, lineItems: lineItems)
+
+        let price = pickTotal(rules: rules.price, cloud: cloud.price, lineItems: lineItems)
         let currency = cloud.currency.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? rules.currency.uppercased() : cloud.currency.uppercased()
         let purchaseDate = cloud.purchaseDate.isEmpty ? rules.purchaseDate : cloud.purchaseDate
+
+        let warrantyMonths: Int
+        let warrantyInferred: Bool
+        if cloud.warrantyDurationMonths > 0 {
+            warrantyMonths = cloud.warrantyDurationMonths
+            warrantyInferred = false
+        } else {
+            warrantyMonths = rules.warrantyDurationMonths
+            warrantyInferred = rules.warrantyIsInferred
+        }
+
+        let returnDays: Int
+        let returnInferred: Bool
+        if cloud.returnWindowDays > 0 {
+            returnDays = cloud.returnWindowDays
+            returnInferred = false
+        } else if rules.returnWindowDays > 0 {
+            returnDays = rules.returnWindowDays
+            returnInferred = rules.returnWindowIsInferred
+        } else {
+            returnDays = 0
+            returnInferred = false
+        }
 
         return ExtractedReceipt(
             merchant: merchant,
@@ -309,10 +358,10 @@ extension CloudExtractor {
             price: price,
             currency: currency,
             purchaseDate: purchaseDate,
-            warrantyDurationMonths: rules.warrantyDurationMonths,
-            warrantyIsInferred: rules.warrantyIsInferred,
-            returnWindowDays: rules.returnWindowDays,
-            returnWindowIsInferred: rules.returnWindowIsInferred,
+            warrantyDurationMonths: warrantyMonths,
+            warrantyIsInferred: warrantyMonths > 0 ? warrantyInferred : false,
+            returnWindowDays: returnDays,
+            returnWindowIsInferred: returnDays > 0 ? returnInferred : false,
             confidence: max(rules.confidence, cloud.confidence)
         )
     }
@@ -321,9 +370,79 @@ extension CloudExtractor {
         rules: ExtractedReceipt,
         cloud: CloudExtractionPayload
     ) -> CloudExtractionPayload {
-        CloudExtractionPayload(
-            receipt: merge(rules: rules, cloud: cloud.receipt),
-            lineItems: cloud.lineItems
+        let items = dedupeLineItems(cloud.lineItems)
+        return CloudExtractionPayload(
+            receipt: merge(rules: rules, cloud: cloud.receipt, lineItems: items),
+            lineItems: items,
+            fieldConfidences: cloud.fieldConfidences
         )
+    }
+
+    /// Prefer cloud total unless it undercuts a line item / rules found a better amount.
+    static func pickTotal(
+        rules: Double,
+        cloud: Double,
+        lineItems: [ReceiptLineItem]
+    ) -> Double {
+        let maxItem = lineItems.map(\.price).max() ?? 0
+        let itemSum = lineItems.reduce(0) { $0 + $1.price }
+
+        if cloud > 0, maxItem > 0, cloud + 0.009 < maxItem {
+            if rules > 0, rules + 0.009 >= maxItem { return rules }
+            if itemSum > 0 { return itemSum }
+        }
+        if cloud > 0 { return cloud }
+        if rules > 0 { return rules }
+        return itemSum
+    }
+
+    /// Drop postage/total rows and identical packing-slip duplicates (Price Paid + line Total).
+    static func dedupeLineItems(_ items: [ReceiptLineItem]) -> [ReceiptLineItem] {
+        var seen = Set<String>()
+        var out: [ReceiptLineItem] = []
+        for item in items {
+            let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, item.price > 0 else { continue }
+            if isNonProductLineName(name) { continue }
+            let key = "\(name.lowercased())|\(String(format: "%.2f", item.price))"
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            out.append(ReceiptLineItem(id: item.id, name: name, price: item.price))
+            if out.count >= 40 { break }
+        }
+        return out
+    }
+
+    static func isNonProductLineName(_ name: String) -> Bool {
+        let lowered = name.lowercased()
+        let blocked = [
+            "total", "grand total", "subtotal", "postage", "shipping", "delivery",
+            "tax", "vat", "gst", "qty", "quantity", "balance", "amount due",
+            "change", "cash", "card", "paid",
+        ]
+        return blocked.contains(lowered)
+    }
+
+    /// If a labeled total is smaller
+    static func reconcileTotal(_ total: Double, lineItems: [ReceiptLineItem]) -> Double {
+        guard !lineItems.isEmpty else { return max(total, 0) }
+        let sum = lineItems.reduce(0) { $0 + $1.price }
+        let maxItem = lineItems.map(\.price).max() ?? 0
+        if total <= 0 { return sum }
+        if total + 0.009 < maxItem { return sum }
+        return total
+    }
+
+    static func refineItemName(_ name: String, lineItems: [ReceiptLineItem]) -> String {
+        guard let top = lineItems.max(by: { $0.price < $1.price }) else { return name }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return top.name }
+        let generics: Set<String> = ["grocery shop", "restaurant meal", "fuel", "shopping"]
+        // Only replace basket summaries when the slip is clearly a single product
+        // (packing slips / fashion). Multi-item groceries keep "Grocery shop".
+        if generics.contains(trimmed.lowercased()), lineItems.count == 1 {
+            return top.name
+        }
+        return trimmed
     }
 }

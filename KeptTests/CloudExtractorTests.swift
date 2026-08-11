@@ -157,6 +157,91 @@ struct CloudExtractorTests {
         #expect(merged.currency == "GBP")
         #expect(merged.purchaseDate == "2026-06-16")
         #expect(merged.returnWindowDays == 28)
+        #expect(merged.returnWindowIsInferred == true)
+    }
+
+    @Test("merge rejects cloud total smaller than a line item")
+    func mergeRejectsUndersizedCloudTotal() {
+        let rules = ExtractedReceipt(
+            merchant: "Clarks",
+            itemName: "Shoes",
+            price: 72.25,
+            currency: "GBP",
+            purchaseDate: "2026-03-02",
+            warrantyDurationMonths: 0,
+            warrantyIsInferred: false,
+            returnWindowDays: 28,
+            returnWindowIsInferred: false,
+            confidence: 0.6
+        )
+        let cloud = ExtractedReceipt(
+            merchant: "Clarks",
+            itemName: "Grocery shop",
+            price: 12.25,
+            currency: "GBP",
+            purchaseDate: "2026-03-02",
+            warrantyDurationMonths: 0,
+            warrantyIsInferred: false,
+            returnWindowDays: 28,
+            returnWindowIsInferred: false,
+            confidence: 0.9
+        )
+        let items = [
+            ReceiptLineItem(name: "CraftRally Ace Black Sde, G, 11", price: 72.25),
+            ReceiptLineItem(name: "CraftRally Ace Black Sde, G, 11", price: 72.25),
+        ]
+        let deduped = CloudExtractor.dedupeLineItems(items)
+        let merged = CloudExtractor.merge(rules: rules, cloud: cloud, lineItems: deduped)
+        #expect(merged.price == 72.25)
+        #expect(merged.itemName == "CraftRally Ace Black Sde, G, 11")
+        #expect(deduped.count == 1)
+    }
+
+    @Test("dedupe collapses packing-slip Price Paid + line Total duplicates")
+    func dedupePackingSlipColumns() {
+        let items = [
+            ReceiptLineItem(name: "CraftRally Ace Black Sde, G, 11", price: 72.25),
+            ReceiptLineItem(name: "CraftRally Ace Black Sde, G, 11", price: 72.25),
+            ReceiptLineItem(name: "Postage", price: 0.01),
+            ReceiptLineItem(name: "Total", price: 72.25),
+        ]
+        let deduped = CloudExtractor.dedupeLineItems(items)
+        #expect(deduped.count == 1)
+        #expect(deduped[0].name == "CraftRally Ace Black Sde, G, 11")
+        #expect(deduped[0].price == 72.25)
+    }
+
+    @Test("merge prefers printed cloud return/warranty over rules inference")
+    func mergePrefersPrintedCoverage() {
+        let rules = ExtractedReceipt(
+            merchant: "Currys",
+            itemName: "TV",
+            price: 499,
+            currency: "GBP",
+            purchaseDate: "2026-06-01",
+            warrantyDurationMonths: 0,
+            warrantyIsInferred: false,
+            returnWindowDays: 28,
+            returnWindowIsInferred: true,
+            confidence: 0.4
+        )
+        let cloud = ExtractedReceipt(
+            merchant: "Currys",
+            itemName: "OLED TV",
+            price: 499,
+            currency: "GBP",
+            purchaseDate: "2026-06-01",
+            warrantyDurationMonths: 24,
+            warrantyIsInferred: false,
+            returnWindowDays: 14,
+            returnWindowIsInferred: false,
+            confidence: 0.9
+        )
+        let merged = CloudExtractor.merge(rules: rules, cloud: cloud)
+        #expect(merged.returnWindowDays == 14)
+        #expect(merged.returnWindowIsInferred == false)
+        #expect(merged.warrantyDurationMonths == 24)
+        #expect(merged.warrantyIsInferred == false)
     }
 
     // MARK: - Helpers

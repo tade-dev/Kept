@@ -8,10 +8,15 @@ struct CaptureView: View {
 
     @Namespace private var receiptNamespace
 
+    /// Temporary flag while the confirm screen is being validated. Flip to
+    /// false to fall back to the inline review Form.
+    private let useConfirmScreen: Bool = true
+
     @State private var isScannerPresented: Bool
     @State private var capturedImage: UIImage?
     @State private var recognizedLines: [RecognizedLine] = []
     @State private var extraction: ExtractedReceipt?
+    @State private var fieldConfidences: FieldConfidences?
     @State private var extractionErrorMessage: String?
     /// Cloud failed or offline — save still proceeds with rules floor + OCR for later.
     @State private var needsReextraction = false
@@ -66,12 +71,13 @@ struct CaptureView: View {
         NavigationStack {
             content
                 .navigationTitle(navigationTitle)
-                .toolbarTitleDisplayMode(.inlineLarge)
+                .toolbarTitleDisplayMode(.inline)
+                .sensoryFeedback(.impact(weight: .light), trigger: status == .review)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Close") { dismiss() }
                     }
-                    if status == .review {
+                    if status == .review && !useConfirmScreen {
                         ToolbarItem(placement: .primaryAction) {
                             Button("Save", action: save)
                                 .disabled(!canSave)
@@ -124,12 +130,12 @@ struct CaptureView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                if let image = capturedImage {
+                if let image = capturedImage, status != .review {
                     heldReceiptImage(image)
                 }
 
                 if status == .review {
-                    reviewForm
+                    reviewContent
                         .transition(formTransition)
                 } else {
                     Spacer(minLength: 0)
@@ -145,20 +151,19 @@ struct CaptureView: View {
         }
     }
 
-    /// Single shared image so loading → review morphs via matchedGeometryEffect.
+    /// Loading-state image. In review, the confirm view owns the image so
+    /// it scrolls with the fields like the detail view — no fixed header.
     private func heldReceiptImage(_ image: UIImage) -> some View {
-        let reviewing = status == .review
-        return Image(uiImage: image)
+        Image(uiImage: image)
             .resizable()
             .scaledToFit()
             .frame(maxWidth: .infinity)
-            .frame(maxHeight: reviewing ? 240 : 520)
-            .clipShape(RoundedRectangle(cornerRadius: reviewing ? 16 : 20, style: .continuous))
-            .shadow(color: .black.opacity(reviewing ? 0.1 : 0.16), radius: reviewing ? 10 : 18, y: reviewing ? 4 : 8)
+            .frame(maxHeight: 520)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
             .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
-            .padding(.horizontal, reviewing ? 16 : 28)
-            .padding(.top, reviewing ? 8 : 16)
-            .padding(.bottom, reviewing ? 4 : 0)
+            .padding(.horizontal, 28)
+            .padding(.top, 16)
             .animation(statusAnimation, value: status)
     }
 
@@ -220,6 +225,23 @@ struct CaptureView: View {
     }
 
     // MARK: - Review
+
+    @ViewBuilder
+    private var reviewContent: some View {
+        if useConfirmScreen, let extraction {
+            ExtractionConfirmView(
+                image: capturedImage,
+                ocrLines: recognizedLines,
+                extraction: ReceiptExtraction.from(
+                    receipt: extraction,
+                    confidences: fieldConfidences
+                ),
+                onSave: { _ in dismiss() }
+            )
+        } else {
+            reviewForm
+        }
+    }
 
     private var reviewForm: some View {
         Form {
@@ -468,15 +490,18 @@ struct CaptureView: View {
                 let remote = try await cloudExtractor.extractDetailed(from: lines)
                 let merged = CloudExtractor.merge(rules: floor, cloud: remote)
                 extraction = merged.receipt
+                fieldConfidences = merged.fieldConfidences
                 applyExtraction(merged.receipt, lineItems: merged.lineItems)
             } catch {
                 // Offline / 5xx / timeout: keep rules floor, mark for re-extract, no error UI.
                 needsReextraction = true
                 extraction = floor
+                fieldConfidences = nil
                 applyExtraction(floor, lineItems: [])
             }
         } else {
             extraction = floor
+            fieldConfidences = nil
             applyExtraction(floor, lineItems: [])
         }
         transition(to: .review)

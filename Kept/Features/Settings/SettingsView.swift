@@ -1,0 +1,361 @@
+import SwiftUI
+import SwiftData
+import UserNotifications
+
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var purchases: [Purchase]
+
+    @AppStorage(SettingsKeys.notificationsEnabled) private var notificationsEnabled: Bool = SettingsDefaults.notificationsEnabled
+    @AppStorage(SettingsKeys.leadDaysCSV) private var leadDaysCSV: String = "14"
+    @AppStorage(SettingsKeys.notifyHour) private var notifyHour: Int = SettingsDefaults.notifyHour
+    @AppStorage(SettingsKeys.notifyMinute) private var notifyMinute: Int = SettingsDefaults.notifyMinute
+    @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
+
+    private var leadDaysSet: Set<Int> {
+        let ints = leadDaysCSV
+            .split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        return ints.isEmpty ? SettingsDefaults.leadDays : Set(ints)
+    }
+
+    private func setLead(_ day: Int, on: Bool) {
+        var set = leadDaysSet
+        if on { set.insert(day) } else { set.remove(day) }
+        if set.isEmpty { set = [day] }
+        leadDaysCSV = set.sorted().map(String.init).joined(separator: ",")
+    }
+
+    @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @State private var exportURL: URL?
+    @State private var showDeleteConfirm = false
+
+    private var appearance: AppearancePreference {
+        AppearancePreference(rawValue: appearanceRaw) ?? .system
+    }
+
+    private var notifyTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                var comps = DateComponents()
+                comps.hour = notifyHour
+                comps.minute = notifyMinute
+                return Calendar.current.date(from: comps) ?? .now
+            },
+            set: { newDate in
+                let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                notifyHour = comps.hour ?? SettingsDefaults.notifyHour
+                notifyMinute = comps.minute ?? SettingsDefaults.notifyMinute
+            }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if notificationsEnabled && authorizationStatus == .denied {
+                    permissionDeniedSection
+                }
+
+                remindersSection
+                appearanceSection
+                dataSection
+                aboutSection
+            }
+            .navigationTitle("Settings")
+            .toolbarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .preferredColorScheme(appearance.colorScheme)
+            .task {
+                await refreshAuthorizationStatus()
+                refreshExportURL()
+            }
+            .confirmationDialog(
+                "Delete everything?",
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete all data", role: .destructive) {
+                    deleteAll()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Removes every purchase, warranty, and pending reminder. This can't be undone.")
+            }
+            .onChange(of: notificationsEnabled) { _, newValue in
+                Task { await handleNotificationsToggle(newValue) }
+            }
+            .onChange(of: leadDaysCSV) { _, _ in
+                Task { await rescheduleAll() }
+            }
+            .onChange(of: notifyHour) { _, _ in
+                Task { await rescheduleAll() }
+            }
+            .onChange(of: notifyMinute) { _, _ in
+                Task { await rescheduleAll() }
+            }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var permissionDeniedSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Notifications are off", systemImage: "bell.slash.fill")
+                    .font(.headline)
+                    .foregroundStyle(.orange)
+                Text("Kept can't warn you before coverage ends until you allow notifications in iOS Settings.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                openSystemSettings()
+            } label: {
+                Label("Open Settings", systemImage: "arrow.up.right.square")
+            }
+        }
+    }
+
+    private var remindersSection: some View {
+        Section {
+            Toggle("Notifications", isOn: $notificationsEnabled)
+
+            if notificationsEnabled {
+                ForEach(LeadDayOption.all, id: \.self) { day in
+                    Toggle(
+                        "\(day) days before",
+                        isOn: Binding(
+                            get: { leadDaysSet.contains(day) },
+                            set: { setLead(day, on: $0) }
+                        )
+                    )
+                }
+                DatePicker(
+                    "Time of day",
+                    selection: notifyTimeBinding,
+                    displayedComponents: .hourAndMinute
+                )
+            }
+        } header: {
+            Text("Reminders")
+        } footer: {
+            if notificationsEnabled {
+                Text(reminderFooter)
+            }
+        }
+    }
+
+    private var reminderFooter: String {
+        let sorted = leadDaysSet.sorted(by: >)
+        let list = sorted.map(String.init).joined(separator: ", ")
+        return "Kept nudges you at \(list) day\(sorted.count == 1 ? "" : "s") before any warranty or return window ends."
+    }
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            Picker("Theme", selection: $appearanceRaw) {
+                ForEach(AppearancePreference.allCases) { pref in
+                    Text(pref.label).tag(pref.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var dataSection: some View {
+        Section {
+            if let exportURL {
+                ShareLink(item: exportURL) {
+                    Label("Export all data", systemImage: "square.and.arrow.up")
+                }
+                .disabled(purchases.isEmpty)
+            } else {
+                Label("Export all data", systemImage: "square.and.arrow.up")
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                resetOnboarding()
+            } label: {
+                Label("Reset onboarding", systemImage: "arrow.counterclockwise")
+            }
+
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                Label("Delete all data", systemImage: "trash")
+            }
+            .disabled(purchases.isEmpty)
+        } header: {
+            Text("Data")
+        } footer: {
+            Text("\(purchases.count) \(purchases.count == 1 ? "item" : "items") stored on this device.")
+        }
+    }
+
+    private var aboutSection: some View {
+        Section("About") {
+            LabeledContent("Version", value: "\(appVersion) (\(buildNumber))")
+
+            Link(destination: URL(string: "mailto:support@kept.app")!) {
+                Label("Contact support", systemImage: "envelope")
+            }
+
+            Link(destination: URL(string: "https://kept.app/privacy")!) {
+                Label("Privacy policy", systemImage: "hand.raised")
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func refreshAuthorizationStatus() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        authorizationStatus = settings.authorizationStatus
+    }
+
+    private func handleNotificationsToggle(_ enabled: Bool) async {
+        if enabled {
+            _ = await CoverageNotificationScheduler.requestAuthorizationIfNeeded()
+            await refreshAuthorizationStatus()
+            await CoverageNotificationScheduler.rescheduleAll(purchases)
+        } else {
+            CoverageNotificationScheduler.cancelAll()
+        }
+    }
+
+    private func rescheduleAll() async {
+        guard notificationsEnabled else { return }
+        await CoverageNotificationScheduler.rescheduleAll(purchases)
+    }
+
+    private func refreshExportURL() {
+        exportURL = generateExport()
+    }
+
+    private func generateExport() -> URL? {
+        let export = KeptExport(
+            exportedAt: .now,
+            purchases: purchases.map(PurchaseExport.init)
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(export) else { return nil }
+        let stamp = ISO8601DateFormatter().string(from: .now).replacingOccurrences(of: ":", with: "-")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kept-export-\(stamp).json")
+        try? data.write(to: url, options: .atomic)
+        return url
+    }
+
+    private func resetOnboarding() {
+        UserDefaults.standard.set(false, forKey: SettingsKeys.hasOnboarded)
+        dismiss()
+    }
+
+    private func deleteAll() {
+        for purchase in purchases {
+            CoverageNotificationScheduler.cancel(for: purchase)
+            modelContext.delete(purchase)
+        }
+        try? modelContext.save()
+        refreshExportURL()
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    // MARK: - Bundle info
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+}
+
+// MARK: - Export payload
+
+private struct KeptExport: Codable {
+    let exportedAt: Date
+    let purchases: [PurchaseExport]
+}
+
+private struct PurchaseExport: Codable {
+    let merchant: String
+    let itemName: String
+    let price: Decimal
+    let currency: String
+    let purchaseDate: Date
+    let notes: String
+    let createdAt: Date
+    let warranties: [WarrantyExport]
+    let lineItems: [ReceiptLineItem]
+
+    @MainActor
+    init(_ purchase: Purchase) {
+        self.merchant = purchase.merchant
+        self.itemName = purchase.itemName
+        self.price = purchase.price
+        self.currency = purchase.currency
+        self.purchaseDate = purchase.purchaseDate
+        self.notes = purchase.notes
+        self.createdAt = purchase.createdAt
+        self.warranties = (purchase.warranties ?? []).map(WarrantyExport.init)
+        self.lineItems = purchase.lineItems
+    }
+}
+
+private struct WarrantyExport: Codable {
+    let kind: String
+    let source: String
+    let confidence: Double
+    let durationMonths: Int
+    let durationDays: Int
+    let expiryDate: Date
+
+    @MainActor
+    init(_ term: WarrantyTerm) {
+        self.kind = term.kindRaw
+        self.source = term.sourceRaw
+        self.confidence = term.confidence
+        self.durationMonths = term.durationMonths
+        self.durationDays = term.durationDays
+        self.expiryDate = term.expiryDate
+    }
+}
+
+#Preview("Empty") {
+    SettingsView()
+        .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
+}
+
+#Preview("With items") {
+    let container = try! ModelContainer(
+        for: Purchase.self, WarrantyTerm.self, PassRecord.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let ctx = container.mainContext
+    let apple = Purchase(
+        merchant: "Apple",
+        itemName: "iPhone 16 Pro",
+        price: 1499,
+        currency: "USD",
+        purchaseDate: .now
+    )
+    _ = apple.setDuration(months: 12, byUser: false)
+    ctx.insert(apple)
+    return SettingsView()
+        .modelContainer(container)
+}

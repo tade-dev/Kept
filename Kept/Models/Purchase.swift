@@ -14,6 +14,12 @@ final class Purchase {
     var lineItemsData: Data?
     var needsReextraction: Bool = false
     var createdAt: Date = Date(timeIntervalSinceReferenceDate: 0)
+    var documentKindRaw: String = DocumentKind.receipt.rawValue
+
+    var documentKind: DocumentKind {
+        get { DocumentKind(stored: documentKindRaw) }
+        set { documentKindRaw = newValue.rawValue }
+    }
 
     var lineItems: [ReceiptLineItem] {
         get { ReceiptLineItem.decodeList(lineItemsData) }

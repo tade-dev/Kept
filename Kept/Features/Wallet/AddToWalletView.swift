@@ -95,14 +95,10 @@ struct AddToWalletButton: View {
     @State private var passToAdd: PKPass?
     @State private var pendingSerial: String?
     @State private var isPresentingAddSheet = false
+    @State private var addedTick = 0
 
     private var hasCoverage: Bool {
         purchase.coverageEndsAt != nil || purchase.nextDeadline != nil
-    }
-
-    private var buttonStyle: PKAddPassButtonStyle {
-        // Outline on dark surfaces per Apple Wallet badge guidelines.
-        colorScheme == .dark ? .blackOutline : .black
     }
 
     var body: some View {
@@ -119,12 +115,14 @@ struct AddToWalletButton: View {
                 AddToWalletView(pass: passToAdd) { added in
                     if added, let serial = pendingSerial {
                         savePassRecord(serialNumber: serial)
+                        addedTick &+= 1
                     }
                     isPresentingAddSheet = false
                 }
                 .ignoresSafeArea()
             }
         }
+        .sensoryFeedback(.success, trigger: addedTick)
         .alert("Couldn't add pass", isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
@@ -136,24 +134,28 @@ struct AddToWalletButton: View {
     }
 
     private var badge: some View {
-        ZStack {
-            PKAddPassButtonView(
-                style: buttonStyle,
-                isEnabled: !isWorking && signingService != nil
-            ) {
-                Task { await start() }
-            }
-            .fixedSize()
-            .opacity(isWorking ? 0 : 1)
-            .accessibilityLabel("Add to Apple Wallet")
+        Button {
+            Task { await start() }
+        } label: {
+            ZStack {
+                Image("AddToAppleWallet")
+                    .resizable()
+                    .renderingMode(.original)
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .opacity(isWorking ? 0 : 1)
 
-            if isWorking {
-                ProgressView()
-                    .controlSize(.regular)
+                if isWorking {
+                    ProgressView()
+                        .controlSize(.regular)
+                        .tint(colorScheme == .dark ? .white : .black)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 48)
+        .buttonStyle(.plain)
+        .disabled(isWorking || signingService == nil)
+        .accessibilityLabel("Add to Apple Wallet")
     }
 
     @MainActor

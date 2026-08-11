@@ -19,5 +19,10 @@
 	<array>
 		<string>_http._tcp</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>InstrumentSerif-Regular.ttf</string>
+		<string>InstrumentSerif-Italic.ttf</string>
+	</array>
 </dict>
 </plist>

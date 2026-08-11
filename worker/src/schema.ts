@@ -49,6 +49,26 @@ export const extractionResponseSchema = {
       type: ["string", "null"],
       description: "Purchase date as YYYY-MM-DD. Null if no date is present.",
     },
+    returnWindowDays: {
+      type: ["number", "null"],
+      description:
+        "Return/refund/exchange window in days ONLY when printed on the receipt (e.g. 14, 28, 30, or days until a printed deadline). Null when not stated. Never invent a default.",
+    },
+    returnWindowIsInferred: {
+      type: "boolean",
+      description:
+        "Must be false when returnWindowDays is set from printed text. False when returnWindowDays is null.",
+    },
+    warrantyDurationMonths: {
+      type: ["number", "null"],
+      description:
+        "Warranty/guarantee length in months ONLY when printed (convert years → months). Null when not stated. Never invent a default.",
+    },
+    warrantyIsInferred: {
+      type: "boolean",
+      description:
+        "Must be false when warrantyDurationMonths is set from printed text. False when warrantyDurationMonths is null.",
+    },
     confidence: {
       type: "object",
       additionalProperties: false,
@@ -68,6 +88,10 @@ export const extractionResponseSchema = {
     "total",
     "currencyCode",
     "purchaseDate",
+    "returnWindowDays",
+    "returnWindowIsInferred",
+    "warrantyDurationMonths",
+    "warrantyIsInferred",
     "confidence",
   ],
 } as const;
@@ -79,6 +103,10 @@ export type ExtractionResponse = {
   total: number | null;
   currencyCode: string | null;
   purchaseDate: string | null;
+  returnWindowDays: number | null;
+  returnWindowIsInferred: boolean;
+  warrantyDurationMonths: number | null;
+  warrantyIsInferred: boolean;
   confidence: {
     merchant: number;
     total: number;

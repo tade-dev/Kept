@@ -45,4 +45,26 @@ struct ReceiptLineItem: Codable, Equatable, Sendable, Identifiable, Hashable {
 struct CloudExtractionPayload: Sendable, Equatable {
     var receipt: ExtractedReceipt
     var lineItems: [ReceiptLineItem]
+    /// Per-field confidence from the wire response. Nil when the payload
+    /// came from the rules floor alone (no cloud signal).
+    var fieldConfidences: FieldConfidences?
+
+    init(
+        receipt: ExtractedReceipt,
+        lineItems: [ReceiptLineItem],
+        fieldConfidences: FieldConfidences? = nil
+    ) {
+        self.receipt = receipt
+        self.lineItems = lineItems
+        self.fieldConfidences = fieldConfidences
+    }
+}
+
+/// Wire-level per-field confidences. Only the fields the gateway reports
+/// live here — derived confidences (itemName, currency, coverage) come from
+/// the extraction bridge, not from the wire.
+struct FieldConfidences: Sendable, Equatable {
+    var merchant: Double?
+    var total: Double?
+    var purchaseDate: Double?
 }

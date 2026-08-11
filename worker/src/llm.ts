@@ -160,13 +160,25 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
       ? (obj.confidence as Record<string, unknown>)
       : {};
 
+  const returnWindowDays = nullablePositiveInt(obj.returnWindowDays);
+  const warrantyDurationMonths = nullablePositiveInt(obj.warrantyDurationMonths);
+  const items = normaliseItems(obj.items);
+  let itemName = nullableString(obj.itemName);
+  itemName = refineItemName(itemName, items);
+  const total = reconcileTotal(nullableNumber(obj.total), items);
+
   return {
     merchant: nullableString(obj.merchant),
-    itemName: nullableString(obj.itemName),
-    items: normaliseItems(obj.items),
-    total: nullableNumber(obj.total),
+    itemName,
+    items,
+    total,
     currencyCode: nullableString(obj.currencyCode)?.toUpperCase() ?? null,
     purchaseDate: nullableString(obj.purchaseDate),
+    // Cloud path only accepts printed coverage — never mark inferred.
+    returnWindowDays,
+    returnWindowIsInferred: false,
+    warrantyDurationMonths,
+    warrantyIsInferred: false,
     confidence: {
       merchant: clamp01(confidenceRaw.merchant),
       total: clamp01(confidenceRaw.total),
@@ -175,21 +187,65 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
   };
 }
 
+const NON_PRODUCT_ITEM =
+  /^(total|grand\s*total|subtotal|postage|shipping|delivery|tax|vat|gst|qty|quantity|balance|amount\s*due|change|cash|card|paid)$/i;
+
 function normaliseItems(
   value: unknown,
 ): Array<{ name: string; price: number }> {
   if (!Array.isArray(value)) return [];
   const out: Array<{ name: string; price: number }> = [];
+  const seen = new Set<string>();
   for (const entry of value) {
     if (!entry || typeof entry !== "object") continue;
     const row = entry as Record<string, unknown>;
     const name = nullableString(row.name);
     const price = nullableNumber(row.price);
     if (!name || price == null || price <= 0) continue;
+    if (NON_PRODUCT_ITEM.test(name)) continue;
+    // Packing slips often repeat Price Paid + line Total as two identical rows.
+    const key = `${name.toLowerCase().replace(/\s+/g, " ")}|${price.toFixed(2)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push({ name, price });
     if (out.length >= 40) break;
   }
   return out;
+}
+
+/** Prefer item sum when a labeled total is smaller than a line item (common OCR 7→1). */
+function reconcileTotal(
+  total: number | null,
+  items: Array<{ name: string; price: number }>,
+): number | null {
+  if (items.length === 0) return total;
+  const sum = round2(items.reduce((acc, item) => acc + item.price, 0));
+  const maxItem = Math.max(...items.map((item) => item.price));
+  if (total == null || total <= 0) return sum > 0 ? sum : null;
+  if (total + 0.009 < maxItem) return sum;
+  return round2(total);
+}
+
+function refineItemName(
+  itemName: string | null,
+  items: Array<{ name: string; price: number }>,
+): string | null {
+  if (items.length === 0) return itemName;
+  const top = items.reduce((a, b) => (a.price >= b.price ? a : b));
+  if (!itemName) return top.name;
+  const generics = new Set([
+    "grocery shop",
+    "restaurant meal",
+    "fuel",
+    "shopping",
+  ]);
+  // Only replace basket summaries for single-product slips (fashion / packing).
+  if (generics.has(itemName.toLowerCase()) && items.length === 1) return top.name;
+  return itemName;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function nullableString(value: unknown): string | null {
@@ -203,6 +259,15 @@ function nullableNumber(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return value;
+}
+
+/** Whole days/months counts; rejects 0 and non-integers. */
+function nullablePositiveInt(value: unknown): number | null {
+  const n = nullableNumber(value);
+  if (n == null || n <= 0) return null;
+  const rounded = Math.round(n);
+  if (Math.abs(n - rounded) > 1e-6) return null;
+  return rounded;
 }
 
 function clamp01(value: unknown): number {

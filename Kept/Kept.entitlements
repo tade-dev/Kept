@@ -5,6 +5,7 @@
 	<key>com.apple.developer.pass-type-identifiers</key>
 	<array>
 		<string>$(TeamIdentifierPrefix)pass.com.tade.Kept</string>
+		<string>$(TeamIdentifierPrefix)pass.com.tade.devpass</string>
 	</array>
 </dict>
 </plist>

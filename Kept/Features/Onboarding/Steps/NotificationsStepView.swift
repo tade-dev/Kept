@@ -1,0 +1,46 @@
+import SwiftUI
+
+/// Step 6 — the ask is framed by the user's lead-time choice. Enable / Not now buttons
+/// are rendered by OnboardingView so this step only owns the icon + copy.
+struct NotificationsStepView: View {
+    @Bindable var coordinator: OnboardingCoordinator
+
+    var body: some View {
+        OnboardingScaffold(
+            title: headline,
+            subtitle: "No marketing, no upsell. Only the countdown."
+        ) {
+            VStack {
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(KeptColor.ink.opacity(0.06))
+                        .frame(width: 180, height: 180)
+
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 78, weight: .light))
+                        .foregroundStyle(KeptColor.ink)
+                }
+
+                Spacer()
+            }
+        }
+    }
+
+    private var headline: String {
+        let sorted = coordinator.result.warningLeadTimes.sorted()
+        switch sorted.count {
+        case 1:  return "We'll tell you \(sorted[0]) days before cover ends."
+        case 2:  return "We'll tell you \(sorted[0]) and \(sorted[1]) days before cover ends."
+        default:
+            let head = sorted.dropLast().map(String.init).joined(separator: ", ")
+            let tail = sorted.last.map(String.init) ?? ""
+            return "We'll tell you \(head), and \(tail) days before cover ends."
+        }
+    }
+}
+
+#Preview {
+    NotificationsStepView(coordinator: OnboardingCoordinator())
+}

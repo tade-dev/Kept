@@ -16,11 +16,13 @@ struct LibraryView: View {
     @Namespace private var layoutNamespace
 
     @State private var isCapturing = false
+    @State private var isSettingsPresented = false
     #if DEBUG
     @State private var isPhotoPickerPresented = false
     @State private var isFixtureCapturePresented = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: UIImage?
+    @State private var deletedTick = 0
     #endif
 
     private var viewMode: LibraryViewMode {
@@ -60,7 +62,8 @@ struct LibraryView: View {
             .task {
                 await CoverageNotificationScheduler.rescheduleAll(purchases)
             }
-            .toolbarTitleDisplayMode(.inlineLarge)
+            .toolbarTitleDisplayMode(.inline)
+            .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -71,6 +74,13 @@ struct LibraryView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     viewModeMenu
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isSettingsPresented = true
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
                 }
                 #if DEBUG
                 ToolbarItem(placement: .secondaryAction) {
@@ -103,6 +113,9 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $isCapturing) {
                 CaptureView()
+            }
+            .sheet(isPresented: $isSettingsPresented) {
+                SettingsView()
             }
             #if DEBUG
             .sheet(isPresented: $isFixtureCapturePresented) {
@@ -191,6 +204,7 @@ struct LibraryView: View {
     private func delete(_ purchase: Purchase) {
         CoverageNotificationScheduler.cancel(for: purchase)
         modelContext.delete(purchase)
+        deletedTick &+= 1
     }
 
     #if DEBUG

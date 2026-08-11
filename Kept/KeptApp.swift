@@ -3,6 +3,8 @@ import SwiftData
 
 @main
 struct KeptApp: App {
+    @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Purchase.self,
@@ -18,9 +20,14 @@ struct KeptApp: App {
         }
     }()
 
+    private var preferredScheme: ColorScheme? {
+        (AppearancePreference(rawValue: appearanceRaw) ?? .system).colorScheme
+    }
+
     var body: some Scene {
         WindowGroup {
-            LibraryView()
+            RootView()
+                .preferredColorScheme(preferredScheme)
         }
         .modelContainer(sharedModelContainer)
     }
