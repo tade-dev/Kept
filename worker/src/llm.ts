@@ -146,6 +146,7 @@ function resolveProviderKey(env: Env): string | undefined {
     env.LLM_API_KEY ||
     env.OPENAI_API_KEY ||
     env.ANTHROPIC_API_KEY ||
+    env.GEMINI_API_KEY ||
     undefined
   );
 }
