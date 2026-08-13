@@ -30,6 +30,7 @@ export type Env = {
   LLM_API_KEY?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
   /** Optional — only required when the AI Gateway enforces auth. */
   CF_AIG_TOKEN?: string;
   EXTRACT_RATE_LIMIT: RateLimit;

@@ -7,12 +7,15 @@ preview_urls = true
 [vars]
 CF_ACCOUNT_ID = "605dc882eab2e287ef2a63090e99df9a"
 AI_GATEWAY_ID = "kept"
-# OpenAI (default) or Claude via AI Gateway compat endpoint:
+# Model via AI Gateway compat endpoint. Examples:
 #   openai/gpt-4o-mini
 #   anthropic/claude-haiku-4-5
+#   google-ai-studio/gemini-2.0-flash
 LLM_MODEL = "openai/gpt-4o-mini"
 # Wallet pass identity (public). PEMs are secrets — see docs/PASS_CERTS.md
-PASS_TYPE_IDENTIFIER = "pass.com.tade.Kept"
+# The signing certificate on Cloudflare is issued for `pass.com.tade.devpass`;
+# swapping identifiers here without re-uploading certs breaks /pass.
+PASS_TYPE_IDENTIFIER = "pass.com.tade.devpass"
 TEAM_IDENTIFIER = "TU566926VK"
 
 # Secrets (wrangler secret put / .dev.vars — never commit):
