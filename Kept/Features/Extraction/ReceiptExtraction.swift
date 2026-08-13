@@ -15,6 +15,9 @@ nonisolated struct ReceiptExtraction: Equatable, Sendable {
     var currency: Field<String>
     var purchaseDate: Field<Date>
     var coverage: Field<CoverageEstimate>
+    /// Line items extracted from the receipt. Empty when the receipt has
+    /// no itemised rows or the extractor couldn't read them.
+    var lineItems: [ReceiptLineItem] = []
 
     static let empty = ReceiptExtraction(
         itemName: Field(),
@@ -22,7 +25,8 @@ nonisolated struct ReceiptExtraction: Equatable, Sendable {
         total: Field(),
         currency: Field(),
         purchaseDate: Field(),
-        coverage: Field()
+        coverage: Field(),
+        lineItems: []
     )
 }
 
@@ -48,14 +52,15 @@ extension ReceiptExtraction {
 
     static func from(
         receipt: ExtractedReceipt,
-        confidences: FieldConfidences? = nil
+        confidences: FieldConfidences? = nil,
+        lineItems: [ReceiptLineItem] = []
     ) -> ReceiptExtraction {
         let merchant = Self.trimmed(receipt.merchant)
         let itemName = Self.trimmed(receipt.itemName)
         let currency = Self.trimmed(receipt.currency)?.uppercased()
         let purchaseDate = Self.parseISODate(receipt.purchaseDate)
 
-        return ReceiptExtraction(
+        var extraction = ReceiptExtraction(
             itemName: Field(
                 value: itemName,
                 confidence: itemName.map { _ in Derived.printed }
@@ -78,6 +83,8 @@ extension ReceiptExtraction {
             ),
             coverage: Self.coverageField(from: receipt)
         )
+        extraction.lineItems = lineItems
+        return extraction
     }
 
     /// Warranty wins over return window when both present — the confirm

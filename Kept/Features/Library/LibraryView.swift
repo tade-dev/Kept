@@ -17,6 +17,10 @@ struct LibraryView: View {
 
     @State private var isCapturing = false
     @State private var isSettingsPresented = false
+    /// Purchase to play the entry animation on (set from CaptureView.onSave,
+    /// auto-cleared after the animation window elapses).
+    @State private var justAddedPurchaseID: PersistentIdentifier?
+    @State private var justAddedClearTask: Task<Void, Never>?
     #if DEBUG
     @State private var isPhotoPickerPresented = false
     @State private var isFixtureCapturePresented = false
@@ -112,7 +116,7 @@ struct LibraryView: View {
                 #endif
             }
             .sheet(isPresented: $isCapturing) {
-                CaptureView()
+                CaptureView(onSave: flagNewlyAdded)
             }
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
@@ -130,7 +134,7 @@ struct LibraryView: View {
                 get: { pickedImage.map(IdentifiedImage.init) },
                 set: { if $0 == nil { pickedImage = nil } }
             )) { wrapper in
-                CaptureView(image: wrapper.image)
+                CaptureView(image: wrapper.image, onSave: flagNewlyAdded)
             }
             .onChange(of: pickerItem) { _, newItem in
                 guard let newItem else { return }
@@ -154,6 +158,7 @@ struct LibraryView: View {
                 purchases: purchases,
                 zoomNamespace: receiptNamespace,
                 layoutNamespace: layoutNamespace,
+                highlightPurchaseID: justAddedPurchaseID,
                 onDelete: delete(_:)
             )
         case .list:
@@ -205,6 +210,17 @@ struct LibraryView: View {
         CoverageNotificationScheduler.cancel(for: purchase)
         modelContext.delete(purchase)
         deletedTick &+= 1
+    }
+
+    /// Flags a freshly-saved purchase so the grid can animate its entry.
+    /// Clears after ~1.5s so a subsequent view refresh doesn't re-trigger.
+    private func flagNewlyAdded(_ purchase: Purchase) {
+        justAddedClearTask?.cancel()
+        justAddedPurchaseID = purchase.persistentModelID
+        justAddedClearTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1600))
+            justAddedPurchaseID = nil
+        }
     }
 
     #if DEBUG
