@@ -31,19 +31,34 @@ struct ExtractionConfirmView: View {
         self.onSave = onSave
     }
 
+    private enum ScrollAnchor: Hashable {
+        case coverageCustom
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                receiptImage
-                fields
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    receiptImage
+                    fields
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.top, Spacing.md)
+                .padding(.bottom, Spacing.xl)
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.top, Spacing.md)
-            .padding(.bottom, Spacing.xl)
+            .background(Color(.systemGroupedBackground))
+            .safeAreaInset(edge: .bottom) { saveBar }
+            .sensoryFeedback(.success, trigger: savedTick)
+            .onChange(of: model.selectedCoveragePreset) { _, new in
+                guard new == .custom else { return }
+                // Wait a frame so the expander has laid out before we scroll.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(ScrollAnchor.coverageCustom, anchor: .bottom)
+                    }
+                }
+            }
         }
-        .background(Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom) { saveBar }
-        .sensoryFeedback(.success, trigger: savedTick)
     }
 
     @ViewBuilder
@@ -88,6 +103,10 @@ struct ExtractionConfirmView: View {
                 }
             }
 
+            if !model.lineItems.isEmpty {
+                lineItemsSection
+            }
+
             row(.purchaseDate, label: "Purchased") {
                 DatePicker(
                     "",
@@ -102,24 +121,171 @@ struct ExtractionConfirmView: View {
         }
     }
 
+    private var lineItemsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                Text("Items")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    model.addLineItem()
+                } label: {
+                    Label("Add", systemImage: "plus.circle.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Add item")
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.top, Spacing.xs)
+
+            VStack(spacing: 0) {
+                ForEach($model.lineItems) { $item in
+                    lineItemRow(item: $item)
+                    if item.id != model.lineItems.last?.id {
+                        Divider().padding(.leading, Spacing.md)
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+        }
+    }
+
+    private func lineItemRow(item: Binding<ReceiptLineItem>) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+            TextField("Item", text: item.name)
+                .textInputAutocapitalization(.words)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            TextField(
+                "Price",
+                value: item.price,
+                format: .number.precision(.fractionLength(0...2))
+            )
+            .keyboardType(.decimalPad)
+            .monospacedDigit()
+            .multilineTextAlignment(.trailing)
+            .frame(minWidth: 68, maxWidth: 96)
+            Button {
+                model.removeLineItem(id: item.wrappedValue.id)
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove \(item.wrappedValue.name)")
+        }
+        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.md)
+    }
+
     private var coverageRow: some View {
         row(.coverage, label: "Cover", extraCaption: model.coverageIsEstimated ? "Estimated" : nil) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                coverageChips
+                if model.selectedCoveragePreset == .custom {
+                    customCoverageEditor
+                        .id(ScrollAnchor.coverageCustom)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: model.selectedCoveragePreset)
+        }
+    }
+
+    private var coverageChips: some View {
+        let columns = [GridItem(.adaptive(minimum: 108), spacing: Spacing.xs)]
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: Spacing.xs) {
+            ForEach(ExtractionConfirmModel.CoveragePreset.allCases, id: \.self) { preset in
+                coverageChip(for: preset)
+            }
+        }
+    }
+
+    private func coverageChip(for preset: ExtractionConfirmModel.CoveragePreset) -> some View {
+        let isSelected = model.selectedCoveragePreset == preset
+        return Button {
+            model.applyCoveragePreset(preset)
+        } label: {
+            Text(preset.label)
+                .font(.footnote.weight(isSelected ? .semibold : .regular))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 999, style: .continuous)
+                        .fill(isSelected ? KeptColor.ink : Color(.tertiarySystemGroupedBackground))
+                )
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var customCoverageEditor: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Picker("", selection: $model.coverageKind) {
+                Text("Warranty").tag(CoverageKind.warranty)
+                Text("Return").tag(CoverageKind.returnWindow)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: model.coverageKind) { _, _ in model.markTouched(.coverage) }
+
             HStack(spacing: Spacing.sm) {
-                TextField("Add", text: $model.coverageDurationText)
+                Button {
+                    stepCustomDuration(by: -1)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Decrease")
+
+                TextField("0", text: $model.coverageDurationText)
                     .keyboardType(.numberPad)
                     .monospacedDigit()
-                    .frame(maxWidth: 96)
+                    .multilineTextAlignment(.center)
+                    .font(.title3.weight(.semibold))
+                    .frame(minWidth: 56, maxWidth: 80)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(.tertiarySystemGroupedBackground))
+                    )
                     .onChange(of: model.coverageDurationText) { _, _ in model.markTouched(.coverage) }
-                Picker("", selection: $model.coverageKind) {
-                    Text("months warranty").tag(CoverageKind.warranty)
-                    Text("days to return").tag(CoverageKind.returnWindow)
+
+                Button {
+                    stepCustomDuration(by: 1)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .onChange(of: model.coverageKind) { _, _ in model.markTouched(.coverage) }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Increase")
+
+                Text(model.coverageKind == .warranty ? "months" : "days")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
                 Spacer(minLength: 0)
             }
         }
+        .padding(.top, Spacing.xs)
+    }
+
+    private func stepCustomDuration(by delta: Int) {
+        let current = Int(model.coverageDurationText) ?? 0
+        let next = max(0, current + delta)
+        model.coverageDurationText = next == 0 ? "" : String(next)
+        model.markTouched(.coverage)
     }
 
     // MARK: - Row builder

@@ -39,17 +39,22 @@ struct CaptureView: View {
     private let rulesExtractor: RulesExtractor
     private let cloudExtractor: CloudExtractor?
     private let preloadedImage: UIImage?
+    /// Fires with the freshly-inserted Purchase after Save. The sheet still
+    /// dismisses itself; the parent uses this to highlight the new row.
+    private let onSave: ((Purchase) -> Void)?
 
     init(
         image: UIImage? = nil,
         ocr: any OCRService = VisionOCRService(),
         rulesExtractor: RulesExtractor = RulesExtractor(),
-        cloudExtractor: CloudExtractor? = CloudExtractor.makeDefault()
+        cloudExtractor: CloudExtractor? = CloudExtractor.makeDefault(),
+        onSave: ((Purchase) -> Void)? = nil
     ) {
         self.ocr = ocr
         self.rulesExtractor = rulesExtractor
         self.cloudExtractor = cloudExtractor
         self.preloadedImage = image
+        self.onSave = onSave
         self._isScannerPresented = State(initialValue: image == nil)
         self._capturedImage = State(initialValue: image)
     }
@@ -159,6 +164,7 @@ struct CaptureView: View {
             .scaledToFit()
             .frame(maxWidth: .infinity)
             .frame(maxHeight: 520)
+            .processingShimmer(isActive: status == .recognizing || status == .extracting)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
             .matchedGeometryEffect(id: "captureReceipt", in: receiptNamespace)
@@ -234,9 +240,13 @@ struct CaptureView: View {
                 ocrLines: recognizedLines,
                 extraction: ReceiptExtraction.from(
                     receipt: extraction,
-                    confidences: fieldConfidences
+                    confidences: fieldConfidences,
+                    lineItems: lineItems
                 ),
-                onSave: { _ in dismiss() }
+                onSave: { purchase in
+                    onSave?(purchase)
+                    dismiss()
+                }
             )
         } else {
             reviewForm

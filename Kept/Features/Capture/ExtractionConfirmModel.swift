@@ -17,6 +17,10 @@ final class ExtractionConfirmModel {
     var purchaseDate: Date
     var coverageKind: CoverageKind
     var coverageDurationText: String
+    /// Sticky flag: user explicitly chose Custom. Keeps the custom editor
+    /// visible even when values happen to match a preset (e.g. 12 months warranty).
+    var coverageCustomActive: Bool = false
+    var lineItems: [ReceiptLineItem]
 
     // A touched field is a confirmed field.
     private(set) var touched: Set<FieldID> = []
@@ -41,6 +45,7 @@ final class ExtractionConfirmModel {
         self.coverageKind = extraction.coverage.value?.kind ?? .warranty
         self.coverageDurationText = extraction.coverage.value
             .map { String($0.duration) } ?? ""
+        self.lineItems = extraction.lineItems
     }
 
     // MARK: - Per-field state
@@ -82,6 +87,97 @@ final class ExtractionConfirmModel {
 
     func markTouched(_ field: FieldID) { touched.insert(field) }
 
+    // MARK: - Coverage presets
+
+    enum CoveragePreset: Hashable, CaseIterable {
+        case none, return14, return30, warranty1yr, warranty2yr, custom
+
+        var label: String {
+            switch self {
+            case .none: "None"
+            case .return14: "14-day return"
+            case .return30: "30-day return"
+            case .warranty1yr: "1yr warranty"
+            case .warranty2yr: "2yr warranty"
+            case .custom: "Custom…"
+            }
+        }
+
+        var kind: CoverageKind? {
+            switch self {
+            case .none, .custom: nil
+            case .return14, .return30: .returnWindow
+            case .warranty1yr, .warranty2yr: .warranty
+            }
+        }
+
+        var duration: Int {
+            switch self {
+            case .none, .custom: 0
+            case .return14: 14
+            case .return30: 30
+            case .warranty1yr: 12
+            case .warranty2yr: 24
+            }
+        }
+    }
+
+    /// Which chip is currently selected. Custom is sticky once chosen; otherwise
+    /// we match current values to a preset, falling back to Custom if none fits.
+    var selectedCoveragePreset: CoveragePreset {
+        if coverageCustomActive { return .custom }
+        let duration = Int(coverageDurationText) ?? 0
+        if duration <= 0 { return .none }
+        for preset in CoveragePreset.allCases where preset != .custom && preset != .none {
+            if preset.kind == coverageKind && preset.duration == duration {
+                return preset
+            }
+        }
+        return .custom
+    }
+
+    func applyCoveragePreset(_ preset: CoveragePreset) {
+        markTouched(.coverage)
+        switch preset {
+        case .none:
+            coverageCustomActive = false
+            coverageDurationText = ""
+        case .custom:
+            coverageCustomActive = true
+            // Seed only if we were coming from empty — otherwise keep whatever
+            // the user (or the LLM) had so they can tweak.
+            if (Int(coverageDurationText) ?? 0) == 0 {
+                coverageKind = .warranty
+                coverageDurationText = "12"
+            }
+        default:
+            coverageCustomActive = false
+            if let kind = preset.kind {
+                coverageKind = kind
+            }
+            coverageDurationText = String(preset.duration)
+        }
+    }
+
+    // MARK: - Line item edits
+
+    func addLineItem() {
+        lineItems.append(ReceiptLineItem(name: "", price: 0))
+    }
+
+    func removeLineItem(id: UUID) {
+        lineItems.removeAll { $0.id == id }
+    }
+
+    /// Strips empty/zero rows so freshly-added blank items don't get persisted.
+    private var cleanedLineItems: [ReceiptLineItem] {
+        lineItems.compactMap { raw in
+            let name = raw.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, raw.price > 0 else { return nil }
+            return ReceiptLineItem(id: raw.id, name: name, price: raw.price)
+        }
+    }
+
     // MARK: - Save
 
     /// Writes the Purchase into the context and returns it. Never blocks on
@@ -96,7 +192,8 @@ final class ExtractionConfirmModel {
             currency: currency.uppercased(),
             purchaseDate: purchaseDate,
             receiptImage: receiptImage?.jpegData(compressionQuality: 0.85),
-            ocrLinesData: OCRLinePayload.encode(ocrLines)
+            ocrLinesData: OCRLinePayload.encode(ocrLines),
+            lineItemsData: ReceiptLineItem.encodeList(cleanedLineItems)
         )
         purchase.documentKind = .receipt
 
