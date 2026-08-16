@@ -11,7 +11,7 @@ struct OnboardingChrome: View {
         HStack(spacing: Spacing.md) {
             Button(action: onBack) {
                 Image(systemName: "arrow.left")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                     .foregroundStyle(.primary)
                     .frame(width: 36, height: 36)
                     .background(

@@ -18,11 +18,13 @@ struct PurchaseGallery: View {
     var body: some View {
         Group {
             if purchases.isEmpty {
-                ContentUnavailableView(
-                    "No receipts",
-                    systemImage: "photo.stack",
-                    description: Text("Scan one to see it here.")
-                )
+                ContentUnavailableView {
+                    Label("No receipts", systemImage: "photo.stack")
+                        .font(.keptTitle3)
+                } description: {
+                    Text("Scan one to see it here.")
+                        .font(.keptSubheadline)
+                }
             } else {
                 VStack(spacing: 0) {
                     previewPane
@@ -89,7 +91,7 @@ struct PurchaseGallery: View {
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
                 .overlay {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 56, weight: .light))
+                        .font(KeptFont.sans(56, weight: .regular, relativeTo: .largeTitle))
                         .foregroundStyle(.tertiary)
                 }
         }
@@ -98,25 +100,25 @@ struct PurchaseGallery: View {
     private func inspector(for purchase: Purchase) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(purchase.displayMerchant)
-                .font(.title3.weight(.semibold))
+                .font(.keptTitle3)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
 
             Text(purchase.displayItem)
-                .font(.subheadline)
+                .font(.keptSubheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
             HStack(alignment: .center) {
                 Text(purchase.purchaseDate, format: .dateTime.day().month().year())
-                    .font(.subheadline)
+                    .font(.keptSubheadline)
                     .foregroundStyle(.secondary)
 
                 if purchase.price > 0 {
                     Text("·")
                         .foregroundStyle(.tertiary)
                     Text(purchase.price, format: .currency(code: purchase.currency))
-                        .font(.subheadline.monospacedDigit())
+                        .font(.keptSubheadline.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
 

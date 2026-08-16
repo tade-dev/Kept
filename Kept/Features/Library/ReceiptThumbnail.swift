@@ -16,7 +16,7 @@ struct ReceiptThumbnail: View {
                     ZStack {
                         Color.secondary.opacity(0.12)
                         Image(systemName: "doc.text")
-                            .font(.system(size: 28, weight: .light))
+                            .font(KeptFont.sans(28, weight: .regular, relativeTo: .title))
                             .foregroundStyle(.tertiary)
                     }
                 }

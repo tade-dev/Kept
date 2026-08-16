@@ -90,12 +90,18 @@ struct AddToWalletButton: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(SubscriptionAccess.self) private var subscription
+    /// Sticky flag: after a free user's first-ever successful Wallet-pass add,
+    /// we show the paywall exactly once as a soft prompt. See AGENTS.md.
+    @AppStorage("kept.hasShownPaywallAfterFirstPass") private var hasShownPaywallAfterFirstPass = false
+
     @State private var isWorking = false
     @State private var errorMessage: String?
     @State private var passToAdd: PKPass?
     @State private var pendingSerial: String?
     @State private var isPresentingAddSheet = false
     @State private var addedTick = 0
+    @State private var isPresentingPaywall = false
 
     private var hasCoverage: Bool {
         purchase.coverageEndsAt != nil || purchase.nextDeadline != nil
@@ -116,11 +122,16 @@ struct AddToWalletButton: View {
                     if added, let serial = pendingSerial {
                         savePassRecord(serialNumber: serial)
                         addedTick &+= 1
+                        maybeShowFirstPassPaywall()
                     }
                     isPresentingAddSheet = false
                 }
                 .ignoresSafeArea()
             }
+        }
+        .sheet(isPresented: $isPresentingPaywall) {
+            PaywallView(reason: .firstPassAdded)
+                .presentationDetents([.large])
         }
         .sensoryFeedback(.success, trigger: addedTick)
         .alert("Couldn't add pass", isPresented: Binding(
@@ -191,5 +202,18 @@ struct AddToWalletButton: View {
         }
         purchase.passRecords?.append(record)
         modelContext.insert(record)
+    }
+
+    /// Shows the paywall once — after a free user's very first Wallet-pass
+    /// add. Soft prompt with a "Not now" option, dismissed = no penalty.
+    /// See AGENTS.md / Monetisation.
+    private func maybeShowFirstPassPaywall() {
+        guard !subscription.service.isPro, !hasShownPaywallAfterFirstPass else { return }
+        hasShownPaywallAfterFirstPass = true
+        // Small delay so the Wallet add sheet fully dismisses first — stacking
+        // sheets on the same run loop tick is visually jarring.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            isPresentingPaywall = true
+        }
     }
 }

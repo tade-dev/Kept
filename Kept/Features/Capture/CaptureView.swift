@@ -34,6 +34,9 @@ struct CaptureView: View {
     @State private var returnDaysText: String = ""
     @State private var returnInferred: Bool = false
     @State private var returnEditedByUser: Bool = false
+    /// Set when the cloud classifier decided this wasn't a receipt. Presents
+    /// `RejectedDocumentSheet` and blocks the transition to review. Nil = clear.
+    @State private var rejectedDocumentType: DocumentType?
 
     private let ocr: any OCRService
     private let rulesExtractor: RulesExtractor
@@ -95,6 +98,39 @@ struct CaptureView: View {
                         handleScan(result)
                     }
                     .ignoresSafeArea()
+                }
+                .sheet(item: $rejectedDocumentType) { type in
+                    RejectedDocumentSheet(
+                        image: capturedImage,
+                        documentType: type,
+                        onClose: {
+                            // User cancelled the whole scan flow. Dismiss the
+                            // rejection sheet AND the CaptureView so we don't
+                            // leave the parent stuck on the .extracting state.
+                            rejectedDocumentType = nil
+                            dismiss()
+                        },
+                        onRetry: {
+                            rejectedDocumentType = nil
+                            capturedImage = nil
+                            transition(to: .idle)
+                            isScannerPresented = true
+                        },
+                        onOverride: {
+                            // User insists it IS a receipt. Proceed to review
+                            // with the rules floor extraction so they can edit.
+                            rejectedDocumentType = nil
+                            let floor = rulesExtractor.extract(from: recognizedLines)
+                            extraction = floor
+                            fieldConfidences = nil
+                            applyExtraction(floor, lineItems: [])
+                            transition(to: .review)
+                        }
+                    )
+                    // Force explicit action — the rejection is a decision
+                    // moment, not a casual sheet. Prevents swipe-dismiss
+                    // stranding the parent on the loading state.
+                    .interactiveDismissDisabled(true)
                 }
                 .task {
                     if let preloadedImage, status == .idle {
@@ -185,15 +221,15 @@ struct CaptureView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(processingTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                 if let extractionErrorMessage, status == .failed {
                     Text(extractionErrorMessage)
-                        .font(.caption)
+                        .font(.keptCaption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 } else {
                     Text(processingSubtitle)
-                        .font(.caption)
+                        .font(.keptCaption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -204,7 +240,7 @@ struct CaptureView: View {
                 Button("Edit anyway") {
                     transition(to: .review)
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
             }
         }
         .padding(.horizontal, 16)
@@ -366,7 +402,7 @@ struct CaptureView: View {
                 Section {
                     Label(extractionErrorMessage, systemImage: "info.circle")
                         .foregroundStyle(.secondary)
-                        .font(.footnote)
+                        .font(.keptFootnote)
                 }
                 .transition(formTransition)
             }
@@ -379,12 +415,13 @@ struct CaptureView: View {
                         systemImage: "antenna.radiowaves.left.and.right.slash"
                     )
                     .foregroundStyle(.orange)
-                    .font(.footnote)
+                    .font(.keptFootnote)
                 }
                 .transition(formTransition)
             }
             #endif
         }
+        .font(.keptBody)  // cascades Bricolage to all Text descendants in the Form
     }
 
     private var formTransition: AnyTransition {
@@ -413,26 +450,30 @@ struct CaptureView: View {
     // MARK: - Empty / failure
 
     private var emptyScannerState: some View {
-        ContentUnavailableView(
-            "Point at a receipt",
-            systemImage: "doc.viewfinder",
-            description: Text("Kept will crop, straighten, and read it on-device.")
-        )
+        ContentUnavailableView {
+            Label("Point at a receipt", systemImage: "doc.viewfinder")
+                .font(.keptTitle3)
+        } description: {
+            Text("Kept will crop, straighten, and read it on-device.")
+                .font(.keptSubheadline)
+        }
     }
 
     private var failureState: some View {
-        ContentUnavailableView(
-            "Couldn't read that",
-            systemImage: "exclamationmark.triangle",
-            description: Text(extractionErrorMessage ?? "Try again with better light.")
-        )
+        ContentUnavailableView {
+            Label("Couldn't read that", systemImage: "exclamationmark.triangle")
+                .font(.keptTitle3)
+        } description: {
+            Text(extractionErrorMessage ?? "Try again with better light.")
+                .font(.keptSubheadline)
+        }
     }
 
     // MARK: - Logic
 
     private var inferredChip: some View {
         Text("inferred")
-            .font(.caption2.weight(.medium))
+            .font(KeptFont.sans(11, weight: .medium, relativeTo: .caption2))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color.secondary.opacity(0.15), in: Capsule())
@@ -477,7 +518,9 @@ struct CaptureView: View {
         do {
             lines = try await ocr.recognize(in: image)
         } catch {
-            extractionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            // Never surface the raw NSError string ("AVFoundationErrorDomain
+            // error -11800." helps no one). Fall back to a plain-language line.
+            extractionErrorMessage = "Try again with better light or a straighter angle."
             transition(to: .failed)
             return
         }
@@ -498,6 +541,14 @@ struct CaptureView: View {
         if let cloudExtractor {
             do {
                 let remote = try await cloudExtractor.extractDetailed(from: lines)
+                // Server classified the document. If it's not a receipt, route
+                // to the rejection sheet instead of the review screen.
+                // Don't apply extraction (all fields are null anyway per the
+                // worker's isReceipt guard).
+                if !remote.documentType.isReceipt {
+                    rejectedDocumentType = remote.documentType
+                    return
+                }
                 let merged = CloudExtractor.merge(rules: floor, cloud: remote)
                 extraction = merged.receipt
                 fieldConfidences = merged.fieldConfidences

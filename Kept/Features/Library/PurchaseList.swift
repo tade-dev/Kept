@@ -45,7 +45,7 @@ struct PurchaseList: View {
                         }
                     } header: {
                         Text(section.title)
-                            .font(.headline)
+                            .font(.keptHeadline)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 16)

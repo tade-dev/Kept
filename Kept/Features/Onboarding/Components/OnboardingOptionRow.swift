@@ -13,19 +13,19 @@ struct OnboardingOptionRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(KeptFont.sans(18, weight: .semibold, relativeTo: .body))
                     .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(Color.white))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.title3.weight(.semibold))
+                        .font(.keptTitle3)
                         .foregroundStyle(selected ? KeptColor.onInk : .primary)
 
                     if let subtitle {
                         Text(subtitle)
-                            .font(.subheadline)
+                            .font(.keptSubheadline)
                             .foregroundStyle(selected ? KeptColor.onInk.opacity(0.75) : .secondary)
                     }
                 }

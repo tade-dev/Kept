@@ -25,7 +25,7 @@ struct ValueBeatStepView: View {
                 Spacer(minLength: 0)
 
                 Text("Tap to continue")
-                    .font(.footnote)
+                    .font(.keptFootnote)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, Spacing.md)
             }

@@ -192,18 +192,7 @@ struct LibraryView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("Nothing kept yet", systemImage: "tray")
-        } description: {
-            Text("Scan a receipt to start tracking your warranties.")
-        } actions: {
-            Button {
-                isCapturing = true
-            } label: {
-                Label("Scan receipt", systemImage: "doc.viewfinder")
-            }
-            .buttonStyle(.borderedProminent)
-        }
+        EmptyLibraryState(onScan: { isCapturing = true })
     }
 
     private func delete(_ purchase: Purchase) {

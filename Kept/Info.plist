@@ -6,23 +6,27 @@
 	<string>$(KEPT_EXTRACT_BASE_URL)</string>
 	<key>KeptExtractSecret</key>
 	<string>$(KEPT_EXTRACT_SECRET)</string>
-	<!-- Allow http:// to LAN during device testing (wrangler dev). HTTPS production is fine. -->
+	<key>KeptRevenueCatPublicKey</key>
+	<string>$(KEPT_REVENUECAT_PUBLIC_KEY)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<!-- Required for iOS to reach Mac LAN IP (triggers Local Network permission). -->
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Kept talks to your Mac on the local network while developing receipt extraction.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_http._tcp</string>
 	</array>
 	<key>UIAppFonts</key>
 	<array>
-		<string>InstrumentSerif-Regular.ttf</string>
-		<string>InstrumentSerif-Italic.ttf</string>
+		<string>BricolageGrotesque-Regular.ttf</string>
+		<string>BricolageGrotesque-Medium.ttf</string>
+		<string>BricolageGrotesque-SemiBold.ttf</string>
+		<string>BricolageGrotesque-Bold.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

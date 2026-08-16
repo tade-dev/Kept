@@ -5,11 +5,23 @@ import SwiftData
 /// the receipt image is drawn by the parent (see `CaptureView`) so the
 /// scanning → confirm morph animates through a single shared image.
 struct ExtractionConfirmView: View {
+    /// Free tier item cap. See AGENTS.md / Monetisation.
+    static let freeItemCap = 5
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(SubscriptionAccess.self) private var subscription
+
+    /// Live count of stored purchases — used to enforce the free-tier cap
+    /// AFTER scan succeeds (never before). Query is reactive so upgrading to
+    /// Pro or deleting an item mid-flow immediately affects `canSave`.
+    @Query private var storedPurchases: [Purchase]
 
     @State private var model: ExtractionConfirmModel
     @State private var savedTick = 0
+    /// Set to `.capReached` when Save was blocked by the free cap. The paywall
+    /// sheet listens on this via the isPresented binding.
+    @State private var paywallReason: PaywallView.Reason?
 
     /// Fires with the inserted Purchase. Save is already committed by then;
     /// parent decides what to close (nav pop vs sheet dismiss).
@@ -48,6 +60,23 @@ struct ExtractionConfirmView: View {
             }
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) { saveBar }
+            .sheet(item: Binding(
+                get: { paywallReason.map(PaywallReasonBox.init) },
+                set: { paywallReason = $0?.reason }
+            )) { box in
+                PaywallView(reason: box.reason)
+                    .presentationDetents([.large])
+            }
+            // If the user completes purchase inside the paywall, isPro flips
+            // to true reactively and we can auto-retry the save they were
+            // trying to make. Only triggers when the sheet was open and now
+            // isn't (i.e. paywallReason went nil) AND the user is now Pro.
+            .onChange(of: subscription.service.isPro) { _, nowPro in
+                if nowPro, paywallReason != nil {
+                    paywallReason = nil
+                    commitSave()
+                }
+            }
             .sensoryFeedback(.success, trigger: savedTick)
             .onChange(of: model.selectedCoveragePreset) { _, new in
                 guard new == .custom else { return }
@@ -125,7 +154,7 @@ struct ExtractionConfirmView: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
                 Text("Items")
-                    .font(.footnote.weight(.medium))
+                    .font(KeptFont.sans(13, weight: .medium, relativeTo: .footnote))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button {
@@ -133,7 +162,7 @@ struct ExtractionConfirmView: View {
                 } label: {
                     Label("Add", systemImage: "plus.circle.fill")
                         .labelStyle(.iconOnly)
-                        .font(.title3)
+                        .font(.keptTitle3)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
@@ -213,7 +242,9 @@ struct ExtractionConfirmView: View {
             model.applyCoveragePreset(preset)
         } label: {
             Text(preset.label)
-                .font(.footnote.weight(isSelected ? .semibold : .regular))
+                .font(isSelected
+                    ? KeptFont.sans(13, weight: .semibold, relativeTo: .footnote)
+                    : KeptFont.sans(13, weight: .regular, relativeTo: .footnote))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
@@ -242,7 +273,7 @@ struct ExtractionConfirmView: View {
                     stepCustomDuration(by: -1)
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.title2)
+                        .font(.keptTitle2)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -252,7 +283,7 @@ struct ExtractionConfirmView: View {
                     .keyboardType(.numberPad)
                     .monospacedDigit()
                     .multilineTextAlignment(.center)
-                    .font(.title3.weight(.semibold))
+                    .font(.keptTitle3)
                     .frame(minWidth: 56, maxWidth: 80)
                     .padding(.vertical, 6)
                     .background(
@@ -265,14 +296,14 @@ struct ExtractionConfirmView: View {
                     stepCustomDuration(by: 1)
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title2)
+                        .font(.keptTitle2)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Increase")
 
                 Text(model.coverageKind == .warranty ? "months" : "days")
-                    .font(.subheadline)
+                    .font(.keptSubheadline)
                     .foregroundStyle(.secondary)
 
                 Spacer(minLength: 0)
@@ -315,13 +346,13 @@ struct ExtractionConfirmView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(label)
-                    .font(.footnote.weight(.medium))
+                    .font(KeptFont.sans(13, weight: .medium, relativeTo: .footnote))
                     .foregroundStyle(.secondary)
                 content()
-                    .font(.body)
+                    .font(.keptBody)
                 if let caption {
                     Text(caption)
-                        .font(.footnote)
+                        .font(.keptFootnote)
                         .foregroundStyle(KeptColor.endingSoon)
                         .accessibilityHint(caption)
                 }
@@ -341,14 +372,14 @@ struct ExtractionConfirmView: View {
         VStack(spacing: Spacing.sm) {
             if model.anyFieldNeedsAttention {
                 Text("Check the highlighted fields.")
-                    .font(.footnote)
+                    .font(.keptFootnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Button(action: save) {
                 Text("Save receipt")
-                    .font(.headline)
+                    .font(.keptHeadline)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -362,15 +393,37 @@ struct ExtractionConfirmView: View {
     }
 
     private func save() {
+        // Free-tier cap: check AFTER scan succeeds (never before). Never
+        // block the camera; the user has already invested effort scanning
+        // and reviewing, so they see everything before hitting the wall.
+        if !subscription.service.isPro,
+           storedPurchases.count >= Self.freeItemCap {
+            paywallReason = .capReached
+            return
+        }
+        commitSave()
+    }
+
+    private func commitSave() {
         let purchase = model.save(into: modelContext)
         savedTick &+= 1
         Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
-        // Parent decides how to close (pop nav vs. dismiss sheet) when a
-        // callback is provided — otherwise fall back to environment dismiss.
         if let onSave {
             onSave(purchase)
         } else {
             dismiss()
+        }
+    }
+}
+
+/// Wrapper to make `PaywallView.Reason` Identifiable for `.sheet(item:)`.
+private struct PaywallReasonBox: Identifiable {
+    let reason: PaywallView.Reason
+    var id: String {
+        switch reason {
+        case .capReached:     "capReached"
+        case .firstPassAdded: "firstPassAdded"
+        case .manual:         "manual"
         }
     }
 }
@@ -386,6 +439,7 @@ struct ExtractionConfirmView: View {
         )
     }
     .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
+    .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
 }
 
 #Preview("Mixed") {
@@ -397,6 +451,7 @@ struct ExtractionConfirmView: View {
         )
     }
     .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
+    .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
 }
 
 #Preview("All missing") {
@@ -408,6 +463,7 @@ struct ExtractionConfirmView: View {
         )
     }
     .modelContainer(for: [Purchase.self, WarrantyTerm.self, PassRecord.self], inMemory: true)
+    .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
 }
 
 private enum PreviewFixtures {

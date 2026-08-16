@@ -61,10 +61,10 @@ struct DemoVideoView: View {
             KeptColor.covered.opacity(0.12)
             VStack(spacing: Spacing.sm) {
                 Image(systemName: "play.rectangle.on.rectangle")
-                    .font(.system(size: 44, weight: .light))
+                    .font(KeptFont.sans(44, weight: .regular, relativeTo: .largeTitle))
                     .foregroundStyle(KeptColor.covered.opacity(0.55))
                 Text("Demo")
-                    .font(.footnote.weight(.medium))
+                    .font(KeptFont.sans(13, weight: .medium, relativeTo: .footnote))
                     .foregroundStyle(.secondary)
             }
         }

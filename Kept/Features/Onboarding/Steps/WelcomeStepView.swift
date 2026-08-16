@@ -19,7 +19,7 @@ struct WelcomeStepView: View {
 
             VStack(spacing: Spacing.sm) {
                 Text("Every receipt is a promise.")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(KeptFont.sans(34, weight: .bold, relativeTo: .largeTitle))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .opacity(appeared.headline ? 1 : 0)
@@ -27,7 +27,7 @@ struct WelcomeStepView: View {
                     .blur(radius: appeared.headline ? 0 : 4)
 
                 Text("Kept remembers when it expires.")
-                    .font(.title3)
+                    .font(.keptTitle3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .opacity(appeared.subhead ? 1 : 0)

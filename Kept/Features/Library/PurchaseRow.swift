@@ -22,11 +22,11 @@ struct PurchaseRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(purchase.displayMerchant)
-                    .font(.body)
+                    .font(.keptBody)
                     .lineLimit(1)
 
                 Text(purchase.displayItem)
-                    .font(.subheadline)
+                    .font(.keptSubheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -35,7 +35,7 @@ struct PurchaseRow: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(purchase.finderMetadata)
-                    .font(.subheadline)
+                    .font(.keptSubheadline)
                     .foregroundStyle(.tint)
                     .lineLimit(1)
 
@@ -78,7 +78,7 @@ struct CoverageStatusBadge: View {
 
     var body: some View {
         Text(label)
-            .font(.caption2.weight(.medium))
+            .font(KeptFont.sans(11, weight: .medium, relativeTo: .caption2))
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(tint.opacity(0.15), in: Capsule())

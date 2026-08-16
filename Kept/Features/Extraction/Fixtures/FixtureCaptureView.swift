@@ -40,6 +40,7 @@ struct FixtureCaptureView: View {
                     linesSection
                 }
             }
+            .font(.keptBody)  // cascades Bricolage to all Text in the Form
             .navigationTitle("OCR fixtures")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -77,11 +78,11 @@ struct FixtureCaptureView: View {
             LabeledContent("Saved on device", value: "\(savedCount)")
             if let statusMessage {
                 Text(statusMessage)
-                    .font(.footnote)
+                    .font(.keptFootnote)
                     .foregroundStyle(.secondary)
             }
             Text("Image never leaves the phone. Only OCR text is written into the fixture JSON.")
-                .font(.footnote)
+                .font(.keptFootnote)
                 .foregroundStyle(.secondary)
         }
     }

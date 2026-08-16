@@ -27,12 +27,12 @@ struct SettingUpStepView: View {
 
             VStack(spacing: Spacing.md) {
                 Text("\(percentage)%")
-                    .font(.system(size: 72, weight: .bold))
+                    .font(KeptFont.sans(72, weight: .bold, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .contentTransition(.numericText())
 
                 Text("We're setting everything up for you.")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, Spacing.lg)
@@ -42,7 +42,7 @@ struct SettingUpStepView: View {
                 .padding(.horizontal, Spacing.lg)
 
             Text(currentSubtitle)
-                .font(.subheadline)
+                .font(.keptSubheadline)
                 .foregroundStyle(.secondary)
                 .contentTransition(.opacity)
 
@@ -83,7 +83,7 @@ struct SettingUpStepView: View {
     private var checklist: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("What we're doing")
-                .font(.footnote.weight(.semibold))
+                .font(KeptFont.sans(13, weight: .semibold, relativeTo: .footnote))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
@@ -107,12 +107,12 @@ struct SettingUpStepView: View {
     private func checklistRow(title: String, done: Bool) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle.dotted")
-                .font(.system(size: 16, weight: .semibold))
+                .font(KeptFont.sans(16, weight: .semibold, relativeTo: .callout))
                 .foregroundStyle(done ? KeptColor.ink : Color.secondary.opacity(0.6))
                 .contentTransition(.symbolEffect(.replace))
 
             Text(title)
-                .font(.subheadline)
+                .font(.keptSubheadline)
                 .foregroundStyle(done ? .primary : .secondary)
 
             Spacer(minLength: 0)

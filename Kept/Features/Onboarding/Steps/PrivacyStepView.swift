@@ -45,7 +45,7 @@ struct PrivacyStepView: View {
                 )
 
             Image(systemName: "hand.raised.fill")
-                .font(.system(size: 60, weight: .light))
+                .font(KeptFont.sans(60, weight: .regular, relativeTo: .largeTitle))
                 .foregroundStyle(KeptColor.ink)
         }
         .accessibilityHidden(true)
@@ -90,17 +90,17 @@ struct PrivacyStepView: View {
     private func row(symbol: String, title: String, subtitle: String) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .semibold))
+                .font(KeptFont.sans(16, weight: .semibold, relativeTo: .callout))
                 .foregroundStyle(KeptColor.ink)
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(KeptColor.ink.opacity(0.08)))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                     .foregroundStyle(.primary)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.keptCaption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
