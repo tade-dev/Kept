@@ -1,0 +1,10 @@
+// Template. Copy to RevenueCat.xcconfig (gitignored) and fill in.
+// The real file is picked up automatically at build time via #include? below.
+//
+// The key lives in Info.plist as $(KEPT_REVENUECAT_PUBLIC_KEY) and is read by
+// RevenueCatBootstrap at launch. Missing/empty key = Purchases stays configured
+// with a placeholder and all SubscriptionService calls no-op; the app still runs.
+
+KEPT_REVENUECAT_PUBLIC_KEY = appl_REPLACE_ME
+
+#include? "RevenueCat.local.xcconfig"

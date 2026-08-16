@@ -1,5 +1,6 @@
-# Local extract secret overrides
+# Local secret overrides
 Config/Extract.local.xcconfig
+Config/RevenueCat.xcconfig
 
 # Xcode
 DerivedData/

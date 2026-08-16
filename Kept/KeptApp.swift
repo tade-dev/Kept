@@ -5,6 +5,15 @@ import SwiftData
 struct KeptApp: App {
     @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
 
+    /// Real subscription service, kept alive for the app's lifetime. Injected
+    /// into the view hierarchy via `.environment(subscriptionAccess)` so views
+    /// see only `SubscriptionAccess` and never import RevenueCat directly.
+    @State private var subscriptionAccess: SubscriptionAccess = {
+        RevenueCatBootstrap.configure()
+        BricolageAppearance.apply()
+        return SubscriptionAccess(service: RevenueCatSubscriptionService())
+    }()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Purchase.self,
@@ -28,6 +37,7 @@ struct KeptApp: App {
         WindowGroup {
             RootView()
                 .preferredColorScheme(preferredScheme)
+                .environment(subscriptionAccess)
         }
         .modelContainer(sharedModelContainer)
     }
