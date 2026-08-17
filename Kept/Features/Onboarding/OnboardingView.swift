@@ -25,6 +25,9 @@ struct OnboardingView: View {
         .animation(stepAnimation, value: coordinator.step)
         .sensoryFeedback(.selection, trigger: coordinator.step)
         .sensoryFeedback(.success, trigger: finishedTick)
+        // Background is hard-coded to white; force light color scheme so the
+        // status bar text stays dark (readable) in dark mode too.
+        .preferredColorScheme(.light)
     }
 
     // MARK: - Fixed header (chrome only — only the progress bar animates on step change)
@@ -109,7 +112,7 @@ struct OnboardingView: View {
     private func singleCTA(_ label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.headline)
+                .font(.keptHeadline)
                 .foregroundStyle(KeptColor.onInk)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md + 2)
@@ -132,7 +135,7 @@ struct OnboardingView: View {
                         ProgressView().tint(KeptColor.onInk)
                     } else {
                         Text("Enable notifications")
-                            .font(.headline)
+                            .font(.keptHeadline)
                     }
                 }
                 .foregroundStyle(KeptColor.onInk)
@@ -143,7 +146,7 @@ struct OnboardingView: View {
             .disabled(isRequestingAuth)
 
             Button("Not now") { coordinator.advance() }
-                .font(.subheadline.weight(.medium))
+                .font(KeptFont.sans(15, weight: .medium, relativeTo: .subheadline))
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, Spacing.lg)

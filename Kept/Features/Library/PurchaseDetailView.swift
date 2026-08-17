@@ -166,6 +166,7 @@ struct PurchaseDetailView: View {
                 }
             }
         }
+        .font(.keptBody)  // cascades Bricolage to all Text descendants in the Form
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -188,7 +189,7 @@ struct PurchaseDetailView: View {
 
     private var inferredChip: some View {
         Text("inferred")
-            .font(.caption2.weight(.medium))
+            .font(KeptFont.sans(11, weight: .medium, relativeTo: .caption2))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color.secondary.opacity(0.15), in: Capsule())

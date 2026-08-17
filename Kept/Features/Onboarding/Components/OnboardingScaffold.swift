@@ -39,13 +39,13 @@ struct OnboardingScaffold<Content: View, Footer: View>: View {
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(title)
-                .font(.system(size: 36, weight: .bold))
+                .font(KeptFont.sans(36, weight: .bold, relativeTo: .largeTitle))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let subtitle {
                 Text(subtitle)
-                    .font(.title3)
+                    .font(.keptTitle3)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

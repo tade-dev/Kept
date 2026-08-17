@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Traveling-wave distortion that sweeps top→bottom across the view every ~2s
-/// while `isActive` is true. Amplitude fades in/out on isActive changes.
 struct ProcessingShimmerModifier: ViewModifier {
     var isActive: Bool
     /// Peak displacement at the crest, in points. The wave has gaussian falloff
@@ -41,8 +39,40 @@ struct ProcessingShimmerModifier: ViewModifier {
 }
 
 extension View {
-    /// Traveling-wave shimmer while OCR + LLM extraction run.
-    func processingShimmer(isActive: Bool) -> some View {
-        modifier(ProcessingShimmerModifier(isActive: isActive))
+
+    func processingShimmer(isActive: Bool, amplitude: Float = 8.0) -> some View {
+        modifier(ProcessingShimmerModifier(isActive: isActive, maxAmplitude: amplitude))
+    }
+    func clothWaveShimmer(isActive: Bool, amplitude: Float = 3.0) -> some View {
+        modifier(ClothWaveShimmerModifier(isActive: isActive, maxAmplitude: amplitude))
+    }
+}
+
+struct ClothWaveShimmerModifier: ViewModifier {
+    var isActive: Bool
+    var maxAmplitude: Float = 3.0
+
+    @State private var currentAmplitude: Float = 0
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation) { timeline in
+            let time = Float(timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1000))
+            let sampleOffset = CGFloat(maxAmplitude)
+            content
+                .drawingGroup()
+                .distortionEffect(
+                    ShaderLibrary.clothWaveShimmer(
+                        .float(time),
+                        .float(currentAmplitude)
+                    ),
+                    maxSampleOffset: CGSize(width: sampleOffset, height: sampleOffset)
+                )
+        }
+        .onAppear { currentAmplitude = isActive ? maxAmplitude : 0 }
+        .onChange(of: isActive) { _, active in
+            withAnimation(.easeInOut(duration: 0.35)) {
+                currentAmplitude = active ? maxAmplitude : 0
+            }
+        }
     }
 }

@@ -161,20 +161,32 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
       ? (obj.confidence as Record<string, unknown>)
       : {};
 
-  const returnWindowDays = nullablePositiveInt(obj.returnWindowDays);
-  const warrantyDurationMonths = nullablePositiveInt(obj.warrantyDurationMonths);
-  const items = normaliseItems(obj.items);
-  let itemName = nullableString(obj.itemName);
-  itemName = refineItemName(itemName, items);
-  const total = reconcileTotal(nullableNumber(obj.total), items);
+  // Normalise documentType: lowercase, trim, default to "receipt" when
+  // missing (fail-open — better to attempt extraction than reject a real
+  // receipt because the model forgot to fill the field).
+  const documentTypeRaw = nullableString(obj.documentType)?.toLowerCase() ?? "receipt";
+  const documentType = documentTypeRaw.length > 0 ? documentTypeRaw : "receipt";
+  const isReceipt = documentType === "receipt";
+
+  // When not a receipt, force null every extraction field. Prevents pollution
+  // from a model that classified "passport" but still filled in a bogus total.
+  const returnWindowDays = isReceipt ? nullablePositiveInt(obj.returnWindowDays) : null;
+  const warrantyDurationMonths = isReceipt ? nullablePositiveInt(obj.warrantyDurationMonths) : null;
+  const items = isReceipt ? normaliseItems(obj.items) : [];
+  let itemName = isReceipt ? nullableString(obj.itemName) : null;
+  itemName = isReceipt ? refineItemName(itemName, items) : null;
+  const total = isReceipt ? reconcileTotal(nullableNumber(obj.total), items) : null;
 
   return {
-    merchant: nullableString(obj.merchant),
+    documentType,
+    merchant: isReceipt ? nullableString(obj.merchant) : null,
     itemName,
     items,
     total,
-    currencyCode: nullableString(obj.currencyCode)?.toUpperCase() ?? null,
-    purchaseDate: nullableString(obj.purchaseDate),
+    currencyCode: isReceipt
+      ? (nullableString(obj.currencyCode)?.toUpperCase() ?? null)
+      : null,
+    purchaseDate: isReceipt ? nullableString(obj.purchaseDate) : null,
     // Cloud path only accepts printed coverage — never mark inferred.
     returnWindowDays,
     returnWindowIsInferred: false,

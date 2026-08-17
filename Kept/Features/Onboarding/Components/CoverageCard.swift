@@ -65,10 +65,10 @@ struct CoverageCard: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(merchant)
-                    .font(.footnote.weight(.medium))
+                    .font(KeptFont.sans(13, weight: .medium, relativeTo: .footnote))
                     .foregroundStyle(.secondary)
                 Text(item)
-                    .font(.title3.weight(.semibold))
+                    .font(.keptTitle3)
                     .lineLimit(2)
             }
 
@@ -77,17 +77,17 @@ struct CoverageCard: View {
             HStack(alignment: .lastTextBaseline, spacing: Spacing.xs) {
                 if state == .expired {
                     Text("Expired")
-                        .font(.system(size: 44, weight: .semibold))
+                        .font(KeptFont.sans(44, weight: .semibold, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(state.accent)
                 } else {
                     Text("\(daysRemaining)")
-                        .font(.system(size: 56, weight: .semibold))
+                        .font(KeptFont.sans(56, weight: .semibold, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(state.accent)
                         .contentTransition(.numericText(countsDown: true))
                     Text(daysRemaining == 1 ? "day left" : "days left")
-                        .font(.subheadline)
+                        .font(.keptSubheadline)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -130,12 +130,12 @@ struct CoverageCard: View {
 
                 Image(systemName: "shield.lefthalf.filled")
                     .foregroundStyle(state.accent)
-                    .font(.subheadline)
+                    .font(.keptSubheadline)
             }
         } else {
             Image(systemName: "shield.lefthalf.filled")
                 .foregroundStyle(state.accent)
-                .font(.title3)
+                .font(.keptTitle3)
         }
     }
 
@@ -149,7 +149,7 @@ struct CoverageCard: View {
 
     private var statePill: some View {
         Text(state.label)
-            .font(.caption.weight(.semibold))
+            .font(KeptFont.sans(12, weight: .semibold, relativeTo: .caption))
             .foregroundStyle(state.accent)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 4)

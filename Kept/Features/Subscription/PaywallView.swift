@@ -1,0 +1,387 @@
+import SwiftUI
+
+/// IFTTT-inspired paywall — brand + Pro badge at top, two-card price picker,
+/// clean checklist of features, big pill CTA, trial fine print with terms.
+///
+/// Native chrome (NavigationStack + toolbar close button); custom price cards
+/// and checkmarks below.
+///
+/// Trigger points (see AGENTS.md / Monetisation):
+///   1. Attempted 6th save while free
+///   2. First successful Wallet pass added (soft prompt with "Not now")
+///   3. Manual, from Settings › Account
+struct PaywallView: View {
+    var reason: Reason = .capReached
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(SubscriptionAccess.self) private var subscription
+
+    @State private var selection: Selection = .yearly
+    @State private var isWorking = false
+    @State private var errorMessage: String?
+    @State private var successTick = 0
+
+    enum Reason: Equatable {
+        case capReached
+        case firstPassAdded
+        case manual
+
+        var subtitle: String {
+            switch self {
+            case .capReached:     "You've filled your free five — keep every warranty from here."
+            case .firstPassAdded: "Unlimited receipts, plus the claim pack for the day it matters."
+            case .manual:         "Unlimited receipts and the claim pack for the day it matters."
+            }
+        }
+    }
+
+    private enum Selection: Hashable { case monthly, yearly }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 22) {
+                    brandBlock
+                        .padding(.top, 8)
+
+                    Text(reason.subtitle)
+                        .font(.keptBody)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 32)
+
+                    pricePicker
+                        .padding(.horizontal, 20)
+
+                    features
+                        .padding(.horizontal, 24)
+
+                    Spacer(minLength: 24)
+                }
+                .padding(.bottom, 160)  // room for the CTA bar
+            }
+            .background(Color(.systemBackground))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
+                    }
+                    .accessibilityLabel("Close")
+                }
+            }
+            .safeAreaInset(edge: .bottom) { ctaBar }
+            .alert(
+                errorMessage ?? "",
+                isPresented: Binding(
+                    get: { errorMessage != nil },
+                    set: { if !$0 { errorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            }
+            .sensoryFeedback(.success, trigger: successTick)
+            .task { await subscription.service.refresh() }
+        }
+    }
+
+    // MARK: - Brand block
+
+    private var brandBlock: some View {
+        HStack(spacing: 10) {
+            Text("Kept")
+                .font(KeptFont.sans(28, weight: .bold, relativeTo: .title))
+
+            Text("Pro")
+                .font(KeptFont.sans(14, weight: .bold, relativeTo: .footnote))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(KeptColor.ink)
+                )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Two-card price picker
+
+    private var pricePicker: some View {
+        HStack(spacing: 10) {
+            priceCard(
+                for: .yearly,
+                package: subscription.service.offering?.yearly,
+                perLabel: "/year",
+                badge: subscription.service.offering?.yearly?.savingsBadge
+                    .map { $0.replacingOccurrences(of: " OFF", with: "") }
+            )
+            priceCard(
+                for: .monthly,
+                package: subscription.service.offering?.monthly,
+                perLabel: "/month",
+                badge: nil
+            )
+        }
+    }
+
+    private func priceCard(
+        for target: Selection,
+        package: SubscriptionPackage?,
+        perLabel: String,
+        badge: String?
+    ) -> some View {
+        let isSelected = selection == target
+        return Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                selection = target
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                if let package {
+                    Text(package.priceString)
+                        .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
+                        .foregroundStyle(isSelected ? Color.primary : .secondary)
+                } else {
+                    Text("—")
+                        .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
+                        .foregroundStyle(.tertiary)
+                        .redacted(reason: .placeholder)
+                }
+
+                HStack(spacing: 6) {
+                    Text(perLabel)
+                        .font(.keptFootnote)
+                        .foregroundStyle(.secondary)
+                    if let badge {
+                        Text("SAVE \(badge)")
+                            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill(Color(.systemGray5))
+                            )
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color(.systemBackground) : Color(.secondarySystemBackground))
+                    .shadow(
+                        color: isSelected ? .black.opacity(0.08) : .clear,
+                        radius: 6, y: 2
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? KeptColor.ink : Color(.systemGray5), lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Features
+
+    private var features: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            featureRow("Unlimited receipts")
+            featureRow("Claim pack PDF export")
+            featureRow("Higher-quality receipt extraction")
+            featureRow("Every future Pro feature")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func featureRow(_ text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.keptTitle3)
+                .foregroundStyle(KeptColor.ink)
+            Text(text)
+                .font(.keptBody)
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Bottom CTA bar
+
+    private var ctaBar: some View {
+        VStack(spacing: 12) {
+            Button(action: { Task { await purchaseSelected() } }) {
+                HStack {
+                    if isWorking {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                    }
+                    Text(ctaLabel)
+                        .font(.keptHeadline)
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(Capsule().fill(KeptColor.ink))
+            }
+            .buttonStyle(.plain)
+            .disabled(isWorking || subscription.service.offering == nil)
+
+            legalFineprint
+
+            HStack(spacing: 20) {
+                Button("Restore") { Task { await restore() } }
+                if case .firstPassAdded = reason {
+                    Button("Not now") { dismiss() }
+                }
+            }
+            .font(.keptFootnote)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
+        .background(
+            Color(.systemBackground)
+                .shadow(color: .black.opacity(0.04), radius: 6, y: -1)
+        )
+    }
+
+    private var ctaLabel: String {
+        guard currentPackage != nil else { return "Continue" }
+        return trialAvailable ? "Start 7-day free trial" : "Subscribe"
+    }
+
+    // Trial ends copy + Terms link — IFTTT-style fine print
+    private var legalFineprint: some View {
+        VStack(spacing: 4) {
+            if trialAvailable {
+                Text(trialEndsCopy)
+                    .font(.keptCaption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            (
+                Text("By continuing, you agree to our ")
+                    .foregroundStyle(.secondary)
+                +
+                Text("Terms of Service")
+                    .foregroundStyle(.secondary)
+                    .underline()
+            )
+            .font(.keptCaption)
+            .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var trialEndsCopy: String {
+        guard let package = currentPackage else { return "" }
+        let end = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.locale = .autoupdatingCurrent
+        let dateString = formatter.string(from: end)
+        return "Your trial ends on \(dateString). Afterwards, you will be billed \(package.priceString) \(shortPeriod(from: package.periodString))ly. Cancel anytime before the trial ends at no cost."
+            .replacingOccurrences(of: "monthly", with: "monthly")
+            .replacingOccurrences(of: "yearly", with: "yearly")
+    }
+
+    // MARK: - Helpers
+
+    private var currentPackage: SubscriptionPackage? {
+        guard let offering = subscription.service.offering else { return nil }
+        return selection == .yearly ? offering.yearly : offering.monthly
+    }
+
+    private var trialAvailable: Bool {
+        currentPackage?.introOfferString != nil
+    }
+
+    private func shortPeriod(from full: String) -> String {
+        full.replacingOccurrences(of: "per ", with: "")
+    }
+
+    // MARK: - Actions
+
+    private func purchaseSelected() async {
+        guard let package = currentPackage else {
+            errorMessage = "Plans aren't available right now. Pull down to retry."
+            return
+        }
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            let ok = try await subscription.service.purchase(package)
+            if ok {
+                successTick &+= 1
+                dismiss()
+            }
+        } catch SubscriptionServiceError.cancelled {
+            // silent
+        } catch let error as SubscriptionServiceError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = SubscriptionServiceError.unknown.errorDescription
+        }
+    }
+
+    private func restore() async {
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            let restored = try await subscription.service.restorePurchases()
+            if restored {
+                successTick &+= 1
+                dismiss()
+            } else {
+                errorMessage = "No previous purchases were found on this Apple ID."
+            }
+        } catch let error as SubscriptionServiceError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = SubscriptionServiceError.unknown.errorDescription
+        }
+    }
+}
+
+// MARK: - Environment holder
+
+@Observable
+@MainActor
+final class SubscriptionAccess {
+    var service: any SubscriptionService
+
+    init(service: any SubscriptionService) {
+        self.service = service
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Free — cap reached") {
+    PaywallView(reason: .capReached)
+        .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
+}
+
+#Preview("Free — first pass added") {
+    PaywallView(reason: .firstPassAdded)
+        .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
+}
+
+#Preview("Manual (from Settings)") {
+    PaywallView(reason: .manual)
+        .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false)))
+}
+
+#Preview("Loading offerings") {
+    PaywallView(reason: .capReached)
+        .environment(SubscriptionAccess(service: PreviewSubscriptionService(isPro: false, offering: nil)))
+}

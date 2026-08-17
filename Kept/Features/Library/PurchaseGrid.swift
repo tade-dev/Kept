@@ -46,7 +46,7 @@ struct PurchaseGrid: View {
                         .padding(.horizontal, 20)
                     } header: {
                         Text(section.title)
-                            .font(.headline)
+                            .font(.keptHeadline)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 20)
@@ -88,14 +88,14 @@ private struct FinderIconItem: View {
                 .matchedTransitionSource(id: purchase.transitionID, in: zoomNamespace)
 
             Text(purchase.displayMerchant)
-                .font(.caption)
+                .font(.keptCaption)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 96)
 
             Text(purchase.finderMetadata)
-                .font(.caption2)
+                .font(.keptCaption2)
                 .foregroundStyle(.tint)
                 .lineLimit(1)
         }

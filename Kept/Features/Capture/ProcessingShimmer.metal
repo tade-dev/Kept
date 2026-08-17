@@ -12,6 +12,22 @@ using namespace metal;
 ///   height    — the view's height in points, so the wave sweeps cleanly
 ///
 /// Used by SwiftUI `.distortionEffect(...)` — see `ProcessingShimmerModifier`.
+/// Smooth cloth-flap wave: every pixel is displaced horizontally by a sine
+/// keyed on its y-coordinate + time. No falloff — the whole view undulates
+/// as one continuous wave, like fabric hanging in a breeze. Used ambiently
+/// on the library empty-state hero.
+///
+///   position  — pixel position in points (SwiftUI-injected)
+///   time      — seconds, monotonically increasing
+///   amplitude — peak horizontal displacement in points
+[[ stitchable ]]
+float2 clothWaveShimmer(float2 position, float time, float amplitude) {
+    const float spatialFreq = 0.022;   // wavelength (smaller = longer waves)
+    const float travelSpeed = 1.4;     // how fast the wave phase advances
+    float dx = sin(position.y * spatialFreq - time * travelSpeed) * amplitude;
+    return position + float2(dx, 0);
+}
+
 [[ stitchable ]]
 float2 processingShimmer(float2 position, float time, float amplitude, float height) {
     const float period = 2.0;                 // seconds per top→bottom pass

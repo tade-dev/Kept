@@ -19,7 +19,7 @@ struct NotificationsStepView: View {
                         .frame(width: 180, height: 180)
 
                     Image(systemName: "bell.badge")
-                        .font(.system(size: 78, weight: .light))
+                        .font(KeptFont.sans(78, weight: .regular, relativeTo: .largeTitle))
                         .foregroundStyle(KeptColor.ink)
                 }
 

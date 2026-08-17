@@ -5,3 +5,5 @@ KEPT_EXTRACT_BASE_URL = http:/$()/127.0.0.1:8787
 KEPT_EXTRACT_SECRET = REPLACE_ME
 
 #include? "Extract.local.xcconfig"
+#include? "RevenueCat.xcconfig"
+
