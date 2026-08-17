@@ -219,6 +219,9 @@ private struct CloudOCRLine: Encodable {
 }
 
 private struct CloudExtractResponse: Decodable {
+    /// Server-side classification. When != "receipt", every other field is null.
+    /// Nil / missing = treat as receipt (server pre-2026-08-15 didn't send it).
+    var documentType: String?
     var merchant: String?
     var itemName: String?
     var items: [CloudLineItem]?
@@ -300,7 +303,8 @@ private struct CloudExtractResponse: Decodable {
         return CloudExtractionPayload(
             receipt: receipt,
             lineItems: lineItems,
-            fieldConfidences: fieldConfidences
+            fieldConfidences: fieldConfidences,
+            documentType: DocumentType.from(documentType)
         )
     }
 
@@ -374,7 +378,8 @@ extension CloudExtractor {
         return CloudExtractionPayload(
             receipt: merge(rules: rules, cloud: cloud.receipt, lineItems: items),
             lineItems: items,
-            fieldConfidences: cloud.fieldConfidences
+            fieldConfidences: cloud.fieldConfidences,
+            documentType: cloud.documentType
         )
     }
 

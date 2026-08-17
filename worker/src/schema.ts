@@ -11,6 +11,11 @@ export const extractionResponseSchema = {
       description:
         "One or two short sentences: identify the header block, locate the Total anchor line, name the currency signal you used, and note any tricky items (dual currency, fragmented OCR, printed warranty / return policy, etc.). Keep under 40 words. Client discards this field.",
     },
+    documentType: {
+      type: "string",
+      description:
+        "Kind of document. Use 'receipt' for anything that proves a purchase (retail receipt, invoice, sales slip, ticket confirmation with total, restaurant bill). Use one of these when NOT a receipt: 'passport', 'id_card', 'business_card', 'handwritten_note', 'menu', 'letter', 'other'. When not 'receipt', return null for every extraction field.",
+    },
     merchant: {
       type: ["string", "null"],
       description:
@@ -88,6 +93,7 @@ export const extractionResponseSchema = {
   },
   required: [
     "reasoning",
+    "documentType",
     "merchant",
     "itemName",
     "items",
@@ -105,6 +111,7 @@ export const extractionResponseSchema = {
 export type ExtractionResponse = {
   /** Scratchpad the model uses to think before answering. Dropped in llm.ts. */
   reasoning?: string;
+  documentType: string;
   merchant: string | null;
   itemName: string | null;
   items: Array<{ name: string; price: number }>;
