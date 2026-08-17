@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var exportURL: URL?
     @State private var showDeleteConfirm = false
+    @State private var showsPaywall = false
 
     private var appearance: AppearancePreference {
         AppearancePreference(rawValue: appearanceRaw) ?? .system
@@ -54,6 +55,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                AccountSection(onUpgradeTapped: { showsPaywall = true })
+
                 if notificationsEnabled && authorizationStatus == .denied {
                     permissionDeniedSection
                 }
@@ -63,6 +66,10 @@ struct SettingsView: View {
                 dataSection
                 aboutSection
             }
+            .sheet(isPresented: $showsPaywall) {
+                PaywallView(reason: .manual)
+            }
+            .font(.keptBody)  // cascades to Text descendants inside Form
             .navigationTitle("Settings")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,11 +82,7 @@ struct SettingsView: View {
                 await refreshAuthorizationStatus()
                 refreshExportURL()
             }
-            .confirmationDialog(
-                "Delete everything?",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
+            .alert("Delete everything?", isPresented: $showDeleteConfirm) {
                 Button("Delete all data", role: .destructive) {
                     deleteAll()
                 }
@@ -108,10 +111,10 @@ struct SettingsView: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 Label("Notifications are off", systemImage: "bell.slash.fill")
-                    .font(.headline)
+                    .font(.keptHeadline)
                     .foregroundStyle(.orange)
                 Text("Kept can't warn you before coverage ends until you allow notifications in iOS Settings.")
-                    .font(.footnote)
+                    .font(.keptFootnote)
                     .foregroundStyle(.secondary)
             }
             Button {
