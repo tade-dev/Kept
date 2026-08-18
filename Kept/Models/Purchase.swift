@@ -132,6 +132,17 @@ final class Purchase {
         }
     }
 
+    /// Single write-point for warranty / return-window terms.
+    ///
+    /// **CloudKit sync invariant (do not break):** a `.userProvided` term must
+    /// never be overwritten by an `.inferred` write, on any device. This
+    /// function's `existing.source == .userProvided && !byUser` guard enforces
+    /// that locally. The wider architecture relies on inference only running
+    /// at initial purchase creation — post-creation, `mutateTerm` is called
+    /// exclusively from user-edit paths (`byUser: true`). If you ever add a
+    /// re-extract / rerun-inference feature that touches an existing term,
+    /// call this with `byUser: false` so the guard fires and user edits stay
+    /// protected. Preserve this and CloudKit last-write-wins is safe.
     private func mutateTerm(
         kind: CoverageKind,
         clear: Bool,
