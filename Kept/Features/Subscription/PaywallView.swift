@@ -84,7 +84,7 @@ struct PaywallView: View {
                 Button("OK", role: .cancel) {}
             }
             .sensoryFeedback(.success, trigger: successTick)
-            .task { await subscription.service.refresh() }
+            .task { await subscription.refresh() }
         }
     }
 
@@ -114,14 +114,14 @@ struct PaywallView: View {
         HStack(spacing: 10) {
             priceCard(
                 for: .yearly,
-                package: subscription.service.offering?.yearly,
+                package: subscription.offering?.yearly,
                 perLabel: "/year",
-                badge: subscription.service.offering?.yearly?.savingsBadge
+                badge: subscription.offering?.yearly?.savingsBadge
                     .map { $0.replacingOccurrences(of: " OFF", with: "") }
             )
             priceCard(
                 for: .monthly,
-                package: subscription.service.offering?.monthly,
+                package: subscription.offering?.monthly,
                 perLabel: "/month",
                 badge: nil
             )
@@ -231,7 +231,7 @@ struct PaywallView: View {
                 .background(Capsule().fill(KeptColor.ink))
             }
             .buttonStyle(.plain)
-            .disabled(isWorking || subscription.service.offering == nil)
+            .disabled(isWorking || subscription.offering == nil)
 
             legalFineprint
 
@@ -297,7 +297,7 @@ struct PaywallView: View {
     // MARK: - Helpers
 
     private var currentPackage: SubscriptionPackage? {
-        guard let offering = subscription.service.offering else { return nil }
+        guard let offering = subscription.offering else { return nil }
         return selection == .yearly ? offering.yearly : offering.monthly
     }
 
@@ -319,11 +319,13 @@ struct PaywallView: View {
         isWorking = true
         defer { isWorking = false }
         do {
-            let ok = try await subscription.service.purchase(package)
-            if ok {
-                successTick &+= 1
-                dismiss()
-            }
+            // Non-cancelled, non-thrown return = transaction went through.
+            // Dismiss without gating on the bool — sandbox propagation of
+            // the `pro` entitlement can lag a few seconds, and we don't
+            // want the user staring at the paywall with the receipt in hand.
+            _ = try await subscription.purchase(package)
+            successTick &+= 1
+            dismiss()
         } catch SubscriptionServiceError.cancelled {
             // silent
         } catch let error as SubscriptionServiceError {
@@ -337,7 +339,7 @@ struct PaywallView: View {
         isWorking = true
         defer { isWorking = false }
         do {
-            let restored = try await subscription.service.restorePurchases()
+            let restored = try await subscription.restorePurchases()
             if restored {
                 successTick &+= 1
                 dismiss()
@@ -354,13 +356,50 @@ struct PaywallView: View {
 
 // MARK: - Environment holder
 
+/// The reactive wrapper the view layer talks to. Owns @Observable state
+/// (`isPro`, `offering`, `appUserID`) mirrored from the underlying
+/// `SubscriptionService`. Forwards method calls (`purchase`, `restorePurchases`,
+/// `refresh`) to the service.
+///
+/// The service itself is deliberately NOT `@Observable` — Swift's observation
+/// macro only registers reads it can see at the concrete type, and can't see
+/// through `any SubscriptionService`. So we put the observability HERE and let
+/// the service push updates via a callback.
 @Observable
 @MainActor
 final class SubscriptionAccess {
-    var service: any SubscriptionService
+    private(set) var isPro: Bool = false
+    private(set) var offering: SubscriptionOffering?
+    private(set) var appUserID: String = ""
+
+    /// Exposed so callers that need the underlying service (e.g. tests) can
+    /// reach it, but views should stick to the mirrored properties above.
+    let service: any SubscriptionService
 
     init(service: any SubscriptionService) {
         self.service = service
+        self.isPro = service.isPro
+        self.offering = service.offering
+        self.appUserID = service.appUserID
+        service.onChange = { [weak self] in
+            guard let self else { return }
+            self.isPro = self.service.isPro
+            self.offering = self.service.offering
+            self.appUserID = self.service.appUserID
+        }
+    }
+
+    func refresh() async {
+        await service.refresh()
+    }
+
+    func purchase(_ package: SubscriptionPackage) async throws -> Bool {
+        try await service.purchase(package)
+    }
+
+    @discardableResult
+    func restorePurchases() async throws -> Bool {
+        try await service.restorePurchases()
     }
 }
 

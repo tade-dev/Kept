@@ -1,30 +1,44 @@
 import Foundation
-import Observation
 
-/// Abstraction over the paid/free state, injected into views. Concrete
-/// implementations: `RevenueCatSubscriptionService` (real) and
-/// `PreviewSubscriptionService` (fake, for #Preview and tests).
+/// Abstraction over the paid/free state. Concrete implementations:
+/// `RevenueCatSubscriptionService` (real) and `PreviewSubscriptionService`
+/// (fake, for #Preview and tests).
 ///
 /// Views MUST NOT import RevenueCat directly. All Purchases interaction
 /// funnels through this protocol so the payment provider is swappable and
 /// previews don't hit the network.
+///
+/// **Not @Observable on purpose.** Swift's `@Observable` macro registers
+/// observation via static type analysis and can't see through `any` /
+/// existentials. So this protocol is a plain interface; state changes are
+/// pushed via `onChange` to `SubscriptionAccess`, which is the actual
+/// @Observable wrapper the view layer talks to.
 @MainActor
-protocol SubscriptionService: AnyObject, Observable {
-    /// True when the customer has the `pro` entitlement active. Refreshed
-    /// automatically when RevenueCat's CustomerInfo stream fires.
+protocol SubscriptionService: AnyObject {
+    /// True when the customer has the `pro` entitlement active.
     var isPro: Bool { get }
 
     /// The current offering (containing `pro_monthly` and `pro_yearly`
     /// packages), or nil if not yet fetched / offline / not configured.
     var offering: SubscriptionOffering? { get }
 
+    /// Opaque, stable customer identifier used by the payment provider.
+    /// Exposed for support-ticket copy — never rendered as primary UI.
+    var appUserID: String { get }
+
+    /// Handler invoked (on the main actor) whenever isPro / offering /
+    /// appUserID change. `SubscriptionAccess` wires this up in its init and
+    /// mirrors the values into its own @Observable properties so the view
+    /// layer stays reactive.
+    var onChange: (@MainActor () -> Void)? { get set }
+
     /// Force a refresh — call after network reconnect or from a "Refresh"
-    /// button in the paywall. No-op if a fetch is already in flight.
+    /// button. No-op if a fetch is already in flight.
     func refresh() async
 
     /// Purchase a specific package. Returns whether the customer is now Pro.
-    /// Throws `SubscriptionServiceError` on user cancellation, network failure,
-    /// declined payment, etc.
+    /// Throws `SubscriptionServiceError` on user cancellation, network
+    /// failure, declined payment, etc.
     func purchase(_ package: SubscriptionPackage) async throws -> Bool
 
     /// Restore prior purchases (mandatory App Store button on paywalls).
@@ -34,7 +48,6 @@ protocol SubscriptionService: AnyObject, Observable {
 }
 
 /// Provider-agnostic offering: two packages (monthly + yearly).
-/// Field names match what the paywall needs — no RC types leak through.
 struct SubscriptionOffering: Equatable, Sendable {
     var monthly: SubscriptionPackage?
     var yearly: SubscriptionPackage?

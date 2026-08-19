@@ -71,7 +71,7 @@ struct ExtractionConfirmView: View {
             // to true reactively and we can auto-retry the save they were
             // trying to make. Only triggers when the sheet was open and now
             // isn't (i.e. paywallReason went nil) AND the user is now Pro.
-            .onChange(of: subscription.service.isPro) { _, nowPro in
+            .onChange(of: subscription.isPro) { _, nowPro in
                 if nowPro, paywallReason != nil {
                     paywallReason = nil
                     commitSave()
@@ -396,7 +396,7 @@ struct ExtractionConfirmView: View {
         // Free-tier cap: check AFTER scan succeeds (never before). Never
         // block the camera; the user has already invested effort scanning
         // and reviewing, so they see everything before hitting the wall.
-        if !subscription.service.isPro,
+        if !subscription.isPro,
            storedPurchases.count >= Self.freeItemCap {
             paywallReason = .capReached
             return

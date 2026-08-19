@@ -1,11 +1,8 @@
 import CloudKit
 import SwiftUI
+import UIKit
 
-/// Settings section that shows iCloud sign-in status + Pro subscription state.
-/// Uses `FileManager.ubiquityIdentityToken` for the quick "is iCloud
-/// available" check (synchronous, doesn't need the CloudKit entitlement) and
-/// falls back to CKContainer for the record ID display when the entitlement
-/// is present. Never spins forever.
+
 struct AccountSection: View {
     @Environment(SubscriptionAccess.self) private var subscription
     /// SettingsView owns the paywall sheet state — this section just tells
@@ -13,8 +10,12 @@ struct AccountSection: View {
     var onUpgradeTapped: () -> Void
 
     @State private var isICloudAvailable: Bool = false
-    @State private var iCloudUserRecordName: String?
     @State private var didFinishInitialCheck: Bool = false
+    @State private var isRestoring: Bool = false
+    @State private var restoreMessage: String?
+    @State private var copiedCustomerID: Bool = false
+
+    private let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
 
     var body: some View {
         Section {
@@ -24,27 +25,20 @@ struct AccountSection: View {
                 Label("iCloud", systemImage: "icloud")
             }
 
-            if let recordName = iCloudUserRecordName {
-                LabeledContent("User ID") {
-                    Text(recordName.masked)
-                        .font(.footnote.monospaced())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-
             LabeledContent {
                 proStatusView
             } label: {
                 Label("Kept Pro", systemImage: "sparkles")
             }
 
-            Button {
-                onUpgradeTapped()
-            } label: {
-                Label(subscription.service.isPro ? "Manage subscription" : "Upgrade to Pro",
-                      systemImage: "arrow.up.right.square")
+            if subscription.isPro {
+                proRows
+            } else {
+                Button {
+                    onUpgradeTapped()
+                } label: {
+                    Label("Upgrade to Pro", systemImage: "arrow.up.right.square")
+                }
             }
         } header: {
             Text("Account")
@@ -55,9 +49,53 @@ struct AccountSection: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSUbiquityIdentityDidChange)) { _ in
             Task { await refreshICloud() }
         }
+        .alert(
+            restoreMessage ?? "",
+            isPresented: Binding(
+                get: { restoreMessage != nil },
+                set: { if !$0 { restoreMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        }
     }
 
-    // MARK: - Row content
+    // MARK: - Pro-only management rows
+
+    @ViewBuilder
+    private var proRows: some View {
+        Button {
+            UIApplication.shared.open(manageSubscriptionsURL)
+        } label: {
+            Label("Manage subscription", systemImage: "creditcard")
+        }
+
+        Button {
+            Task { await restorePurchases() }
+        } label: {
+            HStack {
+                Label("Restore purchases", systemImage: "arrow.clockwise")
+                if isRestoring {
+                    Spacer()
+                    ProgressView().controlSize(.small)
+                }
+            }
+        }
+        .disabled(isRestoring)
+
+        Button {
+            copyCustomerID()
+        } label: {
+            Label(
+                copiedCustomerID ? "Copied to clipboard" : "Copy customer ID",
+                systemImage: copiedCustomerID ? "checkmark" : "doc.on.doc"
+            )
+            .contentTransition(.symbolEffect(.replace))
+        }
+        .accessibilityHint("Copies your RevenueCat customer ID so you can include it in a support ticket.")
+    }
+
+    // MARK: - Status rows
 
     @ViewBuilder
     private var iCloudStatusView: some View {
@@ -75,67 +113,50 @@ struct AccountSection: View {
     }
 
     private var proStatusView: some View {
-        Text(subscription.service.isPro ? "Active" : "Free")
-            .foregroundStyle(subscription.service.isPro ? Color.primary : .secondary)
+        Text(subscription.isPro ? "Active" : "Free")
+            .foregroundStyle(subscription.isPro ? Color.primary : .secondary)
             .font(KeptFont.sans(15, weight: .medium, relativeTo: .subheadline))
     }
 
     private var footerText: String {
         guard didFinishInitialCheck else { return " " }
         if isICloudAvailable {
-            return "Your receipts sync across every device signed in to this iCloud account. Sync is free — Pro only unlocks unlimited items and the claim pack."
+            return "Your receipts sync across every device signed in to this iCloud account. Sync is free, Pro only unlocks unlimited items and the claim pack."
         }
         return "Sign in to iCloud in Settings to sync your receipts across devices. Kept works fully offline without it."
+    }
+
+    // MARK: - Actions
+
+    private func copyCustomerID() {
+        UIPasteboard.general.string = subscription.appUserID
+        withAnimation { copiedCustomerID = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation { copiedCustomerID = false }
+        }
+    }
+
+    private func restorePurchases() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        do {
+            let restored = try await subscription.restorePurchases()
+            restoreMessage = restored
+                ? "Purchases restored."
+                : "No previous purchases were found on this Apple ID."
+        } catch let error as SubscriptionServiceError {
+            restoreMessage = error.errorDescription ?? "Something went wrong."
+        } catch {
+            restoreMessage = "Something went wrong."
+        }
     }
 
     // MARK: - iCloud check
 
     private func refreshICloud() async {
-        // 1. Fast, entitlement-free availability check.
         let token = FileManager.default.ubiquityIdentityToken
         isICloudAvailable = token != nil
         didFinishInitialCheck = true
-
-        // 2. Only try for the record ID if iCloud is available AND we have
-        //    the CloudKit entitlement. Skip cleanly if the container throws.
-        guard token != nil else {
-            iCloudUserRecordName = nil
-            return
-        }
-        // Timeout so a hung CloudKit call can't keep this hidden work running.
-        let fetch = Task { () -> String? in
-            do {
-                let recordID = try await CKContainer.default().userRecordID()
-                return recordID.recordName
-            } catch {
-                return nil
-            }
-        }
-        let timeout = Task { () -> String? in
-            try? await Task.sleep(for: .seconds(2))
-            fetch.cancel()
-            return nil
-        }
-        let name = await withTaskGroup(of: String?.self) { group -> String? in
-            group.addTask { await fetch.value }
-            group.addTask { await timeout.value }
-            for await result in group {
-                group.cancelAll()
-                return result
-            }
-            return nil
-        }
-        iCloudUserRecordName = name
-    }
-}
-
-private extension String {
-    /// Masks a stable-but-opaque ID like `_abc123def456ghi` so we can show it
-    /// in Settings without spilling the full string. `_abc1…6ghi`.
-    var masked: String {
-        guard count > 8 else { return self }
-        let head = prefix(5)
-        let tail = suffix(4)
-        return "\(head)…\(tail)"
     }
 }

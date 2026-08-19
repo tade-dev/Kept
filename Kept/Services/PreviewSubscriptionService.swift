@@ -7,10 +7,11 @@ import Observation
 /// without mocking Purchases. The `purchase(_:)` and `restorePurchases()`
 /// methods mutate `isPro` synchronously so tests can assert without waits.
 @MainActor
-@Observable
 final class PreviewSubscriptionService: SubscriptionService {
-    var isPro: Bool
-    var offering: SubscriptionOffering?
+    var isPro: Bool { didSet { onChange?() } }
+    var offering: SubscriptionOffering? { didSet { onChange?() } }
+    var appUserID: String = "preview_app_user"
+    var onChange: (@MainActor () -> Void)?
     /// Override to make `purchase(_:)` throw a specific error in previews / tests.
     var nextPurchaseError: SubscriptionServiceError?
 
