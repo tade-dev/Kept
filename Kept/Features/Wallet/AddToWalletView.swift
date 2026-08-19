@@ -208,7 +208,7 @@ struct AddToWalletButton: View {
     /// add. Soft prompt with a "Not now" option, dismissed = no penalty.
     /// See AGENTS.md / Monetisation.
     private func maybeShowFirstPassPaywall() {
-        guard !subscription.service.isPro, !hasShownPaywallAfterFirstPass else { return }
+        guard !subscription.isPro, !hasShownPaywallAfterFirstPass else { return }
         hasShownPaywallAfterFirstPass = true
         // Small delay so the Wallet add sheet fully dismisses first — stacking
         // sheets on the same run loop tick is visually jarring.

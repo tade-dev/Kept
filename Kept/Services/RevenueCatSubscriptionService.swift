@@ -13,10 +13,11 @@ import RevenueCat
 /// lifetime — no cancellation is needed since this service is a singleton
 /// held by the App.
 @MainActor
-@Observable
 final class RevenueCatSubscriptionService: SubscriptionService {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    var appUserID: String { Purchases.shared.appUserID }
+    var onChange: (@MainActor () -> Void)?
 
     private var listenerTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
@@ -58,6 +59,7 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             do {
                 let offerings = try await Purchases.shared.offerings()
                 self?.offering = Self.mapOfferings(offerings)
+                self?.onChange?()
             } catch {
                 // Silent — paywall shows retry.
             }
@@ -73,9 +75,23 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         }
         do {
             let result = try await Purchases.shared.purchase(package: rcPackage)
+            if result.userCancelled {
+                throw SubscriptionServiceError.cancelled
+            }
             applyCustomerInfo(result.customerInfo)
-            return result.customerInfo.entitlements[Self.entitlementIdentifier]?
-                .isActive ?? false
+
+            // Sandbox can hand back a CustomerInfo whose entitlement isn't
+            // yet marked active (server-side propagation lag). Kick off a
+            // background refetch so `isPro` catches up shortly. Do NOT gate
+            // this method's return on the just-returned entitlement — a
+            // non-cancelled, non-thrown call means the transaction went
+            // through and the customer is (or is about to be) Pro.
+            Task { [weak self] in
+                if let info = try? await Purchases.shared.customerInfo() {
+                    self?.applyCustomerInfo(info)
+                }
+            }
+            return true
         } catch let error as ErrorCode {
             throw Self.mapErrorCode(error)
         } catch {
@@ -98,11 +114,16 @@ final class RevenueCatSubscriptionService: SubscriptionService {
 
     // MARK: - Internal
 
-    private static let entitlementIdentifier = "pro"
+    /// Must match the entitlement identifier configured in the RevenueCat
+    /// dashboard for the current project. Case-sensitive — RC treats "Kept Pro"
+    /// and "pro" as distinct.
+    private static let entitlementIdentifier = "Kept Pro"
 
     private func applyCustomerInfo(_ info: CustomerInfo) {
         let active = info.entitlements[Self.entitlementIdentifier]?.isActive ?? false
-        if active != isPro { isPro = active }
+        let changed = active != isPro
+        if changed { isPro = active }
+        onChange?()
     }
 
     private func resolveRCPackage(for id: String) async throws -> Package? {
