@@ -60,8 +60,6 @@ struct AccountSection: View {
         }
     }
 
-    // MARK: - Pro-only management rows
-
     @ViewBuilder
     private var proRows: some View {
         Button {

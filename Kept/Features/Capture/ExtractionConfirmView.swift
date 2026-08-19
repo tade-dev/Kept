@@ -424,6 +424,7 @@ private struct PaywallReasonBox: Identifiable {
         case .capReached:     "capReached"
         case .firstPassAdded: "firstPassAdded"
         case .manual:         "manual"
+        case .claimPack:      "claimPack"
         }
     }
 }
