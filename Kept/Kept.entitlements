@@ -17,9 +17,5 @@
 		<string>$(TeamIdentifierPrefix)pass.com.tade.Kept</string>
 		<string>$(TeamIdentifierPrefix)pass.com.tade.devpass</string>
 	</array>
-	<key>com.apple.security.application-groups</key>
-	<array>
-		<string>group.com.tade.Kept.shared</string>
-	</array>
 </dict>
 </plist>

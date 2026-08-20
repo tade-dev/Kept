@@ -10,17 +10,9 @@
 		1E143D7F302FA2D200402325 /* ReceiptParser in Frameworks */ = {isa = PBXBuildFile; productRef = 1E143D7E302FA2D200402325 /* ReceiptParser */; };
 		1E143D81302FA2D200402325 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 1E143D80302FA2D200402325 /* RevenueCat */; };
 		1E143D83302FA2D200402325 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 1E143D82302FA2D200402325 /* RevenueCatUI */; };
-		1E689A563036EA1C005E3702 /* KeptShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1E689A4C3036EA1B005E3702 /* KeptShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1E689A543036EA1C005E3702 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1EFE946A3021AE1900419591 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 1E689A4B3036EA1B005E3702;
-			remoteInfo = KeptShare;
-		};
 		A1B2C3D43021AE1900419592 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 1EFE946A3021AE1900419591 /* Project object */;
@@ -30,35 +22,13 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		1E689A5B3036EA1C005E3702 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				1E689A563036EA1C005E3702 /* KeptShare.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		1E689A4C3036EA1B005E3702 /* KeptShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KeptShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EFE94723021AE1900419591 /* Kept.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kept.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D53021AE1900419593 /* KeptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1D2E3F43021AE1900419501 /* Extract.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Extract.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1E689A5A3036EA1C005E3702 /* Exceptions for "KeptShare" folder in "KeptShare" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 1E689A4B3036EA1B005E3702 /* KeptShare */;
-		};
 		C1D2E3F63021AE1900419503 /* Exceptions for "Kept" folder in "Kept" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -69,14 +39,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1E689A4D3036EA1B005E3702 /* KeptShare */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				1E689A5A3036EA1C005E3702 /* Exceptions for "KeptShare" folder in "KeptShare" target */,
-			);
-			path = KeptShare;
-			sourceTree = "<group>";
-		};
 		1EFE94743021AE1900419591 /* Kept */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -93,13 +55,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1E689A493036EA1B005E3702 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1EFE946F3021AE1900419591 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -126,7 +81,6 @@
 				C1D2E3F53021AE1900419502 /* Config */,
 				1EFE94743021AE1900419591 /* Kept */,
 				A1B2C3D63021AE1900419594 /* KeptTests */,
-				1E689A4D3036EA1B005E3702 /* KeptShare */,
 				1EFE94733021AE1900419591 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -136,7 +90,6 @@
 			children = (
 				1EFE94723021AE1900419591 /* Kept.app */,
 				A1B2C3D53021AE1900419593 /* KeptTests.xctest */,
-				1E689A4C3036EA1B005E3702 /* KeptShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,28 +105,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1E689A4B3036EA1B005E3702 /* KeptShare */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1E689A573036EA1C005E3702 /* Build configuration list for PBXNativeTarget "KeptShare" */;
-			buildPhases = (
-				1E689A483036EA1B005E3702 /* Sources */,
-				1E689A493036EA1B005E3702 /* Frameworks */,
-				1E689A4A3036EA1B005E3702 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				1E689A4D3036EA1B005E3702 /* KeptShare */,
-			);
-			name = KeptShare;
-			packageProductDependencies = (
-			);
-			productName = KeptShare;
-			productReference = 1E689A4C3036EA1B005E3702 /* KeptShare.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		1EFE94713021AE1900419591 /* Kept */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1EFE947F3021AE1B00419591 /* Build configuration list for PBXNativeTarget "Kept" */;
@@ -181,12 +112,10 @@
 				1EFE946E3021AE1900419591 /* Sources */,
 				1EFE946F3021AE1900419591 /* Frameworks */,
 				1EFE94703021AE1900419591 /* Resources */,
-				1E689A5B3036EA1C005E3702 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				1E689A553036EA1C005E3702 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				1EFE94743021AE1900419591 /* Kept */,
@@ -234,9 +163,6 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
-					1E689A4B3036EA1B005E3702 = {
-						CreatedOnToolsVersion = 26.3;
-					};
 					1EFE94713021AE1900419591 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -265,19 +191,11 @@
 			targets = (
 				1EFE94713021AE1900419591 /* Kept */,
 				A1B2C3D83021AE1900419596 /* KeptTests */,
-				1E689A4B3036EA1B005E3702 /* KeptShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1E689A4A3036EA1B005E3702 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1EFE94703021AE1900419591 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -295,13 +213,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1E689A483036EA1B005E3702 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1EFE946E3021AE1900419591 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -319,11 +230,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		1E689A553036EA1C005E3702 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 1E689A4B3036EA1B005E3702 /* KeptShare */;
-			targetProxy = 1E689A543036EA1C005E3702 /* PBXContainerItemProxy */;
-		};
 		A1B2C3DB3021AE1900419599 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 1EFE94713021AE1900419591 /* Kept */;
@@ -332,66 +238,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		1E689A583036EA1C005E3702 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = KeptShare/KeptShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TU566926VK;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = KeptShare/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = KeptShare;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tade.Kept.KeptShare;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		1E689A593036EA1C005E3702 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = KeptShare/KeptShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TU566926VK;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = KeptShare/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = KeptShare;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tade.Kept.KeptShare;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		1EFE947D3021AE1B00419591 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -640,15 +486,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1E689A573036EA1C005E3702 /* Build configuration list for PBXNativeTarget "KeptShare" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				1E689A583036EA1C005E3702 /* Debug */,
-				1E689A593036EA1C005E3702 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		1EFE946D3021AE1900419591 /* Build configuration list for PBXProject "Kept" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
