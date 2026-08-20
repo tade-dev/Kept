@@ -56,6 +56,10 @@ struct PurchaseDetailView: View {
                             .multilineTextAlignment(.trailing)
                     }
                 }
+                TextField("Serial number", text: $purchase.serialNumber)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .keyboardType(.asciiCapable)
             }
 
             if !purchase.lineItems.isEmpty {

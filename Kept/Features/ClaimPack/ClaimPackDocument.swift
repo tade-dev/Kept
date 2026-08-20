@@ -67,6 +67,9 @@ struct ClaimPackDocument: View {
             row("Merchant", purchase.merchant.isEmpty ? "—" : purchase.merchant)
             row("Purchased", purchase.purchaseDate.formatted(date: .long, time: .omitted))
             row("Amount",    formattedPrice)
+            if !purchase.serialNumber.trimmingCharacters(in: .whitespaces).isEmpty {
+                row("Serial no.", purchase.serialNumber)
+            }
         }
     }
 
