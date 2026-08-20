@@ -87,13 +87,15 @@ struct PendingImportPresenter: ViewModifier {
             extraction = ReceiptExtraction.empty
         }
 
-        // Render a receipt-shaped image from the source so the confirm
-        // view + eventual Purchase have a proper visual (thumbnail in
-        // the library, page 2 of the claim pack, etc.). Only emails
-        // get this treatment — plain-text/URL shares aren't visual
-        // enough to justify a fake receipt render.
+        // Render a receipt-shaped image for every non-URL import so the
+        // confirm view + eventual Purchase have a proper visual (library
+        // thumbnail, claim pack PDF page 2). Applies equally to emails
+        // (from Mail's HTML share) and plain-text shares (from Mail's
+        // Select-All → Share, which strips to text) — both benefit
+        // from a rendered card. URL-only shares carry no content
+        // worth visualising.
         let image: UIImage? = {
-            guard next.source == .email else { return nil }
+            guard next.source != .url else { return nil }
             return EmailReceiptImage.render(
                 merchant: extraction.merchant.value,
                 lines: candidateLines.map(\.text),
