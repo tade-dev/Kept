@@ -78,7 +78,13 @@ struct PendingImportPresenter: ViewModifier {
 
         let service = DefaultExtractionService()
         let extraction: ReceiptExtraction
-        if let receipt = try? await service.extract(from: candidateLines) {
+        // For email/text imports, prepend an inline hint so the worker's
+        // LLM has context even before its prompt learns to branch on
+        // `source`. Remove once the worker prompt handles source == email
+        // natively.
+        let extractionLines = augmentedLines(for: next, lines: candidateLines)
+        let extractionSource: ExtractionSource = (next.source == .url) ? .receipt : .email
+        if let receipt = try? await service.extract(from: extractionLines, source: extractionSource) {
             extraction = ReceiptExtraction.from(receipt: receipt, confidences: nil, lineItems: [])
         } else {
             // Extraction failed (network, empty, etc.). Present anyway
@@ -116,6 +122,22 @@ struct PendingImportPresenter: ViewModifier {
         self.extraction = extraction
         self.renderedImage = image
         self.current = next
+    }
+
+    /// Prepends an inline hint to the extraction input when the source
+    /// is an email or plain-text share. The worker prompt is expected
+    /// to branch on the new `source` field eventually — until it does,
+    /// dropping this sentence into the "OCR" stream measurably shifts
+    /// LLM outputs (merchant becomes the sender company, dates prefer
+    /// the order date over delivery). Delete once the worker branches.
+    private func augmentedLines(for item: PendingImport, lines: [RecognizedLine]) -> [RecognizedLine] {
+        guard item.source == .email || item.source == .text else { return lines }
+        let hint = RecognizedLine(
+            text: "=== EMAIL ORDER CONFIRMATION BODY. The merchant is the sender company (e.g. Amazon, John Lewis, Argos). Prefer the ORDER date over DELIVERY or INVOICE dates. Extract the ORDER TOTAL, not subtotal. ===",
+            confidence: 1,
+            boundingBox: .zero
+        )
+        return [hint] + lines
     }
 
     private func buildLines(from item: PendingImport) -> [RecognizedLine] {

@@ -108,15 +108,15 @@ struct CloudExtractor: ExtractionService {
         return nil
     }
 
-    func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        try await extractDetailed(from: lines).receipt
+    func extract(from lines: [RecognizedLine], source: ExtractionSource = .receipt) async throws -> ExtractedReceipt {
+        try await extractDetailed(from: lines, source: source).receipt
     }
 
-    func extractDetailed(from lines: [RecognizedLine]) async throws -> CloudExtractionPayload {
+    func extractDetailed(from lines: [RecognizedLine], source: ExtractionSource = .receipt) async throws -> CloudExtractionPayload {
         guard !lines.isEmpty else { throw CloudExtractionError.emptyInput }
 
         do {
-            return try await perform(lines: lines, allowRetry: true)
+            return try await perform(lines: lines, source: source, allowRetry: true)
         } catch let error as CloudExtractionError {
             throw error
         } catch {
@@ -128,6 +128,7 @@ struct CloudExtractor: ExtractionService {
 
     private func perform(
         lines: [RecognizedLine],
+        source: ExtractionSource,
         allowRetry: Bool
     ) async throws -> CloudExtractionPayload {
         let url = configuration.baseURL.appendingPathComponent("extract")
@@ -139,7 +140,12 @@ struct CloudExtractor: ExtractionService {
             forHTTPHeaderField: "Authorization"
         )
         request.timeoutInterval = configuration.timeout
-        request.httpBody = try JSONEncoder().encode(CloudExtractRequest(lines: lines.map(CloudOCRLine.init)))
+        request.httpBody = try JSONEncoder().encode(
+            CloudExtractRequest(
+                lines: lines.map(CloudOCRLine.init),
+                source: source.rawValue
+            )
+        )
 
         let data: Data
         let response: URLResponse
@@ -162,7 +168,7 @@ struct CloudExtractor: ExtractionService {
             throw CloudExtractionError.rateLimited
         case 500...599:
             if allowRetry {
-                return try await perform(lines: lines, allowRetry: false)
+                return try await perform(lines: lines, source: source, allowRetry: false)
             }
             throw CloudExtractionError.serverUnavailable
         default:
@@ -200,6 +206,12 @@ struct CloudExtractor: ExtractionService {
 
 private struct CloudExtractRequest: Encodable {
     var lines: [CloudOCRLine]
+    /// "receipt" (default) or "email". Worker prompt branches on this so
+    /// emails route to a prose-aware extraction with different heuristics
+    /// for merchant identification and date disambiguation. Non-breaking
+    /// on the worker side — old workers ignore the field and treat every
+    /// request as a receipt.
+    var source: String
 }
 
 private struct CloudOCRLine: Encodable {
