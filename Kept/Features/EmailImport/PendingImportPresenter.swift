@@ -18,7 +18,6 @@ struct PendingImportPresenter: ViewModifier {
     @State private var current: PendingImport?
     @State private var extraction: ReceiptExtraction?
     @State private var lines: [RecognizedLine] = []
-    @State private var renderedImage: UIImage?
     @State private var isPreparing = false
 
     func body(content: Content) -> some View {
@@ -28,31 +27,23 @@ struct PendingImportPresenter: ViewModifier {
                 if new == .active { Task { await drainNext() } }
             }
             .sheet(item: $current, onDismiss: {
-                // By the time SwiftUI calls onDismiss, `$current` has
-                // already been set to nil — so we can't reach the item
-                // from here. The item is instead removed from the inbox
-                // eagerly in `drainNext()` at present-time, meaning:
-                // - Save: nothing extra to do (already removed).
-                // - Swipe-dismiss without saving: still removed. If the
-                //   user wants to reprocess, they re-share from Mail.
-                //   Simpler contract than "if you swipe, we hold on to
-                //   it and re-present on every foreground forever".
+                if let item = current { SharedInbox.remove(item) }
+                current = nil
                 extraction = nil
                 lines = []
-                renderedImage = nil
                 Task { await drainNext() }
-            }) { _ in
+            }) { item in
                 if let extraction {
                     NavigationStack {
                         ExtractionConfirmView(
-                            image: renderedImage,
+                            image: nil,
                             ocrLines: lines,
                             extraction: extraction,
                             onSave: { _ in
+                                SharedInbox.remove(item)
                                 current = nil
                                 self.extraction = nil
                                 lines = []
-                                renderedImage = nil
                                 Task { await drainNext() }
                             }
                         )
@@ -77,42 +68,18 @@ struct PendingImportPresenter: ViewModifier {
         }
 
         let service = DefaultExtractionService()
-        let extraction: ReceiptExtraction
-        if let receipt = try? await service.extract(from: candidateLines) {
-            extraction = ReceiptExtraction.from(receipt: receipt, confidences: nil, lineItems: [])
-        } else {
+        guard let receipt = try? await service.extract(from: candidateLines) else {
             // Extraction failed (network, empty, etc.). Present anyway
             // with empty fields so the user can add manually rather than
             // silently losing the import.
-            extraction = ReceiptExtraction.empty
+            self.lines = candidateLines
+            self.extraction = ReceiptExtraction.empty
+            self.current = next
+            return
         }
 
-        // Render a receipt-shaped image from the source so the confirm
-        // view + eventual Purchase have a proper visual (thumbnail in
-        // the library, page 2 of the claim pack, etc.). Only emails
-        // get this treatment — plain-text/URL shares aren't visual
-        // enough to justify a fake receipt render.
-        let image: UIImage? = {
-            guard next.source == .email else { return nil }
-            return EmailReceiptImage.render(
-                merchant: extraction.merchant.value,
-                lines: candidateLines.map(\.text),
-                capturedAt: next.createdAt
-            )
-        }()
-
-        NSLog("[Kept.email] Presenting confirm sheet with image=\(image == nil ? "nil" : "\(image!.size)"), lines=\(candidateLines.count)")
-
-        // Remove BEFORE presenting. If the user swipes the sheet away
-        // without saving, the item is gone — matches the "one-shot
-        // review, re-share to retry" contract. If we removed on save
-        // only, swipe-dismiss would leave the file in the inbox and
-        // every subsequent foreground would re-present it.
-        SharedInbox.remove(next)
-
         self.lines = candidateLines
-        self.extraction = extraction
-        self.renderedImage = image
+        self.extraction = ReceiptExtraction.from(receipt: receipt, confidences: nil, lineItems: [])
         self.current = next
     }
 
