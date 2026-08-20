@@ -101,6 +101,8 @@ struct PendingImportPresenter: ViewModifier {
             )
         }()
 
+        NSLog("[Kept.email] Presenting confirm sheet with image=\(image == nil ? "nil" : "\(image!.size)"), lines=\(candidateLines.count)")
+
         // Remove BEFORE presenting. If the user swipes the sheet away
         // without saving, the item is gone — matches the "one-shot
         // review, re-share to retry" contract. If we removed on save

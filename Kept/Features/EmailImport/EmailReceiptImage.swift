@@ -111,7 +111,13 @@ extension EmailReceiptImage {
         let renderer = ImageRenderer(content: view)
         renderer.proposedSize = ProposedViewSize(renderSize)
         renderer.scale = 2
-        return renderer.uiImage
+        let image = renderer.uiImage
+        if image == nil {
+            NSLog("[Kept.email] EmailReceiptImage.render returned nil (merchant=\(merchant ?? "nil"), lines=\(lines.count))")
+        } else {
+            NSLog("[Kept.email] EmailReceiptImage.render produced image \(image!.size)")
+        }
+        return image
     }
 }
 
