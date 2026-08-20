@@ -8,6 +8,28 @@ struct PurchaseDetailView: View {
     @State private var returnDaysText: String = ""
     @State private var priceText: String = ""
     @State private var isShowingFullImage = false
+    @State private var isReExtracting = false
+    @State private var showReExtractPill = false
+    @State private var reExtractTick = 0
+
+    /// Heuristic: the original extraction produced too little to be useful.
+    /// Doesn't consider warranty/return-window presence — many receipts
+    /// (clothing, groceries) genuinely have no coverage, and re-extraction
+    /// won't invent one. Focus on the printed fields that should be there
+    /// when the image is legible: merchant, item, price.
+    private var extractionLooksWeak: Bool {
+        let merchant = purchase.merchant.trimmingCharacters(in: .whitespaces)
+        let item = purchase.itemName.trimmingCharacters(in: .whitespaces)
+        if purchase.needsReextraction { return true }
+        return merchant.isEmpty || item.isEmpty || purchase.price <= 0
+    }
+
+    /// Re-extract needs *some* source of truth — either persisted OCR lines
+    /// from capture, or the receipt image to re-OCR. Without both, the
+    /// pill would be a broken promise.
+    private var canReExtract: Bool {
+        purchase.ocrLinesData != nil || purchase.receiptImage != nil
+    }
 
     var body: some View {
         Form {
@@ -179,10 +201,27 @@ struct PurchaseDetailView: View {
         .font(.keptBody)  // cascades Bricolage to all Text descendants in the Form
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            if showReExtractPill && extractionLooksWeak && canReExtract {
+                ReExtractPill(isWorking: isReExtracting) {
+                    Task { await reExtract() }
+                }
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
+            }
+        }
         .task {
             warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? ""
             returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? ""
             priceText = purchase.price > 0 ? formatDecimal(purchase.price) : ""
+            try? await Task.sleep(for: .milliseconds(280))
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
+                showReExtractPill = true
+            }
         }
         .onChange(of: purchase.itemName) { _, _ in
             Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
@@ -190,9 +229,93 @@ struct PurchaseDetailView: View {
         .onChange(of: purchase.merchant) { _, _ in
             Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
         }
+        .onChange(of: extractionLooksWeak) { _, stillWeak in
+            // After a successful re-extract that filled the gaps, retire
+            // the pill with a spring so it doesn't hard-cut off screen.
+            if !stillWeak {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                    showReExtractPill = false
+                }
+            }
+        }
+        .sensoryFeedback(.success, trigger: reExtractTick)
         .fullScreenCover(isPresented: $isShowingFullImage) {
             if let data = purchase.receiptImage, let image = UIImage(data: data) {
                 FullReceiptViewer(image: image)
+            }
+        }
+    }
+
+    // MARK: - Re-extract
+
+    @MainActor
+    private func reExtract() async {
+        guard !isReExtracting, canReExtract else { return }
+        isReExtracting = true
+        defer { isReExtracting = false }
+
+        // Prefer persisted OCR when we have it. Fall back to re-OCR from
+        // the receipt image for older purchases stored before OCR
+        // persistence landed.
+        var lines: [RecognizedLine] = []
+        if let data = purchase.ocrLinesData, let decoded = OCRLinePayload.decode(data) {
+            lines = decoded
+        } else if let data = purchase.receiptImage, let image = UIImage(data: data) {
+            do {
+                lines = try await VisionOCRService().recognize(in: image)
+            } catch {
+                return
+            }
+        }
+        guard !lines.isEmpty else { return }
+
+        let service = DefaultExtractionService()
+        guard let receipt = try? await service.extract(from: lines) else { return }
+        let extraction = ReceiptExtraction.from(
+            receipt: receipt,
+            confidences: nil,
+            lineItems: []
+        )
+
+        apply(extraction: extraction)
+        purchase.needsReextraction = false
+        reExtractTick &+= 1
+
+        // Re-sync the field bindings we own directly.
+        warrantyMonthsText = purchase.primaryWarranty.map { String($0.durationMonths) } ?? warrantyMonthsText
+        returnDaysText = purchase.returnWindow.map { String($0.durationDays) } ?? returnDaysText
+        priceText = purchase.price > 0 ? formatDecimal(purchase.price) : priceText
+
+        await CoverageNotificationScheduler.reschedule(for: purchase)
+    }
+
+    /// Fills blank fields on the purchase without ever overwriting a value
+    /// the user has already committed to. Coverage terms go through
+    /// `setDuration`/`setReturnWindow` with `byUser: false`, which the
+    /// `.userProvided` guard blocks — so user-edited coverage is safe by
+    /// construction.
+    private func apply(extraction: ReceiptExtraction) {
+        if purchase.merchant.trimmingCharacters(in: .whitespaces).isEmpty,
+           let merchant = extraction.merchant.value {
+            purchase.merchant = merchant
+        }
+        if purchase.itemName.trimmingCharacters(in: .whitespaces).isEmpty,
+           let itemName = extraction.itemName.value {
+            purchase.itemName = itemName
+        }
+        if purchase.price <= 0, let total = extraction.total.value {
+            purchase.price = total
+        }
+        if purchase.currency.trimmingCharacters(in: .whitespaces).isEmpty,
+           let currency = extraction.currency.value {
+            purchase.currency = currency
+        }
+        if let coverage = extraction.coverage.value {
+            switch coverage.kind {
+            case .warranty:
+                _ = purchase.setDuration(months: coverage.duration, byUser: false)
+            case .returnWindow:
+                _ = purchase.setReturnWindow(days: coverage.duration, byUser: false)
             }
         }
     }
