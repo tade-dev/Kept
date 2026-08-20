@@ -1,141 +1,101 @@
 #!/usr/bin/env python3
-"""Generate Kept Wallet pass icon/logo PNGs and embed them into src/passAssets.ts."""
+"""Generate Kept Wallet pass icon/logo PNGs and embed them into src/passAssets.ts.
+
+Source of truth: `pass-assets/source/lockup.png` — the paper-white seal +
+"Kept" wordmark on transparent background. The seal glyph is assumed to
+occupy the leftmost square region of the source (source aspect > 1:1).
+"""
 
 from __future__ import annotations
 
 import base64
+from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageCms
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "pass-assets"
+SOURCE = ASSETS / "source" / "lockup.png"
 OUT_TS = ROOT / "src" / "passAssets.ts"
 
-# Ink card palette (must stay in sync with pass.ts)
-INK = (24, 38, 48, 255)
-PAPER = (245, 242, 236, 255)
-BRASS = (214, 168, 106, 255)
-CLEAR = (0, 0, 0, 0)
+# Apple Wallet asset dimensions (@1x, @2x, @3x).
+# Logo height is fixed at 50pt max; width is derived from source aspect
+# ratio so nothing gets stretched.
+ICON_SIZES = [("icon.png", 29), ("icon@2x.png", 58), ("icon@3x.png", 87)]
+LOGO_HEIGHTS = [("logo.png", 50), ("logo@2x.png", 100), ("logo@3x.png", 150)]
 
 
-def rounded_rect(
-    draw: ImageDraw.ImageDraw,
-    box: tuple[int, int, int, int],
-    radius: int,
-    fill: tuple[int, int, int, int],
-) -> None:
-    draw.rounded_rectangle(box, radius=radius, fill=fill)
-
-
-def draw_keep_mark(img: Image.Image, pad: float = 0.22) -> None:
-    """Simple keep-mark: rounded ink tile + paper bookmark fold."""
-    draw = ImageDraw.Draw(img)
-    w, h = img.size
-    m = int(min(w, h) * pad)
-    rounded_rect(draw, (m, m, w - m, h - m), radius=max(4, (w - 2 * m) // 5), fill=INK)
-
-    # Bookmark / fold mark — reads as “kept”
-    cx, cy = w / 2, h / 2
-    bw = (w - 2 * m) * 0.28
-    bh = (h - 2 * m) * 0.52
-    left = cx - bw / 2
-    right = cx + bw / 2
-    top = cy - bh / 2
-    bottom = cy + bh / 2
-    notch = bh * 0.22
-
-    # Soft brass accent bar behind the mark
-    accent_w = max(2, int(w * 0.04))
-    draw.rounded_rectangle(
-        (left - accent_w * 1.6, top, left - accent_w * 0.4, bottom),
-        radius=accent_w,
-        fill=BRASS,
-    )
-
-    path = [
-        (left, top),
-        (right, top),
-        (right, bottom),
-        (cx, bottom - notch),
-        (left, bottom),
-    ]
-    draw.polygon(path, fill=PAPER)
-
-
-def find_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        "/System/Library/Fonts/SFNS.ttf",
-        "/System/Library/Fonts/SFNSRounded.ttf",
-        "/System/Library/Fonts/HelveticaNeue.ttc",
-        "/System/Library/Fonts/Supplemental/Helvetica.ttc",
-        "/Library/Fonts/Arial.ttf",
-    ]
-    for path in candidates:
+def load_source() -> Image.Image:
+    if not SOURCE.exists():
+        raise FileNotFoundError(
+            f"Missing source lockup at {SOURCE}. Drop the paper-white lockup PNG here first."
+        )
+    img = Image.open(SOURCE)
+    # Wallet only accepts sRGB. Convert any embedded profile (Display P3
+    # is Apple's screenshot default) to sRGB before we drop the colour
+    # metadata — silent-reject-when-installing is the symptom when this
+    # is wrong.
+    if "icc_profile" in img.info and img.info["icc_profile"]:
         try:
-            return ImageFont.truetype(path, size=size, index=0)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
-def make_icon(size: int) -> Image.Image:
-    img = Image.new("RGBA", (size, size), CLEAR)
-    draw_keep_mark(img, pad=0.08)
+            src_profile = ImageCms.ImageCmsProfile(BytesIO(img.info["icc_profile"]))
+            dst_profile = ImageCms.createProfile("sRGB")
+            img = ImageCms.profileToProfile(img, src_profile, dst_profile, outputMode="RGBA")
+        except Exception:
+            img = img.convert("RGBA")
+    else:
+        img = img.convert("RGBA")
     return img
 
 
-def make_logo(width: int, height: int) -> Image.Image:
-    img = Image.new("RGBA", (width, height), CLEAR)
-    draw = ImageDraw.Draw(img)
+def resize_logo(src: Image.Image, target_height: int) -> Image.Image:
+    """Resize preserving aspect. Full horizontal lockup."""
+    w, h = src.size
+    target_width = round(w * (target_height / h))
+    return src.resize((target_width, target_height), Image.LANCZOS)
 
-    mark_size = int(height * 0.86)
-    mark = Image.new("RGBA", (mark_size, mark_size), CLEAR)
-    draw_keep_mark(mark, pad=0.08)
-    mark_y = (height - mark_size) // 2
-    img.alpha_composite(mark, (0, mark_y))
 
-    font_size = int(height * 0.52)
-    font = find_font(font_size)
-    text = "Kept"
-    # Measure and place wordmark
-    bbox = draw.textbbox((0, 0), text, font=font)
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    tx = mark_size + int(height * 0.18)
-    ty = (height - th) // 2 - bbox[1]
-    # Slight optical lift
-    ty -= max(1, height // 40)
-    draw.text((tx, ty), text, font=font, fill=PAPER)
+def crop_seal(src: Image.Image) -> Image.Image:
+    """Left square region of the lockup — the seal glyph."""
+    w, h = src.size
+    side = h  # source is wider than tall; take a hxh square from the left
+    return src.crop((0, 0, side, side))
 
-    # Trim unused right padding so Wallet doesn't leave a huge gap
-    content_right = tx + tw + int(height * 0.08)
-    if content_right < width:
-        img = img.crop((0, 0, content_right, height))
-    return img
+
+def resize_icon(seal: Image.Image, size: int) -> Image.Image:
+    return seal.resize((size, size), Image.LANCZOS)
+
+
+def png_bytes(img: Image.Image) -> bytes:
+    # Strip any ICC profile / EXIF / gamma / chromaticities chunks so
+    # Wallet doesn't reject the pass on a colour-space mismatch. Bare
+    # sRGB is what Wallet expects.
+    img.info.pop("icc_profile", None)
+    buf = BytesIO()
+    img.save(
+        buf,
+        format="PNG",
+        optimize=True,
+        icc_profile=None,
+    )
+    return buf.getvalue()
 
 
 def b64(data: bytes) -> str:
     return base64.b64encode(data).decode("ascii")
 
 
-def png_bytes(img: Image.Image) -> bytes:
-    from io import BytesIO
-
-    buf = BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
-
-
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
 
-    files: dict[str, bytes] = {
-        "icon.png": png_bytes(make_icon(29)),
-        "icon@2x.png": png_bytes(make_icon(58)),
-        "icon@3x.png": png_bytes(make_icon(87)),
-        "logo.png": png_bytes(make_logo(160, 50)),
-        "logo@2x.png": png_bytes(make_logo(320, 100)),
-    }
+    src = load_source()
+    seal = crop_seal(src)
+
+    files: dict[str, bytes] = {}
+    for name, size in ICON_SIZES:
+        files[name] = png_bytes(resize_icon(seal, size))
+    for name, height in LOGO_HEIGHTS:
+        files[name] = png_bytes(resize_logo(src, height))
 
     for name, data in files.items():
         (ASSETS / name).write_bytes(data)
@@ -148,17 +108,20 @@ def main() -> None:
 
     ts = """\
 // Auto-generated by scripts/generate-pass-assets.py — do not edit by hand.
+// Source: pass-assets/source/lockup.png
 export const icon_png = Uint8Array.from(atob("{icon}"), (c) => c.charCodeAt(0));
 export const icon_2x_png = Uint8Array.from(atob("{icon2x}"), (c) => c.charCodeAt(0));
 export const icon_3x_png = Uint8Array.from(atob("{icon3x}"), (c) => c.charCodeAt(0));
 export const logo_png = Uint8Array.from(atob("{logo}"), (c) => c.charCodeAt(0));
 export const logo_2x_png = Uint8Array.from(atob("{logo2x}"), (c) => c.charCodeAt(0));
+export const logo_3x_png = Uint8Array.from(atob("{logo3x}"), (c) => c.charCodeAt(0));
 """.format(
         icon=b64(files["icon.png"]),
         icon2x=b64(files["icon@2x.png"]),
         icon3x=b64(files["icon@3x.png"]),
         logo=b64(files["logo.png"]),
         logo2x=b64(files["logo@2x.png"]),
+        logo3x=b64(files["logo@3x.png"]),
     )
     OUT_TS.write_text(ts)
     print(f"wrote {OUT_TS.relative_to(ROOT)}")
