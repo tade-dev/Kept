@@ -59,8 +59,36 @@ final class ShareViewController: UIViewController {
 
         // Held so the user sees the confirmation regardless of how fast
         // the write completes. Under a second either way.
-        try? await Task.sleep(for: .milliseconds(saved ? 700 : 300))
+        try? await Task.sleep(for: .milliseconds(saved ? 500 : 300))
+
+        // Auto-launch the containing app. The main app's onOpenURL
+        // handler is a no-op — we just want to activate the process so
+        // the pending-import drain fires immediately via scenePhase.
+        // Skip when nothing was written; opening for a rejected share
+        // would confuse the user.
+        if saved {
+            openContainingApp(url: URL(string: "kept://import")!)
+        }
+
         await dismissExtension()
+    }
+
+    /// Opens the containing app via the responder-chain hack. Apple
+    /// removed the direct `extensionContext.open(...)` path from Share
+    /// Extensions years ago, but every substantial share extension
+    /// (1Password, Instapaper, Todoist, Raindrop) does this instead:
+    /// walk the responder chain until you find something that responds
+    /// to `openURL:` — always UIApplication when found — and call it.
+    private func openContainingApp(url: URL) {
+        let selector = NSSelectorFromString("openURL:")
+        var responder: UIResponder? = self
+        while let current = responder {
+            if current.responds(to: selector) {
+                _ = current.perform(selector, with: url)
+                return
+            }
+            responder = current.next
+        }
     }
 
     private func collectItemProviders() -> [NSItemProvider] {

@@ -18,6 +18,7 @@ struct PendingImportPresenter: ViewModifier {
     @State private var current: PendingImport?
     @State private var extraction: ReceiptExtraction?
     @State private var lines: [RecognizedLine] = []
+    @State private var renderedImage: UIImage?
     @State private var isPreparing = false
 
     func body(content: Content) -> some View {
@@ -31,12 +32,13 @@ struct PendingImportPresenter: ViewModifier {
                 current = nil
                 extraction = nil
                 lines = []
+                renderedImage = nil
                 Task { await drainNext() }
             }) { item in
                 if let extraction {
                     NavigationStack {
                         ExtractionConfirmView(
-                            image: nil,
+                            image: renderedImage,
                             ocrLines: lines,
                             extraction: extraction,
                             onSave: { _ in
@@ -44,6 +46,7 @@ struct PendingImportPresenter: ViewModifier {
                                 current = nil
                                 self.extraction = nil
                                 lines = []
+                                renderedImage = nil
                                 Task { await drainNext() }
                             }
                         )
@@ -68,18 +71,33 @@ struct PendingImportPresenter: ViewModifier {
         }
 
         let service = DefaultExtractionService()
-        guard let receipt = try? await service.extract(from: candidateLines) else {
+        let extraction: ReceiptExtraction
+        if let receipt = try? await service.extract(from: candidateLines) {
+            extraction = ReceiptExtraction.from(receipt: receipt, confidences: nil, lineItems: [])
+        } else {
             // Extraction failed (network, empty, etc.). Present anyway
             // with empty fields so the user can add manually rather than
             // silently losing the import.
-            self.lines = candidateLines
-            self.extraction = ReceiptExtraction.empty
-            self.current = next
-            return
+            extraction = ReceiptExtraction.empty
         }
 
+        // Render a receipt-shaped image from the source so the confirm
+        // view + eventual Purchase have a proper visual (thumbnail in
+        // the library, page 2 of the claim pack, etc.). Only emails
+        // get this treatment — plain-text/URL shares aren't visual
+        // enough to justify a fake receipt render.
+        let image: UIImage? = {
+            guard next.source == .email else { return nil }
+            return EmailReceiptImage.render(
+                merchant: extraction.merchant.value,
+                lines: candidateLines.map(\.text),
+                capturedAt: next.createdAt
+            )
+        }()
+
         self.lines = candidateLines
-        self.extraction = ReceiptExtraction.from(receipt: receipt, confidences: nil, lineItems: [])
+        self.extraction = extraction
+        self.renderedImage = image
         self.current = next
     }
 
