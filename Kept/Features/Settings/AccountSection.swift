@@ -40,6 +40,15 @@ struct AccountSection: View {
                     Label("Upgrade to Pro", systemImage: "arrow.up.right.square")
                 }
             }
+
+            // Always visible, regardless of Pro state. Apple's IAP
+            // guidelines require a restore action reachable by any
+            // user — someone reinstalling on a new device shows as
+            // Free until the CloudKit-scoped auto-login completes,
+            // and needs a manual fallback if that never happens
+            // (offline, iCloud signed out, different Apple ID on
+            // the App Store, etc.).
+            restorePurchasesRow
         } header: {
             Text("Account")
         } footer: {
@@ -69,6 +78,19 @@ struct AccountSection: View {
         }
 
         Button {
+            copyCustomerID()
+        } label: {
+            Label(
+                copiedCustomerID ? "Copied to clipboard" : "Copy customer ID",
+                systemImage: copiedCustomerID ? "checkmark" : "doc.on.doc"
+            )
+            .contentTransition(.symbolEffect(.replace))
+        }
+        .accessibilityHint("Copies your RevenueCat customer ID so you can include it in a support ticket.")
+    }
+
+    private var restorePurchasesRow: some View {
+        Button {
             Task { await restorePurchases() }
         } label: {
             HStack {
@@ -80,17 +102,6 @@ struct AccountSection: View {
             }
         }
         .disabled(isRestoring)
-
-        Button {
-            copyCustomerID()
-        } label: {
-            Label(
-                copiedCustomerID ? "Copied to clipboard" : "Copy customer ID",
-                systemImage: copiedCustomerID ? "checkmark" : "doc.on.doc"
-            )
-            .contentTransition(.symbolEffect(.replace))
-        }
-        .accessibilityHint("Copies your RevenueCat customer ID so you can include it in a support ticket.")
     }
 
     // MARK: - Status rows
