@@ -28,13 +28,20 @@ struct PendingImportPresenter: ViewModifier {
                 if new == .active { Task { await drainNext() } }
             }
             .sheet(item: $current, onDismiss: {
-                if let item = current { SharedInbox.remove(item) }
-                current = nil
+                // By the time SwiftUI calls onDismiss, `$current` has
+                // already been set to nil — so we can't reach the item
+                // from here. The item is instead removed from the inbox
+                // eagerly in `drainNext()` at present-time, meaning:
+                // - Save: nothing extra to do (already removed).
+                // - Swipe-dismiss without saving: still removed. If the
+                //   user wants to reprocess, they re-share from Mail.
+                //   Simpler contract than "if you swipe, we hold on to
+                //   it and re-present on every foreground forever".
                 extraction = nil
                 lines = []
                 renderedImage = nil
                 Task { await drainNext() }
-            }) { item in
+            }) { _ in
                 if let extraction {
                     NavigationStack {
                         ExtractionConfirmView(
@@ -42,7 +49,6 @@ struct PendingImportPresenter: ViewModifier {
                             ocrLines: lines,
                             extraction: extraction,
                             onSave: { _ in
-                                SharedInbox.remove(item)
                                 current = nil
                                 self.extraction = nil
                                 lines = []
@@ -94,6 +100,13 @@ struct PendingImportPresenter: ViewModifier {
                 capturedAt: next.createdAt
             )
         }()
+
+        // Remove BEFORE presenting. If the user swipes the sheet away
+        // without saving, the item is gone — matches the "one-shot
+        // review, re-share to retry" contract. If we removed on save
+        // only, swipe-dismiss would leave the file in the inbox and
+        // every subsequent foreground would re-present it.
+        SharedInbox.remove(next)
 
         self.lines = candidateLines
         self.extraction = extraction
