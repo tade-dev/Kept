@@ -17,5 +17,6 @@ struct RootView: View {
             .sheet(isPresented: $openCaptureAfterOnboarding) {
                 CaptureView()
             }
+            .presentsPendingImports()
     }
 }
