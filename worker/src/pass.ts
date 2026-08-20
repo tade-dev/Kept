@@ -6,6 +6,7 @@ import {
   icon_3x_png,
   logo_png,
   logo_2x_png,
+  logo_3x_png,
 } from "./passAssets";
 import type { Env, PassRequest } from "./types";
 import { UpstreamError } from "./llm";
@@ -18,6 +19,7 @@ const ASSETS: Record<string, Uint8Array> = {
   ["icon" + at + "3x.png"]: icon_3x_png,
   ["logo.png"]: logo_png,
   ["logo" + at + "2x.png"]: logo_2x_png,
+  ["logo" + at + "3x.png"]: logo_3x_png,
 };
 
 export function parsePassRequest(body: unknown): PassRequest | null {
@@ -105,22 +107,32 @@ export async function buildSignedPass(
   return zipSync(zipInput, { level: 6 });
 }
 
-/** Ink warranty-stub palette — keep in sync with scripts/generate-pass-assets.py */
+/**
+ * Ink / Paper / Ash palette — from the Kept brand brief.
+ *
+ * Background stays a constant pure ink across every state so the pass
+ * reads as one recognisable object in a user's Wallet stack, whether
+ * their coverage is calm, ending soon, or already ended. Differentiation
+ * comes through the label + foreground alone:
+ *  - calm    → paper text on ink, ash labels
+ *  - urgent  → paper text on ink, amber labels (warm accent from the brief)
+ *  - expired → dim text, very dim labels — clearly a headstone, still on-brand
+ */
 const PASS_THEME = {
   calm: {
-    backgroundColor: "rgb(24, 38, 48)",
-    foregroundColor: "rgb(245, 242, 236)",
-    labelColor: "rgb(214, 168, 106)",
+    backgroundColor: "rgb(14, 14, 15)",
+    foregroundColor: "rgb(250, 250, 247)",
+    labelColor: "rgb(142, 142, 147)",
   },
   urgent: {
-    backgroundColor: "rgb(42, 28, 24)",
-    foregroundColor: "rgb(245, 242, 236)",
-    labelColor: "rgb(232, 140, 90)",
+    backgroundColor: "rgb(14, 14, 15)",
+    foregroundColor: "rgb(250, 250, 247)",
+    labelColor: "rgb(184, 117, 47)",
   },
   expired: {
-    backgroundColor: "rgb(36, 36, 40)",
-    foregroundColor: "rgb(220, 218, 214)",
-    labelColor: "rgb(168, 160, 152)",
+    backgroundColor: "rgb(14, 14, 15)",
+    foregroundColor: "rgb(109, 109, 112)",
+    labelColor: "rgb(72, 72, 74)",
   },
 } as const;
 
