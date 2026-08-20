@@ -25,12 +25,14 @@ struct PaywallView: View {
         case capReached
         case firstPassAdded
         case manual
+        case claimPack
 
         var subtitle: String {
             switch self {
             case .capReached:     "You've filled your free five — keep every warranty from here."
             case .firstPassAdded: "Unlimited receipts, plus the claim pack for the day it matters."
             case .manual:         "Unlimited receipts and the claim pack for the day it matters."
+            case .claimPack:      "Export a signed claim pack in one tap. Included with Pro."
             }
         }
     }

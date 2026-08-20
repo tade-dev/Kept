@@ -165,6 +165,16 @@ struct PurchaseDetailView: View {
                     )
                 }
             }
+
+            if purchase.documentKind == .receipt {
+                Section {
+                    ClaimPackButton(purchase: purchase)
+                } header: {
+                    Text("Claim pack")
+                } footer: {
+                    Text("A one-page PDF summary with receipt attached, send it to the seller when you need to claim.")
+                }
+            }
         }
         .font(.keptBody)  // cascades Bricolage to all Text descendants in the Form
         .navigationTitle(displayTitle)
