@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Export button that walks the user through:
-/// tap → HUD loader → PDF preview sheet → in-sheet Export → iOS share sheet.
+/// tap → compose sheet → HUD loader → PDF preview sheet → in-sheet Export → iOS share sheet.
 ///
 /// Free users see a lock and get the paywall instead.
 struct ClaimPackButton: View {
@@ -9,6 +9,7 @@ struct ClaimPackButton: View {
 
     @Environment(SubscriptionAccess.self) private var subscription
     @State private var isPresentingPaywall = false
+    @State private var isPresentingCompose = false
     @State private var isRendering = false
     @State private var preview: PreviewItem?
 
@@ -31,6 +32,17 @@ struct ClaimPackButton: View {
             PaywallView(reason: .claimPack)
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $isPresentingCompose) {
+            ClaimPackComposeSheet(purchase: purchase) { note in
+                isPresentingCompose = false
+                Task { @MainActor in
+                    // Wait for the compose sheet to finish dismissing so the
+                    // HUD's fullScreenCover doesn't race the sheet animation.
+                    try? await Task.sleep(for: .milliseconds(180))
+                    startRender(coverNote: note)
+                }
+            }
+        }
         .fullScreenCover(isPresented: $isRendering) {
             ClaimPackLoadingHUD()
                 .presentationBackground(.clear)
@@ -45,10 +57,17 @@ struct ClaimPackButton: View {
             isPresentingPaywall = true
             return
         }
+        isPresentingCompose = true
+    }
+
+    private func startRender(coverNote: String) {
         isRendering = true
         Task { @MainActor in
             let start = Date.now
-            let url = try? ClaimPackRenderer.renderToTempFile(purchase: purchase)
+            let url = try? ClaimPackRenderer.renderToTempFile(
+                purchase: purchase,
+                coverNote: coverNote
+            )
             // Minimum HUD duration so the loader feels intentional, not a flash.
             let elapsed = Date.now.timeIntervalSince(start)
             let minDuration: TimeInterval = 0.45

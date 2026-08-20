@@ -9,15 +9,27 @@ import SwiftUI
 struct ClaimPackDocument: View {
     let purchase: Purchase
     let generatedAt: Date
+    /// Optional short paragraph the user writes at export time — surfaces
+    /// as a "Message to the seller" block above the purchase details.
+    /// When empty (or whitespace-only), the block is omitted entirely.
+    var coverNote: String = ""
 
     private static let pageSize = CGSize(width: 595, height: 842)
     private static let margin: CGFloat = 44
+
+    private var trimmedCoverNote: String {
+        coverNote.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             header
 
             Divider()
+
+            if !trimmedCoverNote.isEmpty {
+                coverNoteBlock
+            }
 
             purchaseBlock
 
@@ -39,6 +51,16 @@ struct ClaimPackDocument: View {
         .frame(width: Self.pageSize.width, height: Self.pageSize.height, alignment: .topLeading)
         .background(Color.white)
         .foregroundStyle(.black)
+    }
+
+    private var coverNoteBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionTitle("Message to the seller")
+            Text(trimmedCoverNote)
+                .font(KeptFont.sans(12, weight: .regular, relativeTo: .footnote))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(3)
+        }
     }
 
     // MARK: - Blocks

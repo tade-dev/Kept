@@ -17,12 +17,12 @@ enum ClaimPackRenderer {
     /// of milliseconds on-device — but callers are free to hop to a bg task
     /// if they want the UI to stay snappy on older devices.
     @MainActor
-    static func render(purchase: Purchase, generatedAt: Date = .now) -> Data {
+    static func render(purchase: Purchase, coverNote: String = "", generatedAt: Date = .now) -> Data {
         let bounds = CGRect(origin: .zero, size: pageSize)
         let renderer = UIGraphicsPDFRenderer(bounds: bounds, format: metadataFormat(for: purchase))
 
         return renderer.pdfData { context in
-            drawSummaryPage(purchase: purchase, generatedAt: generatedAt, context: context)
+            drawSummaryPage(purchase: purchase, coverNote: coverNote, generatedAt: generatedAt, context: context)
             if let image = receiptImage(for: purchase) {
                 drawImagePage(image: image, context: context)
             }
@@ -33,8 +33,8 @@ enum ClaimPackRenderer {
     /// controllers can present it with the intended filename. Returns the
     /// file URL. Overwrites any prior file at the same path.
     @MainActor
-    static func renderToTempFile(purchase: Purchase, generatedAt: Date = .now) throws -> URL {
-        let data = render(purchase: purchase, generatedAt: generatedAt)
+    static func renderToTempFile(purchase: Purchase, coverNote: String = "", generatedAt: Date = .now) throws -> URL {
+        let data = render(purchase: purchase, coverNote: coverNote, generatedAt: generatedAt)
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(filename(for: purchase, at: generatedAt))
         try data.write(to: url, options: .atomic)
@@ -55,9 +55,9 @@ enum ClaimPackRenderer {
     // MARK: - Private drawing
 
     @MainActor
-    private static func drawSummaryPage(purchase: Purchase, generatedAt: Date, context: UIGraphicsPDFRendererContext) {
+    private static func drawSummaryPage(purchase: Purchase, coverNote: String, generatedAt: Date, context: UIGraphicsPDFRendererContext) {
         context.beginPage()
-        let view = ClaimPackDocument(purchase: purchase, generatedAt: generatedAt)
+        let view = ClaimPackDocument(purchase: purchase, generatedAt: generatedAt, coverNote: coverNote)
         let renderer = ImageRenderer(content: view)
         renderer.proposedSize = ProposedViewSize(pageSize)
         // 3x = print-quality raster. `render(_:renderer:)` into the PDF's
