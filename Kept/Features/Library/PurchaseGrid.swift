@@ -41,6 +41,11 @@ struct PurchaseGrid: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(purchase.accessibilityDescription)
+                                .accessibilityAction(named: Text("Delete")) {
+                                    onDelete(purchase)
+                                }
                             }
                         }
                         .padding(.horizontal, 20)

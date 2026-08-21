@@ -37,6 +37,12 @@ struct PurchaseList: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                            // VoiceOver reachability for delete — context
+                            // menu long-press is technically accessible but
+                            // slow. An explicit rotor action is instant.
+                            .accessibilityAction(named: Text("Delete")) {
+                                onDelete(purchase)
+                            }
 
                             if purchase.persistentModelID != section.purchases.last?.persistentModelID {
                                 Divider()

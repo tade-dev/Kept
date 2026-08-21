@@ -27,6 +27,12 @@ struct ClaimPackButton: View {
             }
         }
         .disabled(isRendering)
+        .accessibilityLabel("Export claim pack")
+        .accessibilityHint(
+            subscription.isPro
+                ? "Generates a PDF with the receipt image and warranty details to send to the seller."
+                : "Requires Kept Pro. Tap to see subscription options."
+        )
         .sheet(isPresented: $isPresentingPaywall) {
             PaywallView(reason: .claimPack)
                 .presentationDetents([.large])

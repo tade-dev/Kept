@@ -37,6 +37,8 @@ struct ReExtractPill: View {
         .disabled(isWorking)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
+        .accessibilityLabel(isWorking ? "Re-extracting" : "Re-extract with latest AI")
+        .accessibilityHint("Reprocesses this receipt to fill in missing merchant, item, or price. Your edits are kept.")
     }
 }
 
