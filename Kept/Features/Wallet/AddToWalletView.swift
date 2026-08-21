@@ -123,6 +123,7 @@ struct AddToWalletButton: View {
                         savePassRecord(serialNumber: serial)
                         addedTick &+= 1
                         maybeShowFirstPassPaywall()
+                        maybeRequestReview()
                     }
                     isPresentingAddSheet = false
                 }
@@ -202,6 +203,24 @@ struct AddToWalletButton: View {
         }
         purchase.passRecords?.append(record)
         modelContext.insert(record)
+    }
+
+    /// Ask iOS to consider showing the review prompt after a Wallet-pass
+    /// add. This is one of the strongest positive moments in the app —
+    /// the user has just seen the countdown appear on their lock screen,
+    /// which is exactly what Kept promises. iOS handles the throttling
+    /// and dedup against the other prompt triggers.
+    @AppStorage("kept.hasRequestedReviewAfterPass") private var hasRequestedReviewAfterPass = false
+
+    private func maybeRequestReview() {
+        guard !hasRequestedReviewAfterPass else { return }
+        hasRequestedReviewAfterPass = true
+        // Delay so the add-pass sheet + any downstream sheet finish
+        // dismissing before the review alert appears.
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            ReviewPrompter.request()
+        }
     }
 
     /// Shows the paywall once — after a free user's very first Wallet-pass

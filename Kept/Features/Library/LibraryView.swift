@@ -21,12 +21,14 @@ struct LibraryView: View {
     /// auto-cleared after the animation window elapses).
     @State private var justAddedPurchaseID: PersistentIdentifier?
     @State private var justAddedClearTask: Task<Void, Never>?
+    /// Delete haptic trigger. Not debug-only — the sensoryFeedback
+    /// modifier reads it in release too, so it lives outside the #if.
+    @State private var deletedTick = 0
     #if DEBUG
     @State private var isPhotoPickerPresented = false
     @State private var isFixtureCapturePresented = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: UIImage?
-    @State private var deletedTick = 0
     #endif
 
     private var viewMode: LibraryViewMode {
@@ -58,17 +60,30 @@ struct LibraryView: View {
                     modeContent
                 }
             }
-            .navigationTitle("Kept")
+            .navigationTitle("Kept")  // stays for VoiceOver / back-button labelling
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Purchase.self) { purchase in
                 PurchaseDetailView(purchase: purchase)
                     .navigationTransition(.zoom(sourceID: purchase.transitionID, in: receiptNamespace))
             }
             .task {
                 await CoverageNotificationScheduler.rescheduleAll(purchases)
+                await WeeklySummaryScheduler.reschedule(with: purchases)
             }
-            .toolbarTitleDisplayMode(.inline)
             .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
+                // Principal placement replaces the text title with the
+                // seal + wordmark lockup. Template rendering + .primary
+                // foreground = auto-tints for light/dark mode.
+                ToolbarItem(placement: .principal) {
+                    Image("KeptLockup")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 30)
+                        .foregroundStyle(.primary)
+                        .accessibilityHidden(true)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isCapturing = true

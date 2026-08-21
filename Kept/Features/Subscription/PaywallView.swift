@@ -74,6 +74,7 @@ struct PaywallView: View {
                     }
                     .accessibilityLabel("Close")
                 }
+                
             }
             .safeAreaInset(edge: .bottom) { ctaBar }
             .alert(
@@ -93,21 +94,13 @@ struct PaywallView: View {
     // MARK: - Brand block
 
     private var brandBlock: some View {
-        HStack(spacing: 10) {
-            Text("Kept")
-                .font(KeptFont.sans(28, weight: .bold, relativeTo: .title))
-
-            Text("Pro")
-                .font(KeptFont.sans(14, weight: .bold, relativeTo: .footnote))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(KeptColor.ink)
-                )
-        }
-        .frame(maxWidth: .infinity)
+        Image("KeptProLockup")
+            .renderingMode(.original)
+            .resizable()
+            .scaledToFit()
+            .frame(height: 60)
+            .accessibilityLabel("Kept Pro")
+            .frame(maxWidth: .infinity)
     }
 
     // MARK: - Two-card price picker
@@ -147,6 +140,8 @@ struct PaywallView: View {
                     Text(package.priceString)
                         .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
                         .foregroundStyle(isSelected ? Color.primary : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 } else {
                     Text("—")
                         .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))

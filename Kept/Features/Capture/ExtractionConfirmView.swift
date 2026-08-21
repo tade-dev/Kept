@@ -408,10 +408,31 @@ struct ExtractionConfirmView: View {
         let purchase = model.save(into: modelContext)
         savedTick &+= 1
         Task { await CoverageNotificationScheduler.reschedule(for: purchase) }
+        maybeRequestReview()
         if let onSave {
             onSave(purchase)
         } else {
             dismiss()
+        }
+    }
+
+    /// After a milestone save, quietly ask iOS to consider showing the
+    /// review prompt. iOS handles all throttling; we just point at the
+    /// positive moment. Threshold set at 5 — user has clearly invested
+    /// in the app by then. First save is too early (single-shot users
+    /// haven't yet felt the value).
+    @AppStorage("kept.lifetimeSaveCount") private var lifetimeSaveCount = 0
+    private static let reviewSaveThreshold = 5
+
+    private func maybeRequestReview() {
+        lifetimeSaveCount &+= 1
+        if lifetimeSaveCount == Self.reviewSaveThreshold {
+            // Small delay so the confirm sheet finishes dismissing
+            // before the review alert appears — stacked modals look bad.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(600))
+                ReviewPrompter.request()
+            }
         }
     }
 }

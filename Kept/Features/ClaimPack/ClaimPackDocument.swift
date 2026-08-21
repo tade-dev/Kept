@@ -53,10 +53,15 @@ struct ClaimPackDocument: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("KEPT")
-                .font(KeptFont.sans(16, weight: .bold, relativeTo: .headline))
-                .tracking(3)
-                .foregroundStyle(.secondary)
+            // Horizontal seal + wordmark. Template-rendered so it inks
+            // black cleanly on the paper background, matches the rest of
+            // the document's typographic weight.
+            Image("KeptLockup")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 22)
+                .foregroundStyle(.black)
         }
     }
 
