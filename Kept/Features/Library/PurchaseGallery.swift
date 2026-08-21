@@ -102,12 +102,12 @@ struct PurchaseGallery: View {
             Text(purchase.displayMerchant)
                 .font(.keptTitle3)
                 .foregroundStyle(.primary)
-                .lineLimit(1)
+                .lineLimit(1...2)
 
             Text(purchase.displayItem)
                 .font(.keptSubheadline)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
+                .lineLimit(1...2)
 
             HStack(alignment: .center) {
                 Text(purchase.purchaseDate, format: .dateTime.day().month().year())
@@ -130,6 +130,11 @@ struct PurchaseGallery: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(purchase.accessibilityDescription)
+        .accessibilityAction(named: Text("Delete")) {
+            onDelete(purchase)
+        }
     }
 
     private var filmstrip: some View {

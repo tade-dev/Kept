@@ -23,12 +23,12 @@ struct PurchaseRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(purchase.displayMerchant)
                     .font(.keptBody)
-                    .lineLimit(1)
+                    .lineLimit(1...2)
 
                 Text(purchase.displayItem)
                     .font(.keptSubheadline)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(1...2)
             }
 
             Spacer(minLength: 8)
@@ -38,12 +38,15 @@ struct PurchaseRow: View {
                     .font(.keptSubheadline)
                     .foregroundStyle(.tint)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 CoverageStatusBadge(term: purchase.nextDeadline)
             }
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(purchase.accessibilityDescription)
     }
 }
 
@@ -84,6 +87,7 @@ struct CoverageStatusBadge: View {
             .background(tint.opacity(0.15), in: Capsule())
             .foregroundStyle(tint)
             .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 
     private enum Status {

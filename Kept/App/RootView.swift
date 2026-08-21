@@ -9,11 +9,16 @@ import SwiftUI
 /// stays coordinated in one place.
 struct RootView: View {
     @AppStorage(SettingsKeys.hasOnboarded) private var hasOnboarded: Bool = false
+    @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @State private var openCaptureAfterOnboarding = false
     @State private var isSplashShowing = true
 
     /// Total splash budget from process launch to dismissal.
     private static let splashDuration: TimeInterval = 3.0
+
+    private var userTextSize: KeptTextSize {
+        KeptTextSize(rawValue: textSizeRaw) ?? .system
+    }
 
     var body: some View {
         // While splash is showing, LibraryView isn't in the tree at all
@@ -55,5 +60,9 @@ struct RootView: View {
                 isSplashShowing = false
             }
         }
+        // Apply user's in-app text-size override at the root so every
+        // text token adopts it. When set to `.system` this is a no-op
+        // and Kept keeps following iOS's Dynamic Type setting.
+        .keptTextSize(userTextSize)
     }
 }

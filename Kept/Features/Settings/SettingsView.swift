@@ -12,6 +12,16 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.notifyHour) private var notifyHour: Int = SettingsDefaults.notifyHour
     @AppStorage(SettingsKeys.notifyMinute) private var notifyMinute: Int = SettingsDefaults.notifyMinute
     @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
+    @AppStorage("kept.textSize") private var userTextSizeRaw: String = KeptTextSize.system.rawValue
+
+    /// User's in-app text-size override. Applied to SettingsView because
+    /// sheets present in their own environment and don't inherit the
+    /// RootView-level `.keptTextSize(_:)` modifier — so without this,
+    /// Settings would keep rendering at the system size even after the
+    /// user changed it in-app.
+    private var userTextSize: KeptTextSize {
+        KeptTextSize(rawValue: userTextSizeRaw) ?? .system
+    }
 
     private var leadDaysSet: Set<Int> {
         let ints = leadDaysCSV
@@ -63,6 +73,7 @@ struct SettingsView: View {
 
                 remindersSection
                 appearanceSection
+                AccessibilitySection()
                 dataSection
                 aboutSection
             }
@@ -78,6 +89,7 @@ struct SettingsView: View {
                 }
             }
             .preferredColorScheme(appearance.colorScheme)
+            .keptTextSize(userTextSize)
             .task {
                 await refreshAuthorizationStatus()
                 refreshExportURL()
