@@ -40,7 +40,7 @@ struct LeadTimesStepView: View {
     private func subtitle(for day: Int) -> String {
         switch day {
         case 30: "Plenty of time to book a repair."
-        case 14: "Enough runway to act."
+        case 14: "Enough time to act."
         default: "Last chance."
         }
     }

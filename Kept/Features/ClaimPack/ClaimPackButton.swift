@@ -63,7 +63,24 @@ struct ClaimPackButton: View {
                     url: url,
                     filename: ClaimPackRenderer.filename(for: purchase, at: .now)
                 )
+                maybeRequestReview()
             }
+        }
+    }
+
+    /// Claim pack export is the moment Kept's whole product exists for
+    /// — the "day it mattered." Best positive moment to ask for a
+    /// review. Fires only once per install; iOS handles further
+    /// throttling. Delayed so the preview sheet finishes presenting
+    /// before the review alert appears.
+    @AppStorage("kept.hasRequestedReviewAfterClaimPack") private var hasRequestedReviewAfterClaimPack = false
+
+    private func maybeRequestReview() {
+        guard !hasRequestedReviewAfterClaimPack else { return }
+        hasRequestedReviewAfterClaimPack = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            ReviewPrompter.request()
         }
     }
 }

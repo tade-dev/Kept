@@ -41,7 +41,7 @@ private extension TrackedCategory {
         case .appliances:  "Kettles, blenders, washers."
         case .furniture:   "Sofas, desks, storage."
         case .clothing:    "Return windows, not warranties."
-        case .everything:  "Select all four."
+        case .everything:  "Includes all four."
         }
     }
 }
