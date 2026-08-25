@@ -53,19 +53,26 @@ struct EmptyLibraryState: View {
 // MARK: - Receipt hero illustration
 
 private struct ReceiptHero: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            let softInk = KeptColor.ink.opacity(0.75)
-            let lineTint = Color.primary.opacity(0.14)
+            let isDark = colorScheme == .dark
+            let paperColor: Color = isDark
+                ? Color(red: 0.14, green: 0.14, blue: 0.16)
+                : .white
+            let softInk = Color.primary.opacity(isDark ? 0.85 : 0.75)
+            let lineTint = Color.primary.opacity(isDark ? 0.22 : 0.14)
+            let paperStroke = Color.primary.opacity(isDark ? 0.18 : 0.10)
 
             ZStack {
                 ReceiptShape()
-                    .fill(Color.white)
+                    .fill(paperColor)
                     .overlay(
                         ReceiptShape()
-                            .stroke(Color.black.opacity(0.10), lineWidth: 1)
+                            .stroke(paperStroke, lineWidth: 1)
                     )
 
                 // Content

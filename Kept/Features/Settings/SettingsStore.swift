@@ -8,6 +8,7 @@ enum SettingsKeys {
     static let notifyHour = "settings.notifyHour"
     static let notifyMinute = "settings.notifyMinute"
     static let appearance = "settings.appearance"
+    static let darkAccent = "settings.darkAccent"
     static let hasOnboarded = "settings.hasOnboarded"
     /// CSV of TrackedCategory rawValues from onboarding.
     static let trackedCategoriesCSV = "settings.trackedCategoriesCSV"
@@ -61,6 +62,13 @@ enum SettingsSnapshot {
         return AppearancePreference(rawValue: raw) ?? .system
     }
 
+    static var darkAccent: DarkAccentPreference {
+        guard let raw = UserDefaults.standard.string(forKey: SettingsKeys.darkAccent) else {
+            return .midnight
+        }
+        return DarkAccentPreference(rawValue: raw) ?? .midnight
+    }
+
     static var hasOnboarded: Bool {
         UserDefaults.standard.bool(forKey: SettingsKeys.hasOnboarded)
     }
@@ -103,11 +111,96 @@ enum AppearancePreference: String, CaseIterable, Identifiable {
         }
     }
 
+    var detail: String {
+        switch self {
+        case .system: "Follow iPhone"
+        case .light: "Bright and clean"
+        case .dark: "Low light"
+        }
+    }
+
     var colorScheme: ColorScheme? {
         switch self {
         case .system: nil
         case .light: .light
         case .dark: .dark
+        }
+    }
+}
+
+enum DarkAccentPreference: String, CaseIterable, Identifiable {
+    case defaultBlue = "default"
+    case graphite
+    case midnight
+    case violet
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .defaultBlue: "Default"
+        case .graphite: "Graphite"
+        case .midnight: "Midnight"
+        case .violet: "Violet"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .defaultBlue: "Classic blue"
+        case .graphite: "Deep neutral"
+        case .midnight: "Dark blue"
+        case .violet: "Soft violet"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .defaultBlue: .blue
+        case .graphite: Color(red: 0.36, green: 0.36, blue: 0.39)
+        case .midnight: Color(red: 0.12, green: 0.33, blue: 0.92)
+        case .violet: Color(red: 0.52, green: 0.34, blue: 0.95)
+        }
+    }
+
+    var gradient: LinearGradient {
+        switch self {
+        case .defaultBlue:
+            LinearGradient(
+                colors: [
+                    Color(red: 0.30, green: 0.60, blue: 1.0),
+                    Color(red: 0.00, green: 0.28, blue: 0.75)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .graphite:
+            LinearGradient(
+                colors: [
+                    Color(red: 0.42, green: 0.42, blue: 0.45),
+                    Color(red: 0.11, green: 0.11, blue: 0.13)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .midnight:
+            LinearGradient(
+                colors: [
+                    Color(red: 0.16, green: 0.38, blue: 1.0),
+                    Color(red: 0.02, green: 0.06, blue: 0.22)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .violet:
+            LinearGradient(
+                colors: [
+                    Color(red: 0.68, green: 0.46, blue: 1.0),
+                    Color(red: 0.15, green: 0.06, blue: 0.25)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 }
