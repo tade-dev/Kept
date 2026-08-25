@@ -8,11 +8,16 @@ import SwiftUI
 struct AccessibilitySection: View {
     @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @AppStorage("kept.motion")   private var motionRaw:   String = KeptMotionPreference.system.rawValue
+    @AppStorage(SettingsKeys.darkAccent) private var darkAccentRaw: String = DarkAccentPreference.midnight.rawValue
 
     @Environment(\.dynamicTypeSize) private var systemTypeSize
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    private var accentTint: Color {
+        (DarkAccentPreference(rawValue: darkAccentRaw) ?? .midnight).tint
+    }
 
     private var textSizeBinding: Binding<KeptTextSize> {
         Binding(
@@ -34,19 +39,19 @@ struct AccessibilitySection: View {
     var body: some View {
         Section {
             TextSizeRow(
-                tint: .blue,
+                tint: accentTint,
                 textSize: textSizeBinding
             )
             MotionRow(
-                tint: .blue,
+                tint: accentTint,
                 motion: motionBinding
             )
             VoiceOverRow(
-                tint: .blue,
+                tint: accentTint,
                 enabled: voiceOverEnabled
             )
             ContrastRow(
-                tint: .blue,
+                tint: accentTint,
                 enabled: colorSchemeContrast == .increased
             )
         } header: {

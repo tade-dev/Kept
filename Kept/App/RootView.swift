@@ -9,6 +9,8 @@ import SwiftUI
 /// stays coordinated in one place.
 struct RootView: View {
     @AppStorage(SettingsKeys.hasOnboarded) private var hasOnboarded: Bool = false
+    @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
+    @AppStorage(SettingsKeys.darkAccent) private var darkAccentRaw: String = DarkAccentPreference.midnight.rawValue
     @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @State private var openCaptureAfterOnboarding = false
     @State private var isSplashShowing = true
@@ -18,6 +20,14 @@ struct RootView: View {
 
     private var userTextSize: KeptTextSize {
         KeptTextSize(rawValue: textSizeRaw) ?? .system
+    }
+
+    private var appearance: AppearancePreference {
+        AppearancePreference(rawValue: appearanceRaw) ?? .system
+    }
+
+    private var darkAccent: DarkAccentPreference {
+        DarkAccentPreference(rawValue: darkAccentRaw) ?? .midnight
     }
 
     var body: some View {
@@ -64,5 +74,7 @@ struct RootView: View {
         // text token adopts it. When set to `.system` this is a no-op
         // and Kept keeps following iOS's Dynamic Type setting.
         .keptTextSize(userTextSize)
+        .preferredColorScheme(appearance.colorScheme)
+        .tint(darkAccent.tint)
     }
 }

@@ -3,8 +3,6 @@ import SwiftData
 
 @main
 struct KeptApp: App {
-    @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
-
     /// Real subscription service, kept alive for the app's lifetime. Injected
     /// into the view hierarchy via `.environment(subscriptionAccess)` so views
     /// see only `SubscriptionAccess` and never import RevenueCat directly.
@@ -46,14 +44,9 @@ struct KeptApp: App {
         }
     }()
 
-    private var preferredScheme: ColorScheme? {
-        (AppearancePreference(rawValue: appearanceRaw) ?? .system).colorScheme
-    }
-
     var body: some Scene {
         WindowGroup {
             RootView()
-                .preferredColorScheme(preferredScheme)
                 .environment(subscriptionAccess)
         }
         .modelContainer(sharedModelContainer)

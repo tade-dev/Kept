@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.notifyHour) private var notifyHour: Int = SettingsDefaults.notifyHour
     @AppStorage(SettingsKeys.notifyMinute) private var notifyMinute: Int = SettingsDefaults.notifyMinute
     @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
+    @AppStorage(SettingsKeys.darkAccent) private var darkAccentRaw: String = DarkAccentPreference.midnight.rawValue
     @AppStorage("kept.textSize") private var userTextSizeRaw: String = KeptTextSize.system.rawValue
 
     /// User's in-app text-size override. Applied to SettingsView because
@@ -44,6 +45,10 @@ struct SettingsView: View {
 
     private var appearance: AppearancePreference {
         AppearancePreference(rawValue: appearanceRaw) ?? .system
+    }
+
+    private var darkAccent: DarkAccentPreference {
+        DarkAccentPreference(rawValue: darkAccentRaw) ?? .midnight
     }
 
     private var notifyTimeBinding: Binding<Date> {
@@ -174,12 +179,28 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         Section("Appearance") {
-            Picker("Theme", selection: $appearanceRaw) {
-                ForEach(AppearancePreference.allCases) { pref in
-                    Text(pref.label).tag(pref.rawValue)
+            NavigationLink {
+                AppearanceSettingsView()
+            } label: {
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(darkAccent.tint)
+                        .frame(width: 29, height: 29)
+                        .overlay {
+                            Image(systemName: "circle.lefthalf.filled")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+
+                    Text("Theme")
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    Text("\(appearance.label) · \(darkAccent.label)")
+                        .foregroundStyle(.secondary)
                 }
             }
-            .pickerStyle(.segmented)
         }
     }
 
@@ -188,10 +209,12 @@ struct SettingsView: View {
             if let exportURL {
                 ShareLink(item: exportURL) {
                     Label("Export all data", systemImage: "square.and.arrow.up")
+                        .labelStyle(.settingsTile(tint: darkAccent.tint))
                 }
                 .disabled(purchases.isEmpty)
             } else {
                 Label("Export all data", systemImage: "square.and.arrow.up")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
                     .foregroundStyle(.secondary)
             }
 
@@ -199,12 +222,14 @@ struct SettingsView: View {
                 resetOnboarding()
             } label: {
                 Label("Reset onboarding", systemImage: "arrow.counterclockwise")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
             }
 
             Button(role: .destructive) {
                 showDeleteConfirm = true
             } label: {
                 Label("Delete all data", systemImage: "trash")
+                    .labelStyle(.settingsTile(tint: .red))
             }
             .disabled(purchases.isEmpty)
         } header: {
@@ -220,10 +245,12 @@ struct SettingsView: View {
 
             Link(destination: URL(string: "mailto:support@kept.app")!) {
                 Label("Contact support", systemImage: "envelope")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
             }
 
             Link(destination: URL(string: "https://kept.app/privacy")!) {
                 Label("Privacy policy", systemImage: "hand.raised")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
             }
         }
     }
