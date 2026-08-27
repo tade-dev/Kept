@@ -142,9 +142,9 @@ struct CaptureView: View {
 
     private var navigationTitle: String {
         switch status {
-        case .review: "Review receipt"
-        case .recognizing, .extracting: "Reading receipt"
-        default: "Scan receipt"
+        case .review: String(localized: "Review receipt")
+        case .recognizing, .extracting: String(localized: "Reading receipt")
+        default: String(localized: "Scan receipt")
         }
     }
 
@@ -251,17 +251,17 @@ struct CaptureView: View {
 
     private var processingTitle: String {
         switch status {
-        case .recognizing: "Reading receipt…"
-        case .extracting: "Understanding warranty…"
-        case .failed: "Couldn't finish reading"
-        default: "Working…"
+        case .recognizing: String(localized: "Reading receipt…")
+        case .extracting: String(localized: "Understanding warranty…")
+        case .failed: String(localized: "Couldn't finish reading")
+        default: String(localized: "Working…")
         }
     }
 
     private var processingSubtitle: String {
         switch status {
-        case .recognizing: "On-device OCR"
-        case .extracting: "Filling what we can"
+        case .recognizing: String(localized: "On-device OCR")
+        case .extracting: String(localized: "Filling what we can")
         default: ""
         }
     }

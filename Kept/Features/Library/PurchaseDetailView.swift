@@ -331,7 +331,7 @@ struct PurchaseDetailView: View {
 
     private var displayTitle: String {
         let trimmed = purchase.merchant.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? "Receipt" : trimmed
+        return trimmed.isEmpty ? String(localized: "Receipt", comment: "Nav title fallback when the purchase has no merchant") : trimmed
     }
 
     private func recomputeExpiry() {

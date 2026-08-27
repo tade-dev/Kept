@@ -94,12 +94,12 @@ final class ExtractionConfirmModel {
 
         var label: String {
             switch self {
-            case .none: "None"
-            case .return14: "14-day return"
-            case .return30: "30-day return"
-            case .warranty1yr: "1yr warranty"
-            case .warranty2yr: "2yr warranty"
-            case .custom: "Custom…"
+            case .none: String(localized: "None")
+            case .return14: String(localized: "14-day return")
+            case .return30: String(localized: "30-day return")
+            case .warranty1yr: String(localized: "1yr warranty")
+            case .warranty2yr: String(localized: "2yr warranty")
+            case .custom: String(localized: "Custom…")
             }
         }
 

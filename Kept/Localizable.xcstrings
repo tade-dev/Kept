@@ -1,0 +1,795 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@ appearance" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@…" : {
+      "comment" : "Ellipsis added to the current setup step"
+    },
+    "%lld" : {
+
+    },
+    "%lld %@ — expires %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@ — expires %3$@"
+          }
+        }
+      }
+    },
+    "%lld %@ — return by %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@ — return by %3$@"
+          }
+        }
+      }
+    },
+    "%lld days before" : {
+
+    },
+    "%lld days left" : {
+      "comment" : "Days remaining until warranty expires; needs plural handling"
+    },
+    "%lld items stored on this device." : {
+      "comment" : "Footer under Data section. Needs plural handling on 'items'."
+    },
+    "%lld mo left" : {
+      "comment" : "Months remaining until warranty expires; needs plural handling"
+    },
+    "%lld%%" : {
+
+    },
+    "0" : {
+
+    },
+    "14-day return" : {
+
+    },
+    "1yr warranty" : {
+
+    },
+    "2yr warranty" : {
+
+    },
+    "30-day return" : {
+
+    },
+    "A" : {
+
+    },
+    "A one-page PDF summary with receipt attached, send it to the seller when you need to claim." : {
+
+    },
+    "About" : {
+
+    },
+    "Accent" : {
+
+    },
+    "Accessibility" : {
+
+    },
+    "Account" : {
+
+    },
+    "Active" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add a note" : {
+
+    },
+    "Add item" : {
+
+    },
+    "Add to Apple Wallet" : {
+
+    },
+    "Adds a countdown pass for this purchase to Apple Wallet." : {
+
+    },
+    "Already in Wallet. You can add it again if you removed the pass." : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Back" : {
+
+    },
+    "By continuing, you agree to our " : {
+
+    },
+    "CUR" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Capture" : {
+
+    },
+    "Capture OCR fixture" : {
+
+    },
+    "Check the highlighted fields." : {
+
+    },
+    "Claim Pack" : {
+
+    },
+    "Claim pack" : {
+
+    },
+    "Close" : {
+
+    },
+    "Cloud extract failed — showing on-device rules parse. Check wrangler (0.0.0.0:8787) + Wi‑Fi." : {
+
+    },
+    "Contact support" : {
+
+    },
+    "Continue" : {
+
+    },
+    "Copied to clipboard" : {
+
+    },
+    "Copies your RevenueCat customer ID so you can include it in a support ticket." : {
+
+    },
+    "Copy customer ID" : {
+
+    },
+    "Couldn't add pass" : {
+
+    },
+    "Couldn't finish reading" : {
+
+    },
+    "Couldn't read that" : {
+
+    },
+    "Cover ends · 8 Feb 2027" : {
+
+    },
+    "Covered" : {
+
+    },
+    "Currently %@" : {
+
+    },
+    "Custom…" : {
+
+    },
+    "Data" : {
+
+    },
+    "Days to return" : {
+
+    },
+    "Debug" : {
+
+    },
+    "Decrease" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete all data" : {
+
+    },
+    "Delete everything?" : {
+
+    },
+    "Demo" : {
+
+    },
+    "Done" : {
+
+    },
+    "Duration (months)" : {
+
+    },
+    "Edit anyway" : {
+
+    },
+    "Enable notifications" : {
+
+    },
+    "Ending soon" : {
+
+    },
+    "Enough time to act." : {
+
+    },
+    "Every receipt is a promise." : {
+
+    },
+    "Expected (fill after eyeballing lines)" : {
+
+    },
+    "Expired" : {
+
+    },
+    "Expired %lldd ago" : {
+      "comment" : "Days since warranty expired"
+    },
+    "Expired %lldmo ago" : {
+      "comment" : "Months since warranty expired"
+    },
+    "Expired today" : {
+
+    },
+    "Expires" : {
+
+    },
+    "Expires today" : {
+
+    },
+    "Export" : {
+
+    },
+    "Export a signed claim pack in one tap. Included with Pro." : {
+
+    },
+    "Export all" : {
+
+    },
+    "Export all data" : {
+
+    },
+    "Export claim pack" : {
+
+    },
+    "Filling what we can" : {
+
+    },
+    "Fixture capture" : {
+
+    },
+    "Fixtures" : {
+
+    },
+    "Follow iOS text size" : {
+
+    },
+    "Free" : {
+
+    },
+    "Generates a PDF with the receipt image and warranty details to send to the seller." : {
+
+    },
+    "If System is selected, Kept follows your iPhone appearance." : {
+
+    },
+    "Image never leaves the phone. Only OCR text is written into the fixture JSON." : {
+
+    },
+    "Includes all four." : {
+
+    },
+    "Increase" : {
+
+    },
+    "Item" : {
+
+    },
+    "Item name" : {
+
+    },
+    "Items" : {
+
+    },
+    "Kept" : {
+
+    },
+    "Kept Pro" : {
+
+    },
+    "Kept can't warn you before coverage ends until you allow notifications in iOS Settings." : {
+
+    },
+    "Kept guessed the return window. Edit if the receipt says otherwise." : {
+
+    },
+    "Kept guessed this length from the merchant. Edit if you know better." : {
+
+    },
+    "Kept guessed this length. Edit it to override." : {
+
+    },
+    "Kept guessed this return window. Edit it to override." : {
+
+    },
+    "Kept honours iOS Reduce Motion. You can also force it on here — springs become fades, transitions become dissolves." : {
+
+    },
+    "Kept nudges you at %@ days before any warranty or return window ends." : {
+      "comment" : "Reminder-lead-days summary in Settings footer; list is a pre-formatted number list. Needs plural handling on 'days'."
+    },
+    "Kept remembers when it expires." : {
+
+    },
+    "Kept will crop, straighten, and read it on-device." : {
+
+    },
+    "Kept · Receipts that remember" : {
+
+    },
+    "Kettles, blenders, washers." : {
+
+    },
+    "Last chance." : {
+
+    },
+    "Leave blank for clothing and other purchases with no repair warranty." : {
+
+    },
+    "Loading your categories" : {
+
+    },
+    "Manage subscription" : {
+
+    },
+    "Merchant" : {
+
+    },
+    "Motion" : {
+
+    },
+    "NOT A RECEIPT" : {
+
+    },
+    "No Deadline" : {
+
+    },
+    "No previous purchases were found on this Apple ID." : {
+
+    },
+    "No receipts" : {
+
+    },
+    "No receipts yet. Scan a receipt to start tracking your warranties." : {
+
+    },
+    "No repair warranty tracked. Leave blank for fashion and consumables." : {
+
+    },
+    "None" : {
+
+    },
+    "Not now" : {
+
+    },
+    "Not selected" : {
+
+    },
+    "Not signed in" : {
+
+    },
+    "Notes" : {
+
+    },
+    "Notifications" : {
+
+    },
+    "Notifications are off" : {
+
+    },
+    "OCR fixtures" : {
+
+    },
+    "OCR lines (%lld, top → bottom)" : {
+
+    },
+    "OK" : {
+
+    },
+    "On-device OCR" : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Opens Kept's %@ settings." : {
+
+    },
+    "Optional. Clothing and many retailers allow returns for a short window." : {
+
+    },
+    "Phones, laptops, headphones." : {
+
+    },
+    "Pick from Photos" : {
+
+    },
+    "Plenty of time to book a repair." : {
+
+    },
+    "Point at a receipt" : {
+
+    },
+    "Prepared by Kept on %@" : {
+
+    },
+    "Preparing your claim pack" : {
+
+    },
+    "Price" : {
+
+    },
+    "Privacy policy" : {
+
+    },
+    "Purchase" : {
+
+    },
+    "Purchase date (yyyy-MM-dd)" : {
+
+    },
+    "Purchased" : {
+
+    },
+    "Purchases restored." : {
+
+    },
+    "RECEIPT" : {
+
+    },
+    "Re-extract with latest AI" : {
+
+    },
+    "Re-extracting" : {
+
+    },
+    "Re-extracting…" : {
+
+    },
+    "Reading receipt" : {
+
+    },
+    "Reading receipt…" : {
+
+    },
+    "Ready to scan" : {
+
+    },
+    "Receipt" : {
+      "comment" : "Fallback when a purchase has no item name\nNav title fallback when the purchase has no merchant"
+    },
+    "Reminders" : {
+
+    },
+    "Remove %@" : {
+
+    },
+    "Removes every purchase, warranty, and pending reminder. This can't be undone." : {
+
+    },
+    "Reprocesses this receipt to fill in missing merchant, item, or price. Your edits are kept." : {
+
+    },
+    "Requires Kept Pro. Tap to see subscription options." : {
+
+    },
+    "Rescan" : {
+
+    },
+    "Reset onboarding" : {
+
+    },
+    "Restore" : {
+
+    },
+    "Restore purchases" : {
+
+    },
+    "Return" : {
+
+    },
+    "Return by" : {
+
+    },
+    "Return ended" : {
+
+    },
+    "Return ended %lldd ago" : {
+      "comment" : "Days since return window ended"
+    },
+    "Return ended %lldmo ago" : {
+      "comment" : "Months since return window ended"
+    },
+    "Return today" : {
+
+    },
+    "Return window" : {
+
+    },
+    "Return windows, not warranties." : {
+
+    },
+    "Return · %lldd" : {
+      "comment" : "Compact days badge, e.g. 'Return · 5d'"
+    },
+    "Return · %lldmo" : {
+      "comment" : "Compact months badge, e.g. 'Return · 3mo'"
+    },
+    "Review receipt" : {
+
+    },
+    "SAVE %@" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save fixture" : {
+
+    },
+    "Save receipt" : {
+
+    },
+    "Saved on device" : {
+
+    },
+    "Scan a receipt" : {
+
+    },
+    "Scan cancelled." : {
+
+    },
+    "Scan one to see it here." : {
+
+    },
+    "Scan receipt" : {
+
+    },
+    "Scheduling reminders" : {
+
+    },
+    "Selected" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Signed in" : {
+
+    },
+    "Snap a receipt or invoice to have Kept remember the warranty for you." : {
+
+    },
+    "Snap your first receipt, Kept keeps the warranty countdown for you." : {
+
+    },
+    "Sofas, desks, storage." : {
+
+    },
+    "Softer animations" : {
+
+    },
+    "Something went wrong." : {
+
+    },
+    "Sony WH-1000XM5" : {
+
+    },
+    "Start 7-day free trial" : {
+
+    },
+    "Start your library" : {
+
+    },
+    "Subscribe" : {
+
+    },
+    "TOTAL" : {
+
+    },
+    "Tap to continue" : {
+
+    },
+    "Terms of Service" : {
+
+    },
+    "Text size" : {
+
+    },
+    "Text size and motion apply to Kept. VoiceOver and Contrast are system-wide iOS settings, Kept respects whatever you've set there." : {
+
+    },
+    "Theme" : {
+
+    },
+    "This IS a receipt" : {
+
+    },
+    "This device can't scan documents." : {
+
+    },
+    "Time of day" : {
+
+    },
+    "Total" : {
+
+    },
+    "Tracked for warranty: %@" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Tune the personality of Kept." : {
+
+    },
+    "Understanding warranty…" : {
+
+    },
+    "Unlimited receipts and the claim pack for the day it matters." : {
+
+    },
+    "Unlimited receipts, plus the claim pack for the day it matters." : {
+
+    },
+    "Unnamed" : {
+      "comment" : "Fallback when a purchase has no merchant"
+    },
+    "Upgrade to Pro" : {
+
+    },
+    "Uses whatever you've set in iOS Settings." : {
+
+    },
+    "Version" : {
+
+    },
+    "View" : {
+
+    },
+    "Warming up the coverage engine" : {
+
+    },
+    "Warranty" : {
+
+    },
+    "Warranty ends in 172 days" : {
+
+    },
+    "We'll tell you %@, and %@ days before cover ends." : {
+      "comment" : "Onboarding notifications summary with three or more lead days",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "We'll tell you %1$@, and %2$@ days before cover ends."
+          }
+        }
+      }
+    },
+    "We'll tell you %lld and %lld days before cover ends." : {
+      "comment" : "Onboarding notifications summary with two lead days",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "We'll tell you %1$lld and %2$lld days before cover ends."
+          }
+        }
+      }
+    },
+    "We'll tell you %lld days before cover ends." : {
+      "comment" : "Onboarding notifications summary with a single lead day; needs plural handling"
+    },
+    "We're setting everything up for you." : {
+
+    },
+    "What we're doing" : {
+
+    },
+    "Working…" : {
+
+    },
+    "You've filled your free five — keep every warranty from here." : {
+
+    },
+    "Your trial ends on %@. Afterwards, you will be billed %@ %@ly. Cancel anytime before the trial ends at no cost." : {
+      "comment" : "Paywall trial-end fine print",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your trial ends on %1$@. Afterwards, you will be billed %2$@ %3$@ly. Cancel anytime before the trial ends at no cost."
+          }
+        }
+      }
+    },
+    "confirmed by owner" : {
+
+    },
+    "day left" : {
+
+    },
+    "days" : {
+
+    },
+    "days left" : {
+
+    },
+    "e.g. faded total, glare on date" : {
+
+    },
+    "estimated" : {
+
+    },
+    "from %@" : {
+      "comment" : "VoiceOver: '<item> from <merchant>'"
+    },
+    "iCloud" : {
+
+    },
+    "inferred" : {
+
+    },
+    "months" : {
+
+    },
+    "purchased %@" : {
+      "comment" : "VoiceOver purchase-date fragment"
+    },
+    "return window ended %lld days ago" : {
+      "comment" : "VoiceOver expired return; needs plural handling"
+    },
+    "return window ends in %lld days" : {
+      "comment" : "VoiceOver return-window countdown; needs plural handling"
+    },
+    "return window ends today" : {
+
+    },
+    "return window ends tomorrow" : {
+
+    },
+    "warranty ended %lld days ago" : {
+      "comment" : "VoiceOver expired warranty; needs plural handling"
+    },
+    "warranty ends in %lld days" : {
+      "comment" : "VoiceOver warranty countdown; needs plural handling"
+    },
+    "warranty ends today" : {
+
+    },
+    "warranty ends tomorrow" : {
+
+    },
+    "·" : {
+
+    },
+    "—" : {
+
+    }
+  },
+  "version" : "1.0"
+}

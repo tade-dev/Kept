@@ -9,8 +9,8 @@ struct DocumentScanner: UIViewControllerRepresentable {
 
         var errorDescription: String? {
             switch self {
-            case .cancelled: "Scan cancelled."
-            case .scannerUnavailable: "This device can't scan documents."
+            case .cancelled: String(localized: "Scan cancelled.")
+            case .scannerUnavailable: String(localized: "This device can't scan documents.")
             case .underlying(let error): error.localizedDescription
             }
         }

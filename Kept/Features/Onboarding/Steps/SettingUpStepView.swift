@@ -10,15 +10,16 @@ struct SettingUpStepView: View {
     @State private var completedCount: Int = 0
 
     private let steps: [String] = [
-        "Warming up the coverage engine",
-        "Loading your categories",
-        "Scheduling reminders",
-        "Ready to scan",
+        String(localized: "Warming up the coverage engine"),
+        String(localized: "Loading your categories"),
+        String(localized: "Scheduling reminders"),
+        String(localized: "Ready to scan"),
     ]
 
     private var currentSubtitle: String {
         let index = min(completedCount, steps.count - 1)
-        return "\(steps[index])…"
+        let step = steps[index]
+        return String(localized: "\(step)…", comment: "Ellipsis added to the current setup step")
     }
 
     var body: some View {

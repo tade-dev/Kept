@@ -152,12 +152,12 @@ struct AccountSection: View {
         do {
             let restored = try await subscription.restorePurchases()
             restoreMessage = restored
-                ? "Purchases restored."
-                : "No previous purchases were found on this Apple ID."
+                ? String(localized: "Purchases restored.")
+                : String(localized: "No previous purchases were found on this Apple ID.")
         } catch let error as SubscriptionServiceError {
-            restoreMessage = error.errorDescription ?? "Something went wrong."
+            restoreMessage = error.errorDescription ?? String(localized: "Something went wrong.")
         } catch {
-            restoreMessage = "Something went wrong."
+            restoreMessage = String(localized: "Something went wrong.")
         }
     }
 

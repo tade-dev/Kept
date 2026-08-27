@@ -31,12 +31,23 @@ struct NotificationsStepView: View {
     private var headline: String {
         let sorted = coordinator.result.warningLeadTimes.sorted()
         switch sorted.count {
-        case 1:  return "We'll tell you \(sorted[0]) days before cover ends."
-        case 2:  return "We'll tell you \(sorted[0]) and \(sorted[1]) days before cover ends."
+        case 1:
+            return String(
+                localized: "We'll tell you \(sorted[0]) days before cover ends.",
+                comment: "Onboarding notifications summary with a single lead day; needs plural handling"
+            )
+        case 2:
+            return String(
+                localized: "We'll tell you \(sorted[0]) and \(sorted[1]) days before cover ends.",
+                comment: "Onboarding notifications summary with two lead days"
+            )
         default:
             let head = sorted.dropLast().map(String.init).joined(separator: ", ")
             let tail = sorted.last.map(String.init) ?? ""
-            return "We'll tell you \(head), and \(tail) days before cover ends."
+            return String(
+                localized: "We'll tell you \(head), and \(tail) days before cover ends.",
+                comment: "Onboarding notifications summary with three or more lead days"
+            )
         }
     }
 }

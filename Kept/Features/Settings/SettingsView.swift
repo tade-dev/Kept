@@ -174,7 +174,10 @@ struct SettingsView: View {
     private var reminderFooter: String {
         let sorted = leadDaysSet.sorted(by: >)
         let list = sorted.map(String.init).joined(separator: ", ")
-        return "Kept nudges you at \(list) day\(sorted.count == 1 ? "" : "s") before any warranty or return window ends."
+        return String(
+            localized: "Kept nudges you at \(list) days before any warranty or return window ends.",
+            comment: "Reminder-lead-days summary in Settings footer; list is a pre-formatted number list. Needs plural handling on 'days'."
+        )
     }
 
     private var appearanceSection: some View {
@@ -235,7 +238,7 @@ struct SettingsView: View {
         } header: {
             Text("Data")
         } footer: {
-            Text("\(purchases.count) \(purchases.count == 1 ? "item" : "items") stored on this device.")
+            Text("\(purchases.count) items stored on this device.", comment: "Footer under Data section. Needs plural handling on 'items'.")
         }
     }
 

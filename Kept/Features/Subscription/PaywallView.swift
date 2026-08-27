@@ -29,10 +29,10 @@ struct PaywallView: View {
 
         var subtitle: String {
             switch self {
-            case .capReached:     "You've filled your free five — keep every warranty from here."
-            case .firstPassAdded: "Unlimited receipts, plus the claim pack for the day it matters."
-            case .manual:         "Unlimited receipts and the claim pack for the day it matters."
-            case .claimPack:      "Export a signed claim pack in one tap. Included with Pro."
+            case .capReached:     String(localized: "You've filled your free five — keep every warranty from here.")
+            case .firstPassAdded: String(localized: "Unlimited receipts, plus the claim pack for the day it matters.")
+            case .manual:         String(localized: "Unlimited receipts and the claim pack for the day it matters.")
+            case .claimPack:      String(localized: "Export a signed claim pack in one tap. Included with Pro.")
             }
         }
     }
@@ -251,8 +251,8 @@ struct PaywallView: View {
     }
 
     private var ctaLabel: String {
-        guard currentPackage != nil else { return "Continue" }
-        return trialAvailable ? "Start 7-day free trial" : "Subscribe"
+        guard currentPackage != nil else { return String(localized: "Continue") }
+        return trialAvailable ? String(localized: "Start 7-day free trial") : String(localized: "Subscribe")
     }
 
     // Trial ends copy + Terms link — IFTTT-style fine print
@@ -282,13 +282,13 @@ struct PaywallView: View {
     private var trialEndsCopy: String {
         guard let package = currentPackage else { return "" }
         let end = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.locale = .autoupdatingCurrent
-        let dateString = formatter.string(from: end)
-        return "Your trial ends on \(dateString). Afterwards, you will be billed \(package.priceString) \(shortPeriod(from: package.periodString))ly. Cancel anytime before the trial ends at no cost."
-            .replacingOccurrences(of: "monthly", with: "monthly")
-            .replacingOccurrences(of: "yearly", with: "yearly")
+        let dateString = end.formatted(date: .long, time: .omitted)
+        let priceString = package.priceString
+        let periodWord = shortPeriod(from: package.periodString)
+        return String(
+            localized: "Your trial ends on \(dateString). Afterwards, you will be billed \(priceString) \(periodWord)ly. Cancel anytime before the trial ends at no cost.",
+            comment: "Paywall trial-end fine print"
+        )
     }
 
     // MARK: - Helpers

@@ -37,11 +37,11 @@ struct CategoriesStepView: View {
 private extension TrackedCategory {
     var subtitle: String {
         switch self {
-        case .electronics: "Phones, laptops, headphones."
-        case .appliances:  "Kettles, blenders, washers."
-        case .furniture:   "Sofas, desks, storage."
-        case .clothing:    "Return windows, not warranties."
-        case .everything:  "Includes all four."
+        case .electronics: String(localized: "Phones, laptops, headphones.")
+        case .appliances:  String(localized: "Kettles, blenders, washers.")
+        case .furniture:   String(localized: "Sofas, desks, storage.")
+        case .clothing:    String(localized: "Return windows, not warranties.")
+        case .everything:  String(localized: "Includes all four.")
         }
     }
 }
