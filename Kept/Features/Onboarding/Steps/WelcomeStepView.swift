@@ -8,7 +8,13 @@ struct WelcomeStepView: View {
     @State private var appeared = Reveal()
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: Spacing.sm)
+            HStack {
+                Spacer()
+                LanguageBadge()
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.xs)
+            .padding(.bottom, Spacing.sm)
 
             DemoVideoView(resourceName: "onboarding-demo", cornerRadius: 0)
                 .aspectRatio(9.0 / 16.0, contentMode: .fit)

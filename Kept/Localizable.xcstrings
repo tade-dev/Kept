@@ -2168,6 +2168,73 @@
         }
       }
     },
+    "Language" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Idioma"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Langue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "语言"
+          }
+        }
+      }
+    },
+    "Follow iOS" : {
+      "comment" : "Language picker option that defers to the system language",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seguir iOS"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suivre iOS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "跟随 iOS"
+          }
+        }
+      }
+    },
+    "Choose the app's display language." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elige el idioma de la aplicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Choisissez la langue d'affichage de l'application."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "选择 App 的显示语言。"
+          }
+        }
+      }
+    },
     "Kept remembers when it expires." : {
       "localizations" : {
         "es" : {
@@ -2230,6 +2297,94 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Kept · 会记事的收据"
+          }
+        }
+      }
+    },
+    "Kept relaunches to apply your language choice." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept se reinicia para aplicar el idioma elegido."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept redémarre pour appliquer la langue choisie."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept 会重新启动以应用所选语言。"
+          }
+        }
+      }
+    },
+    "Relaunch Kept?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Reiniciar Kept?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrer Kept ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新启动 Kept?"
+          }
+        }
+      }
+    },
+    "Relaunch" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reiniciar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新启动"
+          }
+        }
+      }
+    },
+    "Kept will close and open again in %@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept se cerrará y volverá a abrirse en %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept se fermera puis se rouvrira en %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept 会关闭并以 %@ 重新打开。"
           }
         }
       }

@@ -78,6 +78,7 @@ struct SettingsView: View {
 
                 remindersSection
                 appearanceSection
+                languageSection
                 AccessibilitySection()
                 dataSection
                 aboutSection
@@ -205,6 +206,43 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var languageSection: some View {
+        Section {
+            NavigationLink {
+                LanguagePickerView()
+            } label: {
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(darkAccent.tint)
+                        .frame(width: 29, height: 29)
+                        .overlay {
+                            Image(systemName: "globe")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+
+                    Text("Language")
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    Text(currentLanguageDisplay)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var currentLanguageDisplay: String {
+        let raw = UserDefaults.standard.string(forKey: AppLanguage.storageKey) ?? ""
+        let language = AppLanguage(rawValue: raw) ?? .system
+        if language == .system {
+            let code = Bundle.main.preferredLocalizations.first ?? "en"
+            return AppLanguage(rawValue: code)?.nativeName ?? "English"
+        }
+        return language.nativeName
     }
 
     private var dataSection: some View {
