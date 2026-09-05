@@ -211,6 +211,7 @@ struct PaywallView: View {
             featureRow("Unlimited receipts")
             featureRow("Claim pack PDF export")
             featureRow("Higher-quality receipt extraction")
+            featureRow("Share with up to 5 family members")
             featureRow("Every future Pro feature")
         }
         .frame(maxWidth: .infinity, alignment: .leading)

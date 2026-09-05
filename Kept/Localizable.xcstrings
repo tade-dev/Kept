@@ -4,27 +4,11 @@
     "" : {
 
     },
-    "%@ appearance" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Apariencia %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Apparence %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ 外观"
-          }
-        }
-      }
+    "—" : {
+
+    },
+    "·" : {
+
     },
     "%@ · %@" : {
       "localizations" : {
@@ -50,6 +34,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ appearance" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apariencia %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apparence %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 外观"
           }
         }
       }
@@ -353,28 +359,6 @@
     "0" : {
 
     },
-    "14-day return" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Devolución de 14 días"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Retour sous 14 jours"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "14 天可退"
-          }
-        }
-      }
-    },
     "1yr warranty" : {
       "localizations" : {
         "es" : {
@@ -415,6 +399,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "2 年保修"
+          }
+        }
+      }
+    },
+    "14-day return" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Devolución de 14 días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Retour sous 14 jours"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "14 天可退"
           }
         }
       }
@@ -774,9 +780,6 @@
         }
       }
     },
-    "CUR" : {
-
-    },
     "Cancel" : {
       "localizations" : {
         "es" : {
@@ -846,7 +849,29 @@
         }
       }
     },
-    "Claim Pack" : {
+    "Choose the app's display language." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elige el idioma de la aplicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Choisissez la langue d'affichage de l'application."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "选择 App 的显示语言。"
+          }
+        }
+      }
+    },
+    "Claim pack" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -868,7 +893,7 @@
         }
       }
     },
-    "Claim pack" : {
+    "Claim Pack" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -914,6 +939,28 @@
     },
     "Cloud extract failed — showing on-device rules parse. Check wrangler (0.0.0.0:8787) + Wi‑Fi." : {
 
+    },
+    "confirmed by owner" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "confirmado por el propietario"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "confirmé par le propriétaire"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "由本人确认"
+          }
+        }
+      }
     },
     "Contact support" : {
       "localizations" : {
@@ -1135,6 +1182,9 @@
         }
       }
     },
+    "CUR" : {
+
+    },
     "Currently %@" : {
       "localizations" : {
         "es" : {
@@ -1197,6 +1247,72 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "数据"
+          }
+        }
+      }
+    },
+    "day left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "día restante"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "jour restant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "天剩余"
+          }
+        }
+      }
+    },
+    "days" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "jours"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "天"
+          }
+        }
+      }
+    },
+    "days left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "días restantes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "jours restants"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "天剩余"
           }
         }
       }
@@ -1361,6 +1477,9 @@
         }
       }
     },
+    "e.g. faded total, glare on date" : {
+
+    },
     "Edit anyway" : {
       "localizations" : {
         "es" : {
@@ -1445,6 +1564,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "足够时间处理。"
+          }
+        }
+      }
+    },
+    "estimated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "estimado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "estimé"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "估算"
           }
         }
       }
@@ -1806,6 +1947,29 @@
     "Fixtures" : {
 
     },
+    "Follow iOS" : {
+      "comment" : "Language picker option that defers to the system language",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seguir iOS"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suivre iOS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "跟随 iOS"
+          }
+        }
+      }
+    },
     "Follow iOS text size" : {
       "localizations" : {
         "es" : {
@@ -1850,6 +2014,29 @@
         }
       }
     },
+    "from %@" : {
+      "comment" : "VoiceOver: '<item> from <merchant>'",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "de %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "来自 %@"
+          }
+        }
+      }
+    },
     "Generates a PDF with the receipt image and warranty details to send to the seller." : {
       "localizations" : {
         "es" : {
@@ -1871,6 +2058,9 @@
           }
         }
       }
+    },
+    "iCloud" : {
+
     },
     "If System is selected, Kept follows your iPhone appearance." : {
       "localizations" : {
@@ -1937,6 +2127,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "增加"
+          }
+        }
+      }
+    },
+    "inferred" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "inferido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "déduit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "推断"
           }
         }
       }
@@ -2010,8 +2222,27 @@
     "Kept" : {
 
     },
-    "Kept Pro" : {
-
+    "Kept · Receipts that remember" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept · Recibos con memoria"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept · Des reçus qui se souviennent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept · 会记事的收据"
+          }
+        }
+      }
     },
     "Kept can't warn you before coverage ends until you allow notifications in iOS Settings." : {
       "localizations" : {
@@ -2168,69 +2399,27 @@
         }
       }
     },
-    "Language" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Idioma"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Langue"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "语言"
-          }
-        }
-      }
+    "Kept Pro" : {
+
     },
-    "Follow iOS" : {
-      "comment" : "Language picker option that defers to the system language",
+    "Kept relaunches to apply your language choice." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Seguir iOS"
+            "value" : "Kept se reinicia para aplicar el idioma elegido."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Suivre iOS"
+            "value" : "Kept redémarre pour appliquer la langue choisie."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "跟随 iOS"
-          }
-        }
-      }
-    },
-    "Choose the app's display language." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Elige el idioma de la aplicación."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Choisissez la langue d'affichage de l'application."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "选择 App 的显示语言。"
+            "value" : "Kept 会重新启动以应用所选语言。"
           }
         }
       }
@@ -2257,116 +2446,6 @@
         }
       }
     },
-    "Kept will crop, straighten, and read it on-device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept lo recortará, enderezará y lo leerá en el dispositivo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept le rognera, le redressera et le lira sur l'appareil."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept 将在本机上裁切、拉正并识别。"
-          }
-        }
-      }
-    },
-    "Kept · Receipts that remember" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept · Recibos con memoria"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept · Des reçus qui se souviennent"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept · 会记事的收据"
-          }
-        }
-      }
-    },
-    "Kept relaunches to apply your language choice." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept se reinicia para aplicar el idioma elegido."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept redémarre pour appliquer la langue choisie."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Kept 会重新启动以应用所选语言。"
-          }
-        }
-      }
-    },
-    "Relaunch Kept?" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "¿Reiniciar Kept?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Redémarrer Kept ?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "重新启动 Kept?"
-          }
-        }
-      }
-    },
-    "Relaunch" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Reiniciar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Redémarrer"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "重新启动"
-          }
-        }
-      }
-    },
     "Kept will close and open again in %@." : {
       "localizations" : {
         "es" : {
@@ -2389,6 +2468,28 @@
         }
       }
     },
+    "Kept will crop, straighten, and read it on-device." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept lo recortará, enderezará y lo leerá en el dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept le rognera, le redressera et le lira sur l'appareil."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept 将在本机上裁切、拉正并识别。"
+          }
+        }
+      }
+    },
     "Kettles, blenders, washers." : {
       "localizations" : {
         "es" : {
@@ -2407,6 +2508,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "水壶、搅拌机、洗衣机。"
+          }
+        }
+      }
+    },
+    "Language" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Idioma"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Langue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "语言"
           }
         }
       }
@@ -2521,6 +2644,28 @@
         }
       }
     },
+    "months" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "meses"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "mois"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "个月"
+          }
+        }
+      }
+    },
     "Motion" : {
       "localizations" : {
         "es" : {
@@ -2539,28 +2684,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "动态效果"
-          }
-        }
-      }
-    },
-    "NOT A RECEIPT" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "NO ES UN RECIBO"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "PAS UN REÇU"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "不是收据"
           }
         }
       }
@@ -2693,6 +2816,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "无"
+          }
+        }
+      }
+    },
+    "NOT A RECEIPT" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "NO ES UN RECIBO"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "PAS UN REÇU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不是收据"
           }
         }
       }
@@ -3102,6 +3247,9 @@
         }
       }
     },
+    "PRO" : {
+
+    },
     "Purchase" : {
       "localizations" : {
         "es" : {
@@ -3168,6 +3316,29 @@
         }
       }
     },
+    "purchased %@" : {
+      "comment" : "VoiceOver purchase-date fragment",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "comprado el %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "acheté le %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "购买于 %@"
+          }
+        }
+      }
+    },
     "Purchases restored." : {
       "localizations" : {
         "es" : {
@@ -3186,28 +3357,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "已恢复购买。"
-          }
-        }
-      }
-    },
-    "RECEIPT" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "RECIBO"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "REÇU"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "收据"
           }
         }
       }
@@ -3363,6 +3512,72 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "收据"
+          }
+        }
+      }
+    },
+    "RECEIPT" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "RECIBO"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "REÇU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "收据"
+          }
+        }
+      }
+    },
+    "Relaunch" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reiniciar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新启动"
+          }
+        }
+      }
+    },
+    "Relaunch Kept?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Reiniciar Kept?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrer Kept ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重新启动 Kept?"
           }
         }
       }
@@ -3587,6 +3802,112 @@
         }
       }
     },
+    "Return · %lldd" : {
+      "comment" : "Compact days badge, e.g. 'Return · 5d'",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Devolución · %lld d"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Devolución · %lld d"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Retour · %lld j"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Retour · %lld j"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "退货 · %lld 天"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Return · %lldmo" : {
+      "comment" : "Compact months badge, e.g. 'Return · 3mo'",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Devolución · %lld m"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Devolución · %lld m"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Retour · %lld mo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Retour · %lld mo"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "退货 · %lld 个月"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Return by" : {
       "localizations" : {
         "es" : {
@@ -3781,6 +4102,156 @@
         }
       }
     },
+    "return window ended %lld days ago" : {
+      "comment" : "VoiceOver expired return; needs plural handling",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "ventana de devolución terminó hace %lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "ventana de devolución terminó hace %lld días"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "fenêtre de retour close il y a %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "fenêtre de retour close il y a %lld jours"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "退货期 %lld 天前结束"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "return window ends in %lld days" : {
+      "comment" : "VoiceOver return-window countdown; needs plural handling",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la ventana de devolución termina en %lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la ventana de devolución termina en %lld días"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la fenêtre de retour se termine dans %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la fenêtre de retour se termine dans %lld jours"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "退货期还有 %lld 天结束"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "return window ends today" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la ventana de devolución termina hoy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la fenêtre de retour se termine aujourd'hui"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "退货期今天结束"
+          }
+        }
+      }
+    },
+    "return window ends tomorrow" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la ventana de devolución termina mañana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la fenêtre de retour se termine demain"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "退货期明天结束"
+          }
+        }
+      }
+    },
     "Return windows, not warranties." : {
       "localizations" : {
         "es" : {
@@ -3799,112 +4270,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "退货期,而非保修。"
-          }
-        }
-      }
-    },
-    "Return · %lldd" : {
-      "comment" : "Compact days badge, e.g. 'Return · 5d'",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Devolución · %lld d"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Devolución · %lld d"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Retour · %lld j"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Retour · %lld j"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "退货 · %lld 天"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Return · %lldmo" : {
-      "comment" : "Compact months badge, e.g. 'Return · 3mo'",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Devolución · %lld m"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Devolución · %lld m"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Retour · %lld mo"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Retour · %lld mo"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "退货 · %lld 个月"
-                }
-              }
-            }
           }
         }
       }
@@ -3931,28 +4296,6 @@
         }
       }
     },
-    "SAVE %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "AHORRA %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "ÉCONOMISEZ %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "省 %@"
-          }
-        }
-      }
-    },
     "Save" : {
       "localizations" : {
         "es" : {
@@ -3971,6 +4314,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "保存"
+          }
+        }
+      }
+    },
+    "SAVE %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "AHORRA %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ÉCONOMISEZ %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "省 %@"
           }
         }
       }
@@ -4150,6 +4515,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "已选择"
+          }
+        }
+      }
+    },
+    "Share with up to 5 family members" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compártelo con hasta 5 familiares"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Partagez avec jusqu'à 5 membres de la famille"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "与最多 5 位家庭成员共享"
           }
         }
       }
@@ -4377,28 +4764,6 @@
         }
       }
     },
-    "TOTAL" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "TOTAL"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "TOTAL"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "合计"
-          }
-        }
-      }
-    },
     "Tap to continue" : {
       "localizations" : {
         "es" : {
@@ -4509,28 +4874,6 @@
         }
       }
     },
-    "This IS a receipt" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "SÍ es un recibo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "C'est bien un reçu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "这确实是收据"
-          }
-        }
-      }
-    },
     "This device can't scan documents." : {
       "localizations" : {
         "es" : {
@@ -4549,6 +4892,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "此设备无法扫描文档。"
+          }
+        }
+      }
+    },
+    "This IS a receipt" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SÍ es un recibo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "C'est bien un reçu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "这确实是收据"
           }
         }
       }
@@ -4587,6 +4952,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Total"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "合计"
+          }
+        }
+      }
+    },
+    "TOTAL" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TOTAL"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TOTAL"
           }
         },
         "zh-Hans" : {
@@ -4884,6 +5271,112 @@
         }
       }
     },
+    "warranty ended %lld days ago" : {
+      "comment" : "VoiceOver expired warranty; needs plural handling",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "garantía terminó hace %lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "garantía terminó hace %lld días"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "garantie expirée il y a %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "garantie expirée il y a %lld jours"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "保修 %lld 天前结束"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "warranty ends in %lld days" : {
+      "comment" : "VoiceOver warranty countdown; needs plural handling",
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la garantía termina en %lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la garantía termina en %lld días"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la garantie se termine dans %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "la garantie se termine dans %lld jours"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "保修还有 %lld 天到期"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Warranty ends in 172 days" : {
       "localizations" : {
         "es" : {
@@ -4902,6 +5395,50 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "保修 172 天后到期"
+          }
+        }
+      }
+    },
+    "warranty ends today" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la garantía termina hoy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la garantie se termine aujourd'hui"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "保修今天到期"
+          }
+        }
+      }
+    },
+    "warranty ends tomorrow" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la garantía termina mañana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "la garantie se termine demain"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "保修明天到期"
           }
         }
       }
@@ -5133,518 +5670,6 @@
           }
         }
       }
-    },
-    "confirmed by owner" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "confirmado por el propietario"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "confirmé par le propriétaire"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "由本人确认"
-          }
-        }
-      }
-    },
-    "day left" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "día restante"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "jour restant"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "天剩余"
-          }
-        }
-      }
-    },
-    "days" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "días"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "jours"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "天"
-          }
-        }
-      }
-    },
-    "days left" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "días restantes"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "jours restants"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "天剩余"
-          }
-        }
-      }
-    },
-    "e.g. faded total, glare on date" : {
-
-    },
-    "estimated" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "estimado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "estimé"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "估算"
-          }
-        }
-      }
-    },
-    "from %@" : {
-      "comment" : "VoiceOver: '<item> from <merchant>'",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "de %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "de %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "来自 %@"
-          }
-        }
-      }
-    },
-    "iCloud" : {
-
-    },
-    "inferred" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "inferido"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "déduit"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "推断"
-          }
-        }
-      }
-    },
-    "months" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "meses"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "mois"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "个月"
-          }
-        }
-      }
-    },
-    "purchased %@" : {
-      "comment" : "VoiceOver purchase-date fragment",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "comprado el %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "acheté le %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "购买于 %@"
-          }
-        }
-      }
-    },
-    "return window ended %lld days ago" : {
-      "comment" : "VoiceOver expired return; needs plural handling",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "ventana de devolución terminó hace %lld día"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "ventana de devolución terminó hace %lld días"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "fenêtre de retour close il y a %lld jour"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "fenêtre de retour close il y a %lld jours"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "退货期 %lld 天前结束"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "return window ends in %lld days" : {
-      "comment" : "VoiceOver return-window countdown; needs plural handling",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la ventana de devolución termina en %lld día"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la ventana de devolución termina en %lld días"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la fenêtre de retour se termine dans %lld jour"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la fenêtre de retour se termine dans %lld jours"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "退货期还有 %lld 天结束"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "return window ends today" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la ventana de devolución termina hoy"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la fenêtre de retour se termine aujourd'hui"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "退货期今天结束"
-          }
-        }
-      }
-    },
-    "return window ends tomorrow" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la ventana de devolución termina mañana"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la fenêtre de retour se termine demain"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "退货期明天结束"
-          }
-        }
-      }
-    },
-    "warranty ended %lld days ago" : {
-      "comment" : "VoiceOver expired warranty; needs plural handling",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "garantía terminó hace %lld día"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "garantía terminó hace %lld días"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "garantie expirée il y a %lld jour"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "garantie expirée il y a %lld jours"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "保修 %lld 天前结束"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "warranty ends in %lld days" : {
-      "comment" : "VoiceOver warranty countdown; needs plural handling",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la garantía termina en %lld día"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la garantía termina en %lld días"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la garantie se termine dans %lld jour"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "la garantie se termine dans %lld jours"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "保修还有 %lld 天到期"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "warranty ends today" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la garantía termina hoy"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la garantie se termine aujourd'hui"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "保修今天到期"
-          }
-        }
-      }
-    },
-    "warranty ends tomorrow" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la garantía termina mañana"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "la garantie se termine demain"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "保修明天到期"
-          }
-        }
-      }
-    },
-    "·" : {
-
-    },
-    "—" : {
-
     }
   },
   "version" : "1.0"
