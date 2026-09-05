@@ -16,6 +16,7 @@ import RevenueCat
 final class RevenueCatSubscriptionService: SubscriptionService {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    private(set) var billingIssue: BillingIssue?
     var appUserID: String { Purchases.shared.appUserID }
     var onChange: (@MainActor () -> Void)?
 
@@ -120,9 +121,24 @@ final class RevenueCatSubscriptionService: SubscriptionService {
     private static let entitlementIdentifier = "Kept Pro"
 
     private func applyCustomerInfo(_ info: CustomerInfo) {
-        let active = info.entitlements[Self.entitlementIdentifier]?.isActive ?? false
-        let changed = active != isPro
-        if changed { isPro = active }
+        let entitlement = info.entitlements[Self.entitlementIdentifier]
+        let active = entitlement?.isActive ?? false
+        if active != isPro { isPro = active }
+
+        // Grace-period detection. RevenueCat surfaces `billingIssueDetectedAt`
+        // whenever Apple has flagged a payment failure on this entitlement.
+        // We only surface it to the UI while the entitlement is STILL active
+        // (i.e. inside the grace window) — once it expires the user is just
+        // "free" again and the banner would be misleading.
+        if let entitlement, active, let detectedAt = entitlement.billingIssueDetectedAt {
+            billingIssue = BillingIssue(
+                detectedAt: detectedAt,
+                gracePeriodEndsAt: entitlement.expirationDate
+            )
+        } else if billingIssue != nil {
+            billingIssue = nil
+        }
+
         onChange?()
     }
 

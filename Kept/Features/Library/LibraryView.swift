@@ -7,6 +7,7 @@ import PhotosUI
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(SubscriptionAccess.self) private var subscription
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
@@ -58,6 +59,13 @@ struct LibraryView: View {
                     emptyState
                 } else {
                     modeContent
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let issue = subscription.billingIssue {
+                    BillingIssueBanner(issue: issue)
+                        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.32),
+                                   value: issue)
                 }
             }
             .navigationTitle("Kept")  // stays for VoiceOver / back-button labelling

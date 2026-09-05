@@ -388,6 +388,7 @@ struct PaywallView: View {
 final class SubscriptionAccess {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    private(set) var billingIssue: BillingIssue?
     private(set) var appUserID: String = ""
 
     /// Exposed so callers that need the underlying service (e.g. tests) can
@@ -398,11 +399,13 @@ final class SubscriptionAccess {
         self.service = service
         self.isPro = service.isPro
         self.offering = service.offering
+        self.billingIssue = service.billingIssue
         self.appUserID = service.appUserID
         service.onChange = { [weak self] in
             guard let self else { return }
             self.isPro = self.service.isPro
             self.offering = self.service.offering
+            self.billingIssue = self.service.billingIssue
             self.appUserID = self.service.appUserID
         }
     }

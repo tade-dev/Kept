@@ -22,6 +22,13 @@ protocol SubscriptionService: AnyObject {
     /// packages), or nil if not yet fetched / offline / not configured.
     var offering: SubscriptionOffering? { get }
 
+    /// Non-nil when Apple has flagged a billing issue on the active Pro
+    /// entitlement — card declined, expired, etc. The subscription is still
+    /// technically valid (`isPro == true`) during the grace period; use this
+    /// to show a soft nudge asking the user to fix their payment before it
+    /// actually lapses.
+    var billingIssue: BillingIssue? { get }
+
     /// Opaque, stable customer identifier used by the payment provider.
     /// Exposed for support-ticket copy — never rendered as primary UI.
     var appUserID: String { get }
@@ -51,6 +58,18 @@ protocol SubscriptionService: AnyObject {
 struct SubscriptionOffering: Equatable, Sendable {
     var monthly: SubscriptionPackage?
     var yearly: SubscriptionPackage?
+}
+
+/// Snapshot of a live billing problem on the customer's subscription. Emitted
+/// when Apple has flagged a payment failure and we're inside the grace
+/// window — the entitlement is still active but will lapse if the user
+/// doesn't fix their card.
+struct BillingIssue: Equatable, Sendable {
+    /// When Apple detected the billing failure.
+    var detectedAt: Date
+    /// When the grace period ends — after this the entitlement is revoked.
+    /// Nil when the provider doesn't expose an end date.
+    var gracePeriodEndsAt: Date?
 }
 
 /// Provider-agnostic package. All price data is pre-formatted for the local

@@ -10,6 +10,7 @@ import Observation
 final class PreviewSubscriptionService: SubscriptionService {
     var isPro: Bool { didSet { onChange?() } }
     var offering: SubscriptionOffering? { didSet { onChange?() } }
+    var billingIssue: BillingIssue? { didSet { onChange?() } }
     var appUserID: String = "preview_app_user"
     var onChange: (@MainActor () -> Void)?
     /// Override to make `purchase(_:)` throw a specific error in previews / tests.
@@ -18,10 +19,12 @@ final class PreviewSubscriptionService: SubscriptionService {
     init(
         isPro: Bool = false,
         offering: SubscriptionOffering? = .kept_default,
+        billingIssue: BillingIssue? = nil,
         nextPurchaseError: SubscriptionServiceError? = nil
     ) {
         self.isPro = isPro
         self.offering = offering
+        self.billingIssue = billingIssue
         self.nextPurchaseError = nextPurchaseError
     }
 
