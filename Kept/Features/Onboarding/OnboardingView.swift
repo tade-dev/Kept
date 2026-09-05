@@ -11,7 +11,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             VStack(spacing: 0) {
                 headerArea
@@ -25,9 +25,6 @@ struct OnboardingView: View {
         .animation(stepAnimation, value: coordinator.step)
         .sensoryFeedback(.selection, trigger: coordinator.step)
         .sensoryFeedback(.success, trigger: finishedTick)
-        // Background is hard-coded to white; force light color scheme so the
-        // status bar text stays dark (readable) in dark mode too.
-        .preferredColorScheme(.light)
     }
 
     // MARK: - Fixed header (chrome only — only the progress bar animates on step change)
@@ -113,10 +110,10 @@ struct OnboardingView: View {
         Button(action: action) {
             Text(label)
                 .font(.keptHeadline)
-                .foregroundStyle(KeptColor.onInk)
+                .foregroundStyle(KeptColor.adaptiveOnInk)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md + 2)
-                .background(Capsule().fill(KeptColor.ink))
+                .background(Capsule().fill(KeptColor.adaptiveInk))
         }
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
@@ -132,16 +129,16 @@ struct OnboardingView: View {
             } label: {
                 HStack {
                     if isRequestingAuth {
-                        ProgressView().tint(KeptColor.onInk)
+                        ProgressView().tint(KeptColor.adaptiveOnInk)
                     } else {
                         Text("Enable notifications")
                             .font(.keptHeadline)
                     }
                 }
-                .foregroundStyle(KeptColor.onInk)
+                .foregroundStyle(KeptColor.adaptiveOnInk)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md + 2)
-                .background(Capsule().fill(KeptColor.ink))
+                .background(Capsule().fill(KeptColor.adaptiveInk))
             }
             .disabled(isRequestingAuth)
 

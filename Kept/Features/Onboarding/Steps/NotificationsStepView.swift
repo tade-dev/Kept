@@ -15,12 +15,12 @@ struct NotificationsStepView: View {
 
                 ZStack {
                     Circle()
-                        .fill(KeptColor.ink.opacity(0.06))
+                        .fill(Color.primary.opacity(0.06))
                         .frame(width: 180, height: 180)
 
                     Image(systemName: "bell.badge")
                         .font(KeptFont.sans(78, weight: .regular, relativeTo: .largeTitle))
-                        .foregroundStyle(KeptColor.ink)
+                        .foregroundStyle(.primary)
                 }
 
                 Spacer()

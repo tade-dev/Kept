@@ -34,7 +34,7 @@ struct DemoVideoView: View {
         ZStack {
             // Neutral hold color — sits behind the video during the load
             // window so the user never sees AVPlayer's raw black frame.
-            Color.white
+            Color(.systemBackground)
                 .opacity(readyToShow ? 0 : 1)
 
             if let player, !resourceMissing {

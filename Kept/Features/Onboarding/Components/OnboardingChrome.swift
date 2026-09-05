@@ -25,7 +25,7 @@ struct OnboardingChrome: View {
                     Capsule()
                         .fill(Color.secondary.opacity(0.18))
                     Capsule()
-                        .fill(KeptColor.ink)
+                        .fill(KeptColor.adaptiveInk)
                         .frame(width: max(0, proxy.size.width * fraction))
                         .animation(
                             reduceMotion ? .none : .snappy(duration: 0.32),

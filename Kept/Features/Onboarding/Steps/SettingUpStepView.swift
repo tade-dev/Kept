@@ -67,7 +67,7 @@ struct SettingUpStepView: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [KeptColor.endingSoon, KeptColor.ink],
+                            colors: [KeptColor.endingSoon, KeptColor.adaptiveInk],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -109,7 +109,7 @@ struct SettingUpStepView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle.dotted")
                 .font(KeptFont.sans(16, weight: .semibold, relativeTo: .callout))
-                .foregroundStyle(done ? KeptColor.ink : Color.secondary.opacity(0.6))
+                .foregroundStyle(done ? .primary : Color.secondary.opacity(0.6))
                 .contentTransition(.symbolEffect(.replace))
 
             Text(title)
