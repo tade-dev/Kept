@@ -63,7 +63,7 @@ struct PaywallView: View {
                 }
                 .padding(.bottom, 160)  // room for the CTA bar
             }
-            .background(Color(.systemBackground))
+            .background(Color(.systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -93,14 +93,31 @@ struct PaywallView: View {
 
     // MARK: - Brand block
 
+    /// Wordmark + PRO pill, composed programmatically. Uses the template-
+    /// friendly `KeptLockup` asset (single-colour, tints with the current
+    /// foreground) instead of the fixed-colour `KeptProLockup` PNG which
+    /// disappears against a dark canvas. PRO pill uses the same
+    /// `adaptiveInk` slab language as the CTA below for visual cohesion.
     private var brandBlock: some View {
-        Image("KeptProLockup")
-            .renderingMode(.original)
-            .resizable()
-            .scaledToFit()
-            .frame(height: 60)
-            .accessibilityLabel("Kept Pro")
-            .frame(maxWidth: .infinity)
+        HStack(spacing: 10) {
+            Image("KeptLockup")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 40)
+                .foregroundStyle(.primary)
+
+            Text("PRO")
+                .font(KeptFont.sans(12, weight: .bold, relativeTo: .caption))
+                .kerning(0.8)
+                .foregroundStyle(KeptColor.adaptiveOnInk)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(KeptColor.adaptiveInk))
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Kept Pro")
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Two-card price picker
@@ -159,9 +176,9 @@ struct PaywallView: View {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(
-                                Capsule().fill(Color(.systemGray5))
+                                Capsule().fill(Color.accentColor.opacity(0.18))
                             )
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
             }
@@ -170,15 +187,18 @@ struct PaywallView: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Color(.systemBackground) : Color(.secondarySystemBackground))
+                    .fill(isSelected
+                          ? Color(.secondarySystemGroupedBackground)
+                          : Color(.tertiarySystemGroupedBackground))
                     .shadow(
-                        color: isSelected ? .black.opacity(0.08) : .clear,
+                        color: isSelected ? .black.opacity(0.10) : .clear,
                         radius: 6, y: 2
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isSelected ? KeptColor.ink : Color(.systemGray5), lineWidth: isSelected ? 1.5 : 1)
+                    .stroke(isSelected ? KeptColor.adaptiveInk : Color.primary.opacity(0.08),
+                            lineWidth: isSelected ? 1.5 : 1)
             )
         }
         .buttonStyle(.plain)
@@ -200,7 +220,7 @@ struct PaywallView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.keptTitle3)
-                .foregroundStyle(KeptColor.ink)
+                .foregroundStyle(Color.accentColor)
             Text(text)
                 .font(.keptBody)
                 .foregroundStyle(.primary)
@@ -217,15 +237,15 @@ struct PaywallView: View {
                     if isWorking {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(.white)
+                            .tint(KeptColor.adaptiveOnInk)
                     }
                     Text(ctaLabel)
                         .font(.keptHeadline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(KeptColor.adaptiveOnInk)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(Capsule().fill(KeptColor.ink))
+                .background(Capsule().fill(KeptColor.adaptiveInk))
             }
             .buttonStyle(.plain)
             .disabled(isWorking || subscription.offering == nil)
@@ -245,7 +265,7 @@ struct PaywallView: View {
         .padding(.top, 12)
         .padding(.bottom, 6)
         .background(
-            Color(.systemBackground)
+            Color(.systemGroupedBackground)
                 .shadow(color: .black.opacity(0.04), radius: 6, y: -1)
         )
     }
