@@ -37,7 +37,7 @@ struct PaywallView: View {
         }
     }
 
-    private enum Selection: Hashable { case monthly, yearly }
+    private enum Selection: Hashable { case monthly, yearly, lifetime }
 
     var body: some View {
         NavigationStack {
@@ -55,6 +55,11 @@ struct PaywallView: View {
 
                     pricePicker
                         .padding(.horizontal, 20)
+
+                    if subscription.offering?.lifetime != nil {
+                        lifetimeCard
+                            .padding(.horizontal, 20)
+                    }
 
                     features
                         .padding(.horizontal, 24)
@@ -204,6 +209,78 @@ struct PaywallView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Lifetime one-shot
+
+    /// Full-width card for the non-consumable Lifetime option, rendered
+    /// underneath the sub row. Distinct layout (horizontal, "BEST VALUE"
+    /// chip) so it doesn't compete visually with the yearly SAVE badge.
+    private var lifetimeCard: some View {
+        let package = subscription.offering?.lifetime
+        let isSelected = selection == .lifetime
+        return Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                selection = .lifetime
+            }
+        } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text("Lifetime")
+                            .font(KeptFont.sans(17, weight: .semibold, relativeTo: .headline))
+                            .foregroundStyle(isSelected ? Color.primary : .secondary)
+
+                        Text("BEST VALUE")
+                            .font(KeptFont.sans(10, weight: .bold, relativeTo: .caption2))
+                            .kerning(0.6)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.accentColor.opacity(0.18)))
+                            .foregroundStyle(Color.accentColor)
+                    }
+
+                    Text("One-time payment · pay once, own forever")
+                        .font(.keptCaption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Spacer(minLength: 8)
+
+                if let package {
+                    Text(package.priceString)
+                        .font(KeptFont.sans(20, weight: .bold, relativeTo: .title3))
+                        .foregroundStyle(isSelected ? Color.primary : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                } else {
+                    Text("—")
+                        .font(KeptFont.sans(20, weight: .bold, relativeTo: .title3))
+                        .foregroundStyle(.tertiary)
+                        .redacted(reason: .placeholder)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected
+                          ? Color(.secondarySystemGroupedBackground)
+                          : Color(.tertiarySystemGroupedBackground))
+                    .shadow(
+                        color: isSelected ? .black.opacity(0.10) : .clear,
+                        radius: 6, y: 2
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? KeptColor.adaptiveInk : Color.primary.opacity(0.08),
+                            lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Features
 
     private var features: some View {
@@ -273,13 +350,20 @@ struct PaywallView: View {
 
     private var ctaLabel: String {
         guard currentPackage != nil else { return String(localized: "Continue") }
+        if selection == .lifetime { return String(localized: "Get Kept Pro forever") }
         return trialAvailable ? String(localized: "Start 7-day free trial") : String(localized: "Subscribe")
     }
 
     // Trial ends copy + Terms link — IFTTT-style fine print
     private var legalFineprint: some View {
         VStack(spacing: 4) {
-            if trialAvailable {
+            if selection == .lifetime {
+                Text("One-time purchase. No auto-renewal. Family Sharing included.")
+                    .font(.keptCaption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if trialAvailable {
                 Text(trialEndsCopy)
                     .font(.keptCaption)
                     .foregroundStyle(.secondary)
@@ -316,7 +400,11 @@ struct PaywallView: View {
 
     private var currentPackage: SubscriptionPackage? {
         guard let offering = subscription.offering else { return nil }
-        return selection == .yearly ? offering.yearly : offering.monthly
+        switch selection {
+        case .monthly:  return offering.monthly
+        case .yearly:   return offering.yearly
+        case .lifetime: return offering.lifetime
+        }
     }
 
     private var trialAvailable: Bool {

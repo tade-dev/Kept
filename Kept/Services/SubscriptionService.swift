@@ -54,10 +54,14 @@ protocol SubscriptionService: AnyObject {
     func restorePurchases() async throws -> Bool
 }
 
-/// Provider-agnostic offering: two packages (monthly + yearly).
+/// Provider-agnostic offering: recurring packages (monthly + yearly) plus an
+/// optional lifetime one-shot. `lifetime` is a non-consumable IAP surfaced
+/// alongside the subscriptions so users who won't tolerate recurring billing
+/// still have a way in.
 struct SubscriptionOffering: Equatable, Sendable {
     var monthly: SubscriptionPackage?
     var yearly: SubscriptionPackage?
+    var lifetime: SubscriptionPackage?
 }
 
 /// Snapshot of a live billing problem on the customer's subscription. Emitted

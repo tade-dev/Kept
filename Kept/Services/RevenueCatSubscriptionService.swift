@@ -157,6 +157,8 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             .first(where: { $0.storeProduct.productIdentifier == "pro_monthly" })
         let yearlyRC = current.availablePackages
             .first(where: { $0.storeProduct.productIdentifier == "pro_yearly" })
+        let lifetimeRC = current.availablePackages
+            .first(where: { $0.storeProduct.productIdentifier == "pro_lifetime" })
 
         let monthly = monthlyRC.map { package -> SubscriptionPackage in
             SubscriptionPackage(
@@ -188,7 +190,20 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             )
         }
 
-        return SubscriptionOffering(monthly: monthly, yearly: yearly)
+        // Lifetime is a non-consumable IAP — no subscription period, no intro
+        // offer, no savings math against a shorter cadence. Just a price and a
+        // "one-time" descriptor for the paywall.
+        let lifetime = lifetimeRC.map { package -> SubscriptionPackage in
+            SubscriptionPackage(
+                id: package.storeProduct.productIdentifier,
+                priceString: package.storeProduct.localizedPriceString,
+                periodString: "one-time",
+                introOfferString: nil,
+                savingsBadge: nil
+            )
+        }
+
+        return SubscriptionOffering(monthly: monthly, yearly: yearly, lifetime: lifetime)
     }
 
     private static func introCopy(for package: Package, fallbackPeriod: String) -> String? {

@@ -61,10 +61,17 @@ extension SubscriptionOffering {
         ),
         yearly: SubscriptionPackage(
             id: "pro_yearly",
-            priceString: "£29.99",
+            priceString: "£41.99",
             periodString: "per year",
-            introOfferString: "7-day free trial, then £29.99/year",
-            savingsBadge: "50% OFF"
+            introOfferString: "7-day free trial, then £41.99/year",
+            savingsBadge: "30% OFF"
+        ),
+        lifetime: SubscriptionPackage(
+            id: "pro_lifetime",
+            priceString: "£99.99",
+            periodString: "one-time",
+            introOfferString: nil,
+            savingsBadge: nil
         )
     )
 }
