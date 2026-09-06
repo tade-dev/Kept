@@ -20,6 +20,11 @@ export type PassRequest = {
   serialNumber: string;
 };
 
+export type TrialBoostRequest = {
+  /** The customer's RevenueCat appUserID (CloudKit-scoped in Kept). */
+  appUserID: string;
+};
+
 export type Env = {
   CF_ACCOUNT_ID: string;
   AI_GATEWAY_ID: string;
@@ -40,4 +45,9 @@ export type Env = {
   SIGNER_CERT_PEM?: string;
   SIGNER_KEY_PKCS8_PEM?: string;
   WWDR_PEM?: string;
+
+  /** RevenueCat REST API secret key — server-only, never exposed to clients. */
+  RC_SECRET_KEY?: string;
+  /** Entitlement identifier configured in the RC dashboard (e.g. "Kept Pro"). */
+  RC_ENTITLEMENT_IDENTIFIER?: string;
 };

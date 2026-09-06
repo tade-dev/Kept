@@ -441,6 +441,28 @@
         }
       }
     },
+    "7 days of Kept Pro" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "7 días de Kept Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "7 jours de Kept Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "赠送 7 天 Kept Pro"
+          }
+        }
+      }
+    },
     "A" : {
 
     },
@@ -5271,6 +5293,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "免费的五张已满,从这里开始保存每一份保修。"
+          }
+        }
+      }
+    },
+    "You've saved a few receipts already — here's a week of Kept Pro on us to see what the upgrade unlocks." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ya has guardado unos cuantos recibos — aquí tienes una semana de Kept Pro por nuestra cuenta para que veas lo que desbloquea la mejora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous avez déjà enregistré quelques reçus — voici une semaine de Kept Pro offerte pour découvrir ce que débloque cette version."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你已经保存了几张收据——送你一周的 Kept Pro,看看升级后能解锁什么。"
           }
         }
       }

@@ -576,6 +576,10 @@ final class SubscriptionAccess {
     func restorePurchases() async throws -> Bool {
         try await service.restorePurchases()
     }
+
+    func grantTrialBoost() async throws {
+        try await service.grantTrialBoost()
+    }
 }
 
 // MARK: - Previews

@@ -52,6 +52,15 @@ protocol SubscriptionService: AnyObject {
     /// Returns whether Pro was found and restored.
     @discardableResult
     func restorePurchases() async throws -> Bool
+
+    /// Asks Kept's Cloudflare Worker to grant this customer a 7-day
+    /// promotional Pro entitlement via RevenueCat's REST API. Called by the
+    /// engagement-based trial-boost flow — the app decides the customer is
+    /// engaged enough to deserve it, then this method actually mints the
+    /// entitlement. Returns once RC has confirmed the grant; the local
+    /// `isPro` update lands via the normal `customerInfoStream` shortly
+    /// after. Throws on network / auth failure.
+    func grantTrialBoost() async throws
 }
 
 /// Provider-agnostic offering: recurring packages (monthly + yearly) plus an

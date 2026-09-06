@@ -136,6 +136,53 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         }
     }
 
+    func grantTrialBoost() async throws {
+        guard let config = CloudExtractConfiguration.fromBundle()
+                ?? CloudExtractConfiguration.fromEnvironment() else {
+            throw SubscriptionServiceError.notConfigured
+        }
+        let appUserID = Purchases.shared.appUserID
+        let url = config.baseURL.appendingPathComponent("pro-boost")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(config.secret)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = max(config.timeout, 15)
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: ["appUserID": appUserID]
+        )
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain { throw SubscriptionServiceError.network }
+            throw SubscriptionServiceError.unknown
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw SubscriptionServiceError.unknown
+        }
+        switch http.statusCode {
+        case 200, 201:
+            _ = data  // response body ignored — success signal is the status
+        case 401, 403:
+            throw SubscriptionServiceError.notConfigured
+        default:
+            throw SubscriptionServiceError.unknown
+        }
+
+        // RC's live customerInfoStream will fire once its cache picks up the
+        // new promotional entitlement, but we can nudge it faster by asking
+        // for a fresh fetch right now — cuts the "granted, but paywall still
+        // says Free" gap from ~seconds to sub-second.
+        if let info = try? await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent) {
+            applyCustomerInfo(info)
+        }
+    }
+
     // MARK: - Internal
 
     /// Must match the entitlement identifier configured in the RevenueCat

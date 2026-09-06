@@ -18,6 +18,10 @@ struct LibraryView: View {
 
     @State private var isCapturing = false
     @State private var isSettingsPresented = false
+    /// Set to true after a successful trial-boost grant so the celebration
+    /// sheet appears once, then latches off via `TrialBoostEngagement.markGranted`.
+    @State private var isTrialBoostCelebrationPresented = false
+    @State private var isEvaluatingBoost = false
     /// Purchase to play the entry animation on (set from CaptureView.onSave,
     /// auto-cleared after the animation window elapses).
     @State private var justAddedPurchaseID: PersistentIdentifier?
@@ -77,6 +81,12 @@ struct LibraryView: View {
             .task {
                 await CoverageNotificationScheduler.rescheduleAll(purchases)
                 await WeeklySummaryScheduler.reschedule(with: purchases)
+            }
+            .task(id: purchases.count) {
+                await evaluateTrialBoost()
+            }
+            .sheet(isPresented: $isTrialBoostCelebrationPresented) {
+                TrialBoostCelebration()
             }
             .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
@@ -222,6 +232,31 @@ struct LibraryView: View {
         CoverageNotificationScheduler.cancel(for: purchase)
         modelContext.delete(purchase)
         deletedTick &+= 1
+    }
+
+    /// Checks the engagement rules and, if they pass, calls Kept's Cloudflare
+    /// Worker to grant 7 days of Pro via RevenueCat's REST API. On success
+    /// marks the boost as granted (persisted so we don't re-trigger) and
+    /// pops the celebration sheet. Failures are silent — the user just
+    /// keeps their Free tier, no error banner to distract from what they
+    /// were doing.
+    private func evaluateTrialBoost() async {
+        guard !isEvaluatingBoost else { return }
+        guard TrialBoostEngagement.shouldGrant(
+            purchaseCount: purchases.count,
+            isPro: subscription.isPro
+        ) else { return }
+        isEvaluatingBoost = true
+        defer { isEvaluatingBoost = false }
+        do {
+            try await subscription.grantTrialBoost()
+            TrialBoostEngagement.markGranted()
+            isTrialBoostCelebrationPresented = true
+        } catch {
+            // Swallowed intentionally — the boost is a bonus, not a
+            // guarantee. Next launch will re-evaluate if the user is still
+            // eligible inside the 24-hour window.
+        }
     }
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.

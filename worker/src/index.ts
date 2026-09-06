@@ -1,5 +1,6 @@
 import { extractWithLLM, UpstreamError } from "./llm";
 import { buildSignedPass, parsePassRequest } from "./pass";
+import { grantTrialBoost, parseTrialBoostRequest } from "./trialBoost";
 import type { Env, ExtractRequest, OCRLine } from "./types";
 
 export default {
@@ -34,8 +35,35 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/pass") {
     return handlePass(request, env);
   }
+  if (url.pathname === "/pro-boost") {
+    return handleTrialBoost(request, env);
+  }
 
   return json({ error: "Not found." }, 404);
+}
+
+async function handleTrialBoost(request: Request, env: Env): Promise<Response> {
+  if (!checkAuth(request, env)) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  const limited = await rateLimit(request, env);
+  if (limited) return limited;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const parsed = parseTrialBoostRequest(body);
+  if (!parsed) {
+    return json({ error: "Body must be { appUserID }." }, 400);
+  }
+
+  await grantTrialBoost(env, parsed);
+  return json({ ok: true });
 }
 
 async function handleExtract(request: Request, env: Env): Promise<Response> {

@@ -47,6 +47,12 @@ final class PreviewSubscriptionService: SubscriptionService {
         }
         return isPro
     }
+
+    func grantTrialBoost() async throws {
+        // In previews / tests just flip isPro so the celebration overlay
+        // and any Pro-gated UI reflect the granted entitlement.
+        isPro = true
+    }
 }
 
 extension SubscriptionOffering {
