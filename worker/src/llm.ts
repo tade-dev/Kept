@@ -20,10 +20,11 @@ type CompatChatResponse = {
 export async function extractWithLLM(
   env: Env,
   lines: OCRLine[],
+  modelOverride?: string,
 ): Promise<ExtractionResponse> {
   const accountId = env.CF_ACCOUNT_ID;
   const gatewayId = env.AI_GATEWAY_ID;
-  const model = env.LLM_MODEL || "openai/gpt-4o-mini";
+  const model = modelOverride || env.LLM_MODEL || "openai/gpt-4o-mini";
   const apiKey = resolveProviderKey(env);
 
   if (!accountId || accountId === "REPLACE_ME") {

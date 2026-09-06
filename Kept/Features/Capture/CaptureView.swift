@@ -5,6 +5,7 @@ struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(SubscriptionAccess.self) private var subscription
 
     @Namespace private var receiptNamespace
 
@@ -540,7 +541,11 @@ struct CaptureView: View {
         let floor = rulesExtractor.extract(from: lines)
         if let cloudExtractor {
             do {
-                let remote = try await cloudExtractor.extractDetailed(from: lines)
+                let proContext = ExtractionProContext.from(
+                    isPro: subscription.isPro,
+                    appUserID: subscription.appUserID
+                )
+                let remote = try await cloudExtractor.extractDetailed(from: lines, proContext: proContext)
                 // Server classified the document. If it's not a receipt, route
                 // to the rejection sheet instead of the review screen.
                 // Don't apply extraction (all fields are null anyway per the
