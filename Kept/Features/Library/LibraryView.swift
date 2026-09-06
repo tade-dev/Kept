@@ -84,6 +84,13 @@ struct LibraryView: View {
             }
             .task(id: purchases.count) {
                 await evaluateTrialBoost()
+                await evaluateFreeCapNudge()
+            }
+            .task(id: subscription.billingIssue) {
+                await evaluateBillingIssueNudge()
+            }
+            .task(id: subscription.proAccessExpiry) {
+                await evaluateProAccessEndingNudge()
             }
             .sheet(isPresented: $isTrialBoostCelebrationPresented) {
                 TrialBoostCelebration()
@@ -252,11 +259,41 @@ struct LibraryView: View {
             try await subscription.grantTrialBoost()
             TrialBoostEngagement.markGranted()
             isTrialBoostCelebrationPresented = true
+            await OfferNotificationScheduler.scheduleTrialBoostGrantedNudge()
         } catch {
             // Swallowed intentionally — the boost is a bonus, not a
             // guarantee. Next launch will re-evaluate if the user is still
             // eligible inside the 24-hour window.
         }
+    }
+
+    private func evaluateBillingIssueNudge() async {
+        if let issue = subscription.billingIssue {
+            await OfferNotificationScheduler.scheduleBillingIssueNudge(
+                gracePeriodEndsAt: issue.gracePeriodEndsAt
+            )
+        } else {
+            OfferNotificationScheduler.cancelBillingIssueNudge()
+        }
+    }
+
+    private func evaluateProAccessEndingNudge() async {
+        if let expiry = subscription.proAccessExpiry {
+            await OfferNotificationScheduler.scheduleProAccessEndingNudge(
+                endsAt: expiry.endsAt,
+                reason: expiry.reason
+            )
+        } else {
+            OfferNotificationScheduler.cancelProAccessEndingNudge()
+        }
+    }
+
+    private func evaluateFreeCapNudge() async {
+        // Fire when the user hits 4 saved receipts on the free tier — one
+        // short of the current cap. Once-per-install, gated inside the
+        // scheduler.
+        guard !subscription.isPro, purchases.count == 4 else { return }
+        await OfferNotificationScheduler.scheduleFreeCapApproachingNudge()
     }
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.

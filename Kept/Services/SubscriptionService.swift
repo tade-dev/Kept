@@ -29,6 +29,12 @@ protocol SubscriptionService: AnyObject {
     /// actually lapses.
     var billingIssue: BillingIssue? { get }
 
+    /// Non-nil when the customer's Pro access is time-limited (an Apple
+    /// intro trial or one of our promotional grants) and thus will lapse
+    /// unless they buy. Used by the offer-notification scheduler to plant
+    /// a "your Pro access ends in X days" nudge.
+    var proAccessExpiry: ProAccessExpiry? { get }
+
     /// Opaque, stable customer identifier used by the payment provider.
     /// Exposed for support-ticket copy — never rendered as primary UI.
     var appUserID: String { get }
@@ -83,6 +89,23 @@ struct BillingIssue: Equatable, Sendable {
     /// When the grace period ends — after this the entitlement is revoked.
     /// Nil when the provider doesn't expose an end date.
     var gracePeriodEndsAt: Date?
+}
+
+/// Details on when Kept Pro will lapse for a customer whose access is
+/// time-limited (Apple intro trial OR one of our promotional grants).
+/// Only non-nil while the entitlement is genuinely temporary — a paid
+/// auto-renewing sub returns nil because it doesn't need a "ending soon"
+/// nudge (it renews itself).
+struct ProAccessExpiry: Equatable, Sendable {
+    enum Reason: Equatable, Sendable {
+        /// Apple's built-in intro offer / free trial on a subscription.
+        case trial
+        /// A RevenueCat promotional entitlement (e.g. our trial boost).
+        case promotional
+    }
+
+    var endsAt: Date
+    var reason: Reason
 }
 
 /// Provider-agnostic package. All price data is pre-formatted for the local

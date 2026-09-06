@@ -419,6 +419,50 @@
         }
       }
     },
+    "3 days left on the Kept Pro we gave you. Grab a plan to keep it going." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quedan 3 días del Kept Pro que te regalamos. Elige un plan para seguir disfrutándolo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il reste 3 jours du Kept Pro que nous vous avons offert. Choisissez un plan pour continuer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "赠送给你的 Kept Pro 还剩 3 天。选择一个计划继续使用。"
+          }
+        }
+      }
+    },
+    "3 days left on your free trial. Pick a plan to keep unlimited receipts and the claim pack." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quedan 3 días de prueba gratuita. Elige un plan para conservar los recibos ilimitados y el paquete de reclamación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il reste 3 jours d'essai gratuit. Choisissez un plan pour garder les reçus illimités et le dossier de réclamation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "免费试用还剩 3 天。选择一个计划,保留无限收据和理赔资料。"
+          }
+        }
+      }
+    },
     "30-day return" : {
       "localizations" : {
         "es" : {
@@ -2124,8 +2168,52 @@
     "Kept Pro" : {
 
     },
+    "Kept Pro paused" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept Pro en pausa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept Pro en pause"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept Pro 已暂停"
+          }
+        }
+      }
+    },
     "Kept Pro pauses %@ — update your card to keep it" : {
 
+    },
+    "Kept Pro trial ending soon" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tu prueba de Kept Pro está por terminar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Votre essai de Kept Pro se termine bientôt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kept Pro 试用即将结束"
+          }
+        }
+      }
     },
     "Kept can't warn you before coverage ends until you allow notifications in iOS Settings." : {
       "localizations" : {
@@ -2922,6 +3010,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "本机 OCR"
+          }
+        }
+      }
+    },
+    "One receipt left" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Te queda un recibo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il vous reste un reçu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "还剩一张收据"
           }
         }
       }
@@ -4874,6 +4984,28 @@
         }
       }
     },
+    "Unlimited receipts, claim pack export, and everything else are unlocked for the next 7 days." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Recibos ilimitados, exportación del paquete de reclamación y todo lo demás desbloqueado durante los próximos 7 días."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reçus illimités, export du dossier de réclamation et tout le reste débloqués pendant 7 jours."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "接下来 7 天内解锁无限收据、理赔资料导出以及所有其他功能。"
+          }
+        }
+      }
+    },
     "Unlimited receipts, plus the claim pack for the day it matters." : {
       "localizations" : {
         "es" : {
@@ -5297,6 +5429,28 @@
         }
       }
     },
+    "You've saved 4 of your 5 free receipts. Kept Pro unlocks unlimited." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Has guardado 4 de tus 5 recibos gratuitos. Kept Pro desbloquea los recibos ilimitados."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous avez enregistré 4 de vos 5 reçus gratuits. Kept Pro débloque les reçus illimités."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你已保存 5 张免费收据中的 4 张。Kept Pro 解锁无限收据。"
+          }
+        }
+      }
+    },
     "You've saved a few receipts already — here's a week of Kept Pro on us to see what the upgrade unlocks." : {
       "localizations" : {
         "es" : {
@@ -5315,6 +5469,50 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "你已经保存了几张收据——送你一周的 Kept Pro,看看升级后能解锁什么。"
+          }
+        }
+      }
+    },
+    "Your bonus week ends soon" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tu semana de regalo está por terminar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Votre semaine offerte se termine bientôt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你的赠送周即将结束"
+          }
+        }
+      }
+    },
+    "Your card was declined. Update it in the App Store to keep Kept Pro active." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tu tarjeta fue rechazada. Actualízala en la App Store para mantener Kept Pro activo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Votre carte a été refusée. Mettez-la à jour dans l'App Store pour garder Kept Pro actif."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你的银行卡被拒。请在 App Store 中更新以保持 Kept Pro 有效。"
           }
         }
       }
@@ -5859,6 +6057,28 @@
     },
     "—" : {
 
+    },
+    "🎁 Enjoy your week of Kept Pro" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "🎁 Disfruta tu semana de Kept Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "🎁 Profitez de votre semaine de Kept Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "🎁 好好享受这一周的 Kept Pro"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

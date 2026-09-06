@@ -17,6 +17,7 @@ final class RevenueCatSubscriptionService: SubscriptionService {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
     private(set) var billingIssue: BillingIssue?
+    private(set) var proAccessExpiry: ProAccessExpiry?
     var appUserID: String { Purchases.shared.appUserID }
     var onChange: (@MainActor () -> Void)?
 
@@ -207,6 +208,29 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             )
         } else if billingIssue != nil {
             billingIssue = nil
+        }
+
+        // Time-limited Pro access (trial or promotional grant) — expose the
+        // expiry so the notification scheduler can plant an "ending soon"
+        // reminder. Paid auto-renewing subs return nil here since they
+        // don't need a nudge to convert.
+        //
+        // Two separate RC enums matter here: `periodType` distinguishes
+        // trial / intro from a normal paid period, while `store` tells us
+        // whether the entitlement came from Apple's IAP flow or was granted
+        // promotionally via our `/pro-boost` endpoint. Promo grants are
+        // never auto-renewing, so we always want to nudge; paid subs with
+        // `willRenew == true` are silent by design.
+        if let entitlement, active, let endsAt = entitlement.expirationDate {
+            if entitlement.store == .promotional {
+                proAccessExpiry = ProAccessExpiry(endsAt: endsAt, reason: .promotional)
+            } else if entitlement.periodType == .trial || entitlement.periodType == .intro {
+                proAccessExpiry = ProAccessExpiry(endsAt: endsAt, reason: .trial)
+            } else {
+                proAccessExpiry = nil
+            }
+        } else if proAccessExpiry != nil {
+            proAccessExpiry = nil
         }
 
         onChange?()
