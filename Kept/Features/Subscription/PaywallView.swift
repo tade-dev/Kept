@@ -43,6 +43,13 @@ struct PaywallView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 22) {
+                    if let welcomeBackSummary {
+                        winBackBanner(summary: welcomeBackSummary)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 4)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     brandBlock
                         .padding(.top, 8)
 
@@ -94,6 +101,51 @@ struct PaywallView: View {
             .sensoryFeedback(.success, trigger: successTick)
             .task { await subscription.refresh() }
         }
+    }
+
+    // MARK: - Win-back banner
+
+    /// The best win-back summary across all currently offered packages, or
+    /// nil when the customer isn't eligible for any. Non-nil == render the
+    /// banner. Rides on the offering's win-back state, so it lights up
+    /// automatically the moment RC + ASC surface an eligible offer.
+    private var welcomeBackSummary: String? {
+        subscription.offering?.yearly?.winBackOffer?.summary
+            ?? subscription.offering?.monthly?.winBackOffer?.summary
+    }
+
+    private func winBackBanner(summary: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Welcome back")
+                    .font(KeptFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                    .foregroundStyle(.primary)
+                Text(summary)
+                    .font(.keptCaption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.accentColor.opacity(0.10))
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Brand block
@@ -175,7 +227,21 @@ struct PaywallView: View {
                     Text(perLabel)
                         .font(.keptFootnote)
                         .foregroundStyle(.secondary)
-                    if let badge {
+                    // Win-back offer takes visual priority over the yearly
+                    // SAVE badge — it's a personalised deal for a lapsed
+                    // customer, so it should read first.
+                    if let winBack = package?.winBackOffer {
+                        Text(winBack.summary)
+                            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill(Color.accentColor.opacity(0.18))
+                            )
+                            .foregroundStyle(Color.accentColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    } else if let badge {
                         Text("SAVE \(badge)")
                             .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
                             .padding(.horizontal, 6)

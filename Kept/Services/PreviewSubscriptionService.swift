@@ -50,6 +50,20 @@ final class PreviewSubscriptionService: SubscriptionService {
 }
 
 extension SubscriptionOffering {
+    /// Default preview offering, but with a win-back offer attached to the
+    /// monthly package so the Paywall's welcome-back banner + per-card
+    /// discount pill render in previews without needing a live RC eligible
+    /// customer.
+    static var kept_withWinBack: SubscriptionOffering {
+        var o = kept_default
+        o.monthly?.winBackOffer = WinBackOffer(
+            identifier: "winback_monthly_50off_1mo",
+            priceString: "£2.49",
+            summary: "50% off first month"
+        )
+        return o
+    }
+
     /// Default preview offering — mirrors real Kept Pro pricing.
     static let kept_default = SubscriptionOffering(
         monthly: SubscriptionPackage(

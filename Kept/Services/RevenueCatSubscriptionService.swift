@@ -59,7 +59,16 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         let task = Task { [weak self] in
             do {
                 let offerings = try await Purchases.shared.offerings()
-                self?.offering = Self.mapOfferings(offerings)
+                var mapped = Self.mapOfferings(offerings)
+                // Merge in win-back offer eligibility (iOS 18+). Runs in
+                // parallel to keep the paywall's `.task` fast; if the SDK
+                // isn't available or the user isn't eligible, packages come
+                // back with `winBackOffer == nil` and the paywall renders
+                // normally.
+                if let current = offerings.current {
+                    mapped = await Self.attachingWinBackOffers(to: mapped, from: current)
+                }
+                self?.offering = mapped
                 self?.onChange?()
             } catch {
                 // Silent — paywall shows retry.
@@ -75,7 +84,21 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             throw SubscriptionServiceError.notConfigured
         }
         do {
-            let result = try await Purchases.shared.purchase(package: rcPackage)
+            // If the caller's package has a win-back offer attached, look
+            // it up on the RC package and route the purchase through the
+            // PurchaseParams builder so Apple applies the discount. Falls
+            // back to the vanilla purchase path when no offer is set
+            // (which is the normal case for new customers).
+            let result: PurchaseResultData
+            if let winBackID = package.winBackOffer?.identifier,
+               let rcOffer = try await eligibleWinBackOffer(for: rcPackage, matching: winBackID) {
+                let params = PurchaseParams.Builder(package: rcPackage)
+                    .with(winBackOffer: rcOffer)
+                    .build()
+                result = try await Purchases.shared.purchase(params)
+            } else {
+                result = try await Purchases.shared.purchase(package: rcPackage)
+            }
             if result.userCancelled {
                 throw SubscriptionServiceError.cancelled
             }
@@ -148,6 +171,85 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             return cached.availablePackages.first(where: { $0.storeProduct.productIdentifier == id })
         }
         return nil
+    }
+
+    /// Enriches an already-mapped `SubscriptionOffering` with win-back offer
+    /// eligibility for each package by asking RC per-package. Runs the
+    /// per-package fetches concurrently since they're independent network
+    /// calls. Failure to fetch a given package's offers is treated as "not
+    /// eligible" — the paywall will just render the normal price.
+    private static func attachingWinBackOffers(
+        to offering: SubscriptionOffering?,
+        from rcOffering: Offering
+    ) async -> SubscriptionOffering? {
+        guard var updated = offering else { return nil }
+        async let monthlyOffer = winBackOfferInfo(forProductID: "pro_monthly", in: rcOffering)
+        async let yearlyOffer  = winBackOfferInfo(forProductID: "pro_yearly",  in: rcOffering)
+        // pro_lifetime is a non-consumable — Apple's win-back mechanism only
+        // covers auto-renewing subs, so no need to query it.
+        let (m, y) = await (monthlyOffer, yearlyOffer)
+        if let m { updated.monthly?.winBackOffer = m }
+        if let y { updated.yearly?.winBackOffer = y }
+        return updated
+    }
+
+    private static func winBackOfferInfo(
+        forProductID id: String,
+        in rcOffering: Offering
+    ) async -> WinBackOffer? {
+        guard let package = rcOffering.availablePackages
+            .first(where: { $0.storeProduct.productIdentifier == id }) else { return nil }
+        let offers: [RevenueCat.WinBackOffer]
+        do {
+            offers = try await Purchases.shared.eligibleWinBackOffers(forPackage: package)
+        } catch {
+            return nil
+        }
+        guard let first = offers.first,
+              let identifier = first.discount.offerIdentifier else { return nil }
+        return WinBackOffer(
+            identifier: identifier,
+            priceString: first.discount.localizedPriceString,
+            summary: winBackSummary(for: first.discount, basePackage: package)
+        )
+    }
+
+    /// Resolves a specific eligible win-back offer by identifier so we can
+    /// hand it back to RC at purchase time.
+    private func eligibleWinBackOffer(
+        for rcPackage: Package,
+        matching identifier: String
+    ) async throws -> RevenueCat.WinBackOffer? {
+        let offers = try await Purchases.shared.eligibleWinBackOffers(forPackage: rcPackage)
+        return offers.first { $0.discount.offerIdentifier == identifier }
+    }
+
+    /// Turns an SK2 promotional discount into the plain-language paywall
+    /// summary. Reads mode + period + count and picks the cleanest phrasing.
+    private static func winBackSummary(
+        for discount: StoreProductDiscount,
+        basePackage: Package
+    ) -> String {
+        let periodCount = discount.numberOfPeriods
+        let periodName = periodString(discount.subscriptionPeriod.unit,
+                                      count: discount.subscriptionPeriod.value * periodCount)
+        switch discount.paymentMode {
+        case .freeTrial:
+            return "\(discount.subscriptionPeriod.value) \(periodName) free"
+        case .payAsYouGo, .payUpFront:
+            // Compute discount % vs base price for headline-style copy.
+            let base = basePackage.storeProduct.price
+            guard base > 0 else {
+                return "\(discount.localizedPriceString) for \(periodCount) \(periodName)"
+            }
+            let saved = (base - discount.price) / base
+            let pctNS = NSDecimalNumber(decimal: saved * Decimal(100))
+            let pct = Int(pctNS.doubleValue.rounded())
+            if pct >= 5 {
+                return "\(pct)% off first \(periodName)"
+            }
+            return "\(discount.localizedPriceString) for first \(periodName)"
+        }
     }
 
     private static func mapOfferings(_ offerings: Offerings) -> SubscriptionOffering? {

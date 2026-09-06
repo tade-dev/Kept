@@ -90,6 +90,28 @@ struct SubscriptionPackage: Equatable, Hashable, Sendable, Identifiable {
     var introOfferString: String?
     /// Optional badge like "50% OFF" for the yearly package on the paywall.
     var savingsBadge: String?
+    /// Non-nil when the customer is a lapsed subscriber Apple has flagged as
+    /// eligible for a win-back offer on this specific package. Populated from
+    /// RC's `eligibleWinBackOffers(forProduct:)` (iOS 18+). Views should read
+    /// this to show a "welcome back" banner + apply the offer at purchase
+    /// time; when nil the package purchases at its normal price.
+    var winBackOffer: WinBackOffer?
+}
+
+/// Discount details for a win-back offer the current customer is eligible
+/// for. Purely display data — the provider-specific offer object stays
+/// behind the service boundary so the view layer never touches RevenueCat
+/// or StoreKit types.
+struct WinBackOffer: Equatable, Hashable, Sendable {
+    /// Apple's offer identifier (matches what was configured in App Store
+    /// Connect). The concrete service uses this to look the offer back up
+    /// when calling `purchase(_:)`.
+    var identifier: String
+    /// Pre-formatted discounted price like "£2.49" or "Free".
+    var priceString: String
+    /// Short human summary for the paywall — "50% off first month",
+    /// "1 month free", etc. Generated in the service, not the view.
+    var summary: String
 }
 
 /// Plain-language errors surfaced to the paywall. Never leaks RC error codes.

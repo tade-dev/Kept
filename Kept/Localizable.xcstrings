@@ -5187,6 +5187,28 @@
         }
       }
     },
+    "Welcome back" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bienvenido de nuevo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bon retour"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "欢迎回来"
+          }
+        }
+      }
+    },
     "What we're doing" : {
       "localizations" : {
         "es" : {
