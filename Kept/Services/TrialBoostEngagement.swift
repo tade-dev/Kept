@@ -50,6 +50,16 @@ enum TrialBoostEngagement {
         return raw == 0 ? nil : Date(timeIntervalSince1970: raw)
     }
 
+    /// Clears both the granted flag and the first-launch anchor and re-
+    /// anchors first-launch to `now`, so an engaged user in the next 24h
+    /// will re-trigger the grant. Only surfaced via the DEBUG menu — not
+    /// called from shipping code. Useful for rehearsing the flow without a
+    /// fresh install.
+    static func resetForDebug(defaults: UserDefaults = .standard, now: Date = .now) {
+        defaults.removeObject(forKey: grantedKey)
+        defaults.set(now.timeIntervalSince1970, forKey: firstLaunchKey)
+    }
+
     // MARK: - Decision
 
     /// Whether we should attempt to grant the boost right now given the

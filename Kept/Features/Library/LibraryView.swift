@@ -151,6 +151,24 @@ struct LibraryView: View {
                                 }
                             }
                         }
+                        Section("Trial boost") {
+                            Button {
+                                // Preview the confetti + sheet without a
+                                // real RC grant. Purely UI iteration.
+                                isTrialBoostCelebrationPresented = true
+                            } label: {
+                                Label("Preview celebration sheet", systemImage: "sparkles")
+                            }
+                            Button {
+                                // Re-arm the flow: clear the "granted"
+                                // latch and re-anchor first-launch to
+                                // now so the next 3-receipt threshold
+                                // triggers the real grant path.
+                                TrialBoostEngagement.resetForDebug()
+                            } label: {
+                                Label("Reset engagement window", systemImage: "arrow.counterclockwise")
+                            }
+                        }
                     }
                 }
                 #endif
