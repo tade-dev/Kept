@@ -4,7 +4,13 @@ import SwiftUI
 /// Icon renders inside a white circle so it reads over either background without recoloring.
 struct OnboardingOptionRow: View {
     let icon: String
-    let title: String
+    /// Row title — a catalog key. Pass a literal at the call site so SwiftUI
+    /// resolves it against the localised strings.
+    let title: LocalizedStringKey
+    /// Row subtitle. Often built from a dynamic enum ("Electronics" →
+    /// "Phones, laptops, headphones.") that's already pre-localised via
+    /// `String(localized:)`, so callers hand us a plain string and we
+    /// display it verbatim rather than treating it as another key.
     var subtitle: String? = nil
     let selected: Bool
     let onTap: () -> Void

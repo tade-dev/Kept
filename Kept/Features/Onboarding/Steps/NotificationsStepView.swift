@@ -7,8 +7,8 @@ struct NotificationsStepView: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: headline,
-            subtitle: "No marketing, no upsell. Only the countdown."
+            titleText: Text(verbatim: headline),
+            subtitleText: Text("No marketing, no upsell. Only the countdown.")
         ) {
             VStack {
                 Spacer()

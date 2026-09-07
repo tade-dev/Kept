@@ -106,7 +106,7 @@ struct OnboardingView: View {
         coordinator.step == .privacy ? -32 : Spacing.sm
     }
 
-    private func singleCTA(_ label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func singleCTA(_ label: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.keptHeadline)

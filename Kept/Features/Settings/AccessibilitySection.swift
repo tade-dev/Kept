@@ -74,7 +74,9 @@ private struct TextSizeRow: View {
             icon: "textformat.size",
             tint: tint,
             label: "Text size",
-            detail: textSize == .system ? "System" : textSize.displayName
+            detail: textSize == .system
+                ? String(localized: "System")
+                : String(localized: LocalizedStringResource(stringLiteral: textSize.displayName))
         ) {
             isPresented = true
         }
@@ -95,7 +97,9 @@ private struct MotionRow: View {
             icon: "figure.walk.motion",
             tint: tint,
             label: "Motion",
-            detail: motion == .system ? "System" : "Reduced"
+            detail: motion == .system
+                ? String(localized: "System")
+                : String(localized: "Reduced")
         ) {
             isPresented = true
         }
@@ -116,7 +120,7 @@ private struct VoiceOverRow: View {
             icon: "speaker.wave.2.circle.fill",
             tint: tint,
             label: "VoiceOver",
-            detail: enabled ? "On" : "Off"
+            detail: enabled ? String(localized: "On") : String(localized: "Off")
         ) {
             isPresented = true
         }
@@ -143,7 +147,7 @@ private struct ContrastRow: View {
             icon: "circle.righthalf.filled",
             tint: tint,
             label: "Increase Contrast",
-            detail: enabled ? "On" : "Off"
+            detail: enabled ? String(localized: "On") : String(localized: "Off")
         ) {
             isPresented = true
         }

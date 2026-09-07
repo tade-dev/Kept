@@ -11,7 +11,7 @@ struct ExistingReceiptsStepView: View {
                 OnboardingOptionRow(
                     icon: "doc.on.doc",
                     title: "Yes, a few",
-                    subtitle: "Open the camera when I'm done.",
+                    subtitle: String(localized: "Open the camera when I'm done."),
                     selected: false
                 ) {
                     coordinator.result.hasExistingReceipts = true
@@ -21,7 +21,7 @@ struct ExistingReceiptsStepView: View {
                 OnboardingOptionRow(
                     icon: "sparkles",
                     title: "No, starting fresh",
-                    subtitle: "I'll scan as I buy from here.",
+                    subtitle: String(localized: "I'll scan as I buy from here."),
                     selected: false
                 ) {
                     coordinator.result.hasExistingReceipts = false

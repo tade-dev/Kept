@@ -87,7 +87,7 @@ struct PrivacyStepView: View {
         Divider().padding(.vertical, Spacing.sm)
     }
 
-    private func row(symbol: String, title: String, subtitle: String) -> some View {
+    private func row(symbol: String, title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: symbol)
                 .font(KeptFont.sans(16, weight: .semibold, relativeTo: .callout))
