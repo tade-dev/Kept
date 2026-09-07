@@ -1,202 +1,273 @@
 import SwiftUI
 
 /// A single-tap celebration sheet that pops after Kept's server has granted
-/// the user 7 days of Kept Pro because they hit the engagement threshold in
-/// the first 24 hours. A confetti burst plays on appear (respecting
-/// Reduce Motion), the gift emblem bounces, and copy fades in beneath.
+/// the user 7 days of Kept Pro for hitting the engagement threshold in the
+/// first 24 hours.
 ///
-/// The parent presents this via `.sheet(isPresented:)` — sheet dismissal
-/// (button tap or drag) hands control cleanly back to the library.
+/// Composition: the gift emblem is the visual origin — pulsing halo rings
+/// radiate outward, confetti explodes from the emblem's centre (real party-
+/// popper physics: radial burst first, then gravity kicks in), and the
+/// headline sits directly beneath. Continue button hugs the bottom safe
+/// area. The whole thing respects Reduce Motion — pulses go still,
+/// confetti disappears, gift bounces once.
 struct TrialBoostCelebration: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
     @State private var confettiSeed: Int = 0
+    /// Emblem centre in the sheet's coordinate space — measured from
+    /// `GeometryReader` so the confetti burst originates exactly on the
+    /// gift, not on some hard-coded x/y guess.
+    @State private var emblemCentre: CGPoint = .zero
 
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color(.systemGroupedBackground).ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                Spacer()
+                VStack(spacing: 0) {
+                    Spacer(minLength: 40)
 
-                emblem
-                    .scaleEffect(appeared ? 1 : 0.6)
-                    .opacity(appeared ? 1 : 0)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.72), value: appeared)
+                    emblem
+                        .background(emblemAnchor)
+                        .scaleEffect(appeared ? 1 : 0.55)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.spring(response: 0.55, dampingFraction: 0.68), value: appeared)
 
-                VStack(spacing: 10) {
+                    Spacer().frame(height: 32)
+
                     Text("7 days of Kept Pro")
-                        .font(.system(size: 30, weight: .bold, design: .serif))
+                        .font(.system(size: 32, weight: .bold, design: .serif))
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 16)
+                        .animation(.snappy(duration: 0.42).delay(0.15), value: appeared)
 
                     Text("You've saved a few receipts already — here's a week of Kept Pro on us to see what the upgrade unlocks.")
                         .font(.keptSubheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 32)
+                        .padding(.top, 12)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 12)
+                        .animation(.snappy(duration: 0.42).delay(0.22), value: appeared)
+
+                    Spacer(minLength: 24)
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Continue")
+                            .font(.keptHeadline)
+                            .foregroundStyle(KeptColor.adaptiveOnInk)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(Capsule().fill(KeptColor.adaptiveInk))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.snappy(duration: 0.32).delay(0.32), value: appeared)
                 }
-                .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 20)
-                .animation(.snappy(duration: 0.42).delay(0.12), value: appeared)
 
-                Spacer()
-
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Continue")
-                        .font(.keptHeadline)
-                        .foregroundStyle(KeptColor.adaptiveOnInk)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Capsule().fill(KeptColor.adaptiveInk))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
-                .opacity(appeared ? 1 : 0)
-                .animation(.snappy(duration: 0.32).delay(0.22), value: appeared)
-            }
-
-            // Confetti sits on top of everything else so pieces can drift
-            // across the emblem + copy without being clipped. Hit-testing
-            // disabled so tapping "Continue" through them still works.
-            if !reduceMotion {
-                ConfettiBurst(seed: confettiSeed)
+                // Confetti overlay — bursts radially from the emblem centre.
+                // Sits on top so pieces drift across copy without being
+                // clipped; hit-testing disabled so the CTA stays tappable
+                // through the falling particles.
+                if !reduceMotion, emblemCentre != .zero {
+                    ConfettiBurst(
+                        seed: confettiSeed,
+                        origin: emblemCentre,
+                        containerSize: geo.size
+                    )
                     .allowsHitTesting(false)
+                }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            appeared = true
-            // Bump seed so a re-presentation kicks off a fresh burst
-            // rather than reusing stale particles.
-            confettiSeed &+= 1
+            .coordinateSpace(name: "celebration")
+            .onAppear {
+                appeared = true
+                // Fresh seed so re-presentation triggers a new burst rather
+                // than reusing stale particles.
+                confettiSeed &+= 1
+            }
+            .onPreferenceChange(EmblemCentrePreference.self) { emblemCentre = $0 }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 
+    // MARK: - Emblem
+
     private var emblem: some View {
         ZStack {
+            // Halo rings — three concentric soft rings pulse outward,
+            // making the emblem read as the source of the celebration.
+            if !reduceMotion {
+                ForEach(0..<3) { index in
+                    PulsingHalo(delay: Double(index) * 0.4)
+                }
+            }
+
             Circle()
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.accentColor.opacity(0.22),
-                            Color.accentColor.opacity(0.08)
+                            Color.accentColor.opacity(0.28),
+                            Color.accentColor.opacity(0.10)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 128, height: 128)
+                .frame(width: 148, height: 148)
 
             Image(systemName: "gift.fill")
-                .font(.system(size: 54, weight: .regular))
+                .font(.system(size: 64, weight: .regular))
                 .foregroundStyle(Color.accentColor)
                 .symbolEffect(.bounce, options: .nonRepeating)
         }
         .accessibilityHidden(true)
     }
+
+    /// Invisible sibling that reports the emblem's centre in the parent's
+    /// coordinate space via a preference key. Lets the confetti burst
+    /// originate exactly on the gift without hard-coding coordinates.
+    private var emblemAnchor: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(
+                key: EmblemCentrePreference.self,
+                value: CGPoint(x: proxy.frame(in: .named("celebration")).midX,
+                               y: proxy.frame(in: .named("celebration")).midY)
+            )
+        }
+    }
+}
+
+// MARK: - Emblem centre preference
+
+private struct EmblemCentrePreference: PreferenceKey {
+    static var defaultValue: CGPoint = .zero
+    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {
+        value = nextValue()
+    }
+}
+
+// MARK: - Pulsing halo
+
+/// Single ring that scales up and fades to zero on a loop. Composed three
+/// times with staggered delay to give a "sonar" pulse.
+private struct PulsingHalo: View {
+    var delay: Double
+    @State private var pulsing = false
+
+    var body: some View {
+        Circle()
+            .stroke(Color.accentColor.opacity(0.32), lineWidth: 1.5)
+            .frame(width: 148, height: 148)
+            .scaleEffect(pulsing ? 1.55 : 0.9)
+            .opacity(pulsing ? 0 : 0.9)
+            .onAppear {
+                withAnimation(
+                    .easeOut(duration: 1.8)
+                        .repeatForever(autoreverses: false)
+                        .delay(delay)
+                ) {
+                    pulsing = true
+                }
+            }
+    }
 }
 
 // MARK: - Confetti
 
-/// Native SwiftUI confetti — no packages, no UIKit. Emits `count` particles
-/// from the top of the containing space, each with random horizontal drift,
-/// gravity, rotation, colour, and shape. The whole system finishes and
-/// fades out over `duration` seconds, then holds at rest.
+/// Native SwiftUI radial confetti. Bursts outward from `origin` for the
+/// first ~500ms, then gravity pulls the pieces down. All particles fade
+/// out over the last ~30% of the animation so a settled Canvas isn't
+/// stuck redrawing sprites forever.
 ///
-/// Reduce Motion callers should just not include this view — animation is
-/// the whole point and a static confetti frame would look broken.
+/// Reduce Motion callers should just not include this view.
 private struct ConfettiBurst: View {
-    /// Changes to `seed` reseed the particle set. Lets a parent re-fire the
-    /// burst on subsequent presentations of the same view instance.
     var seed: Int
-    var count: Int = 46
-    var duration: Double = 3.2
+    var origin: CGPoint
+    var containerSize: CGSize
+    var count: Int = 60
+    var duration: Double = 3.4
 
     @State private var startedAt: Date = .now
     @State private var particles: [Particle] = []
 
     var body: some View {
-        GeometryReader { geo in
-            TimelineView(.animation(minimumInterval: 1 / 60)) { context in
-                Canvas { ctx, size in
-                    // Pre-resolve one symbol per palette colour + kind so the
-                    // hot loop only translates/rotates instead of re-hosting a
-                    // View per particle per frame.
-                    let elapsed = context.date.timeIntervalSince(startedAt)
-                    let progress = min(elapsed / duration, 1)
-                    let overshoot = max(0, elapsed - duration)
+        TimelineView(.animation(minimumInterval: 1 / 60)) { context in
+            Canvas { ctx, _ in
+                let t = context.date.timeIntervalSince(startedAt)
+                let progress = min(t / duration, 1)
+                let overshoot = max(0, t - duration)
 
-                    for (index, particle) in particles.enumerated() {
-                        let t = elapsed
-                        let x = particle.originX * size.width
-                            + particle.velocityX * t
-                        let y = -particle.spawnOffsetY
-                            + particle.velocityY * t
-                            + 0.5 * particle.gravity * t * t
+                for (index, particle) in particles.enumerated() {
+                    // Radial burst → gravity. Initial radial velocity is
+                    // decayed exponentially so the "explosion" phase is
+                    // punchy up front then settles into a parabolic fall.
+                    let radialDecay = exp(-t * 2.2)
+                    let vx = particle.radialVX * radialDecay + particle.driftX
+                    let vy = particle.radialVY * radialDecay + particle.driftY
+                    let x = origin.x + vx * t
+                    let y = origin.y + vy * t + 0.5 * particle.gravity * t * t
 
-                        let fadeStart = 0.7
-                        let alpha: Double
-                        if overshoot > 0 {
-                            alpha = max(0, 1 - overshoot / 0.6)
-                        } else if progress > fadeStart {
-                            alpha = 1 - (progress - fadeStart) / (1 - fadeStart)
-                        } else {
-                            alpha = 1
-                        }
-                        if alpha <= 0.01 { continue }
+                    // Cull anything that's drifted way off-screen.
+                    if x < -60 || x > containerSize.width + 60 { continue }
+                    if y > containerSize.height + 60 { continue }
 
-                        // Symbols were registered as ForEach children on the
-                        // Canvas below with tag `particle.<index>` so the
-                        // Canvas can resolve them by tag in the draw loop.
-                        guard let symbol = ctx.resolveSymbol(id: index) else { continue }
-                        var frame = ctx
-                        frame.translateBy(x: x, y: y + size.height * 0.02)
-                        frame.rotate(by: .degrees(particle.rotationRate * t * 360))
-                        frame.opacity = alpha
-                        frame.draw(symbol, at: .zero, anchor: .center)
+                    let fadeStart = 0.72
+                    let alpha: Double
+                    if overshoot > 0 {
+                        alpha = max(0, 1 - overshoot / 0.5)
+                    } else if progress > fadeStart {
+                        alpha = 1 - (progress - fadeStart) / (1 - fadeStart)
+                    } else {
+                        alpha = 1
                     }
-                } symbols: {
-                    // One View per particle, tagged by its index. The Canvas
-                    // rasterises them once and re-uses them each frame — much
-                    // cheaper than resolving a fresh View per particle per
-                    // tick.
-                    ForEach(particles.indices, id: \.self) { index in
-                        particles[index].view.tag(index)
-                    }
+                    if alpha <= 0.02 { continue }
+
+                    guard let symbol = ctx.resolveSymbol(id: index) else { continue }
+                    var frame = ctx
+                    frame.translateBy(x: x, y: y)
+                    frame.rotate(by: .degrees(particle.rotationRate * t * 360))
+                    frame.opacity = alpha
+                    frame.draw(symbol, at: .zero, anchor: .center)
                 }
-                .onAppear { spawn(width: geo.size.width) }
-                .onChange(of: seed) {
-                    startedAt = .now
-                    spawn(width: geo.size.width)
+            } symbols: {
+                ForEach(particles.indices, id: \.self) { i in
+                    particles[i].view.tag(i)
                 }
+            }
+            .onAppear { spawn() }
+            .onChange(of: seed) {
+                startedAt = .now
+                spawn()
             }
         }
     }
 
-    // MARK: - Spawning
-
-    private func spawn(width: CGFloat) {
+    private func spawn() {
         var rng = SystemRandomNumberGenerator()
         particles = (0..<count).map { _ in Particle.random(rng: &rng) }
         startedAt = .now
     }
 
-    // MARK: - Particle model
-
     struct Particle {
-        var originX: Double            // 0…1 of container width
-        var spawnOffsetY: Double       // Points above the top edge — starts off-screen
-        var velocityX: Double          // pts/s
-        var velocityY: Double          // pts/s (downward on iOS = positive y)
-        var gravity: Double            // pts/s²
-        var rotationRate: Double       // full turns per second
+        /// Radial launch velocity components (fast at t=0, decay quickly).
+        var radialVX: Double
+        var radialVY: Double
+        /// Constant gentle drift that keeps working after the radial burst
+        /// has faded — spreads late particles horizontally.
+        var driftX: Double
+        var driftY: Double
+        var gravity: Double
+        var rotationRate: Double
         var size: CGFloat
         var color: Color
         var kind: Kind
@@ -204,23 +275,23 @@ private struct ConfettiBurst: View {
         enum Kind: CaseIterable { case rect, circle, sparkle }
 
         static func random(rng: inout SystemRandomNumberGenerator) -> Particle {
-            Particle(
-                originX: .random(in: 0.15...0.85, using: &rng),
-                spawnOffsetY: .random(in: 20...80, using: &rng),
-                velocityX: .random(in: -60...60, using: &rng),
-                velocityY: .random(in: 80...220, using: &rng),
-                gravity: .random(in: 340...440, using: &rng),
-                rotationRate: .random(in: -1.5...1.5, using: &rng),
-                size: .random(in: 6...12, using: &rng),
+            // Bias upward — most party poppers throw more up + out than
+            // down, so weight the launch cone toward the top hemisphere.
+            let angle = Double.random(in: -.pi ... 0, using: &rng)
+            let speed = Double.random(in: 260 ... 460, using: &rng)
+            return Particle(
+                radialVX: cos(angle) * speed,
+                radialVY: sin(angle) * speed,
+                driftX: .random(in: -30 ... 30, using: &rng),
+                driftY: .random(in: 20 ... 60, using: &rng),
+                gravity: .random(in: 380 ... 520, using: &rng),
+                rotationRate: .random(in: -1.8 ... 1.8, using: &rng),
+                size: .random(in: 6 ... 12, using: &rng),
                 color: Palette.random(using: &rng),
                 kind: Kind.allCases.randomElement(using: &rng) ?? .rect
             )
         }
 
-        /// SwiftUI view rendered for this particle. Registered once in the
-        /// Canvas `symbols:` block via a tag and re-used every frame — the
-        /// Canvas draw loop just translates + rotates the resolved symbol
-        /// rather than re-hosting a View per tick.
         @ViewBuilder
         var view: some View {
             switch kind {
@@ -258,5 +329,6 @@ private struct ConfettiBurst: View {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             TrialBoostCelebration()
+                .coordinateSpace(name: "celebration")
         }
 }

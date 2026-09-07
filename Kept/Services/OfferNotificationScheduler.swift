@@ -171,6 +171,25 @@ enum OfferNotificationScheduler {
 
     // MARK: - Debug reset
 
+    /// Fires the trial-boost celebration nudge in 5 seconds regardless of
+    /// the latch — used by the DEBUG menu to actually SEE the OS-level
+    /// notification instead of waiting the standard 4 hours after a real
+    /// grant. Bypasses `notificationsEnabled` too so a test doesn't need
+    /// the reminder toggle flipped on.
+    static func fireTrialBoostNudgeSoonForDebug() async {
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "🎁 Enjoy your week of Kept Pro")
+        content.body = String(localized: "Unlimited receipts, claim pack export, and everything else are unlocked for the next 7 days.")
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "\(ID.trialBoostGranted).debug",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        )
+        try? await center.add(request)
+    }
+
     /// Removes every offer notification and clears every latch. Not called
     /// from shipping code; exists so a debug menu (or a test) can rehearse
     /// the flows without a fresh install.

@@ -168,6 +168,16 @@ struct LibraryView: View {
                             } label: {
                                 Label("Reset engagement window", systemImage: "arrow.counterclockwise")
                             }
+                            Button {
+                                // Fire the OS-level celebration notification
+                                // in 5 seconds — bypasses the 4-hour delay +
+                                // once-per-install latch so you can actually
+                                // see it in the notification centre while
+                                // testing.
+                                Task { await OfferNotificationScheduler.fireTrialBoostNudgeSoonForDebug() }
+                            } label: {
+                                Label("Fire boost notification in 5s", systemImage: "bell.badge")
+                            }
                         }
                     }
                 }
