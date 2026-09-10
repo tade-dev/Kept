@@ -17,6 +17,7 @@ LLM_MODEL = "openai/gpt-4o-mini"
 # swapping identifiers here without re-uploading certs breaks /pass.
 PASS_TYPE_IDENTIFIER = "pass.com.tade.devpass"
 TEAM_IDENTIFIER = "TU566926VK"
+RC_ENTITLEMENT_IDENTIFIER = "Kept Pro"
 
 # Secrets (wrangler secret put / .dev.vars — never commit):
 #   EXTRACT_SECRET

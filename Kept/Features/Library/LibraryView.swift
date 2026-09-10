@@ -98,13 +98,10 @@ struct LibraryView: View {
             ) {
                 Button("Continue", role: .cancel) {}
             } message: {
-                Text("You've saved a few receipts already — here's a week on us to see what the upgrade unlocks.")
+                Text("You've saved a few receipts already here's a week on us to see what the upgrade unlocks.")
             }
             .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
-                // Principal placement replaces the text title with the
-                // seal + wordmark lockup. Template rendering + .primary
-                // foreground = auto-tints for light/dark mode.
                 ToolbarItem(placement: .principal) {
                     Image("KeptLockup")
                         .renderingMode(.template)
