@@ -19,8 +19,8 @@ struct LibraryView: View {
     @State private var isCapturing = false
     @State private var isSettingsPresented = false
     /// Set to true after a successful trial-boost grant so the celebration
-    /// sheet appears once, then latches off via `TrialBoostEngagement.markGranted`.
-    @State private var isTrialBoostCelebrationPresented = false
+    /// alert fires once, then latches off via `TrialBoostEngagement.markGranted`.
+    @State private var isTrialBoostAlertPresented = false
     @State private var isEvaluatingBoost = false
     /// Purchase to play the entry animation on (set from CaptureView.onSave,
     /// auto-cleared after the animation window elapses).
@@ -92,8 +92,13 @@ struct LibraryView: View {
             .task(id: subscription.proAccessExpiry) {
                 await evaluateProAccessEndingNudge()
             }
-            .sheet(isPresented: $isTrialBoostCelebrationPresented) {
-                TrialBoostCelebration()
+            .alert(
+                "Kept Pro unlocked for 7 days",
+                isPresented: $isTrialBoostAlertPresented
+            ) {
+                Button("Continue", role: .cancel) {}
+            } message: {
+                Text("You've saved a few receipts already — here's a week on us to see what the upgrade unlocks.")
             }
             .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
@@ -153,11 +158,11 @@ struct LibraryView: View {
                         }
                         Section("Trial boost") {
                             Button {
-                                // Preview the confetti + sheet without a
+                                // Preview the celebration alert without a
                                 // real RC grant. Purely UI iteration.
-                                isTrialBoostCelebrationPresented = true
+                                isTrialBoostAlertPresented = true
                             } label: {
-                                Label("Preview celebration sheet", systemImage: "sparkles")
+                                Label("Preview celebration alert", systemImage: "sparkles")
                             }
                             Button {
                                 // Re-arm the flow: clear the "granted"
@@ -286,7 +291,7 @@ struct LibraryView: View {
         do {
             try await subscription.grantTrialBoost()
             TrialBoostEngagement.markGranted()
-            isTrialBoostCelebrationPresented = true
+            isTrialBoostAlertPresented = true
             await OfferNotificationScheduler.scheduleTrialBoostGrantedNudge()
         } catch {
             // Swallowed intentionally — the boost is a bonus, not a
