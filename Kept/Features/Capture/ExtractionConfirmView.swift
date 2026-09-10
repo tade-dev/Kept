@@ -5,22 +5,16 @@ import SwiftData
 /// the receipt image is drawn by the parent (see `CaptureView`) so the
 /// scanning → confirm morph animates through a single shared image.
 struct ExtractionConfirmView: View {
-    /// Free tier item cap. See AGENTS.md / Monetisation.
-    static let freeItemCap = 5
-
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(SubscriptionAccess.self) private var subscription
 
-    /// Live count of stored purchases — used to enforce the free-tier cap
-    /// AFTER scan succeeds (never before). Query is reactive so upgrading to
-    /// Pro or deleting an item mid-flow immediately affects `canSave`.
-    @Query private var storedPurchases: [Purchase]
-
     @State private var model: ExtractionConfirmModel
     @State private var savedTick = 0
-    /// Set to `.capReached` when Save was blocked by the free cap. The paywall
-    /// sheet listens on this via the isPresented binding.
+    /// Reserved for future paywall triggers (Wallet pass add, claim-pack
+    /// export, etc.). The old free-tier cap was removed as a launch call —
+    /// Pro now sells on the premium features (Claim Pack, Family Sharing,
+    /// Pro extraction), not on a receipt-count wall.
     @State private var paywallReason: PaywallView.Reason?
 
     /// Fires with the inserted Purchase. Save is already committed by then;
@@ -393,14 +387,9 @@ struct ExtractionConfirmView: View {
     }
 
     private func save() {
-        // Free-tier cap: check AFTER scan succeeds (never before). Never
-        // block the camera; the user has already invested effort scanning
-        // and reviewing, so they see everything before hitting the wall.
-        if !subscription.isPro,
-           storedPurchases.count >= Self.freeItemCap {
-            paywallReason = .capReached
-            return
-        }
+        // Free tier is unlimited. Paywall triggers live on the premium-
+        // feature moments (Wallet pass add, claim-pack export, manual
+        // upgrade from Settings) — not on receipt count.
         commitSave()
     }
 

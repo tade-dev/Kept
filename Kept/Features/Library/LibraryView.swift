@@ -84,7 +84,6 @@ struct LibraryView: View {
             }
             .task(id: purchases.count) {
                 await evaluateTrialBoost()
-                await evaluateFreeCapNudge()
             }
             .task(id: subscription.billingIssue) {
                 await evaluateBillingIssueNudge()
@@ -316,14 +315,6 @@ struct LibraryView: View {
         } else {
             OfferNotificationScheduler.cancelProAccessEndingNudge()
         }
-    }
-
-    private func evaluateFreeCapNudge() async {
-        // Fire when the user hits 4 saved receipts on the free tier — one
-        // short of the current cap. Once-per-install, gated inside the
-        // scheduler.
-        guard !subscription.isPro, purchases.count == 4 else { return }
-        await OfferNotificationScheduler.scheduleFreeCapApproachingNudge()
     }
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.
