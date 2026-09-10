@@ -12,6 +12,10 @@ AI_GATEWAY_ID = "kept"
 #   anthropic/claude-haiku-4-5
 #   google-ai-studio/gemini-2.0-flash
 LLM_MODEL = "openai/gpt-4o-mini"
+# Pro-tier extraction model. Served only to customers whose Pro
+# entitlement is verified against RC on each /extract request; free
+# users always get LLM_MODEL. Unset → Pro users silently fall back.
+LLM_MODEL_PRO = "openai/gpt-4o"
 # Wallet pass identity (public). PEMs are secrets — see docs/PASS_CERTS.md
 # The signing certificate on Cloudflare is issued for `pass.com.tade.devpass`;
 # swapping identifiers here without re-uploading certs breaks /pass.
