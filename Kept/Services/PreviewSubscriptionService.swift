@@ -10,6 +10,8 @@ import Observation
 final class PreviewSubscriptionService: SubscriptionService {
     var isPro: Bool { didSet { onChange?() } }
     var offering: SubscriptionOffering? { didSet { onChange?() } }
+    var billingIssue: BillingIssue? { didSet { onChange?() } }
+    var proAccessExpiry: ProAccessExpiry? { didSet { onChange?() } }
     var appUserID: String = "preview_app_user"
     var onChange: (@MainActor () -> Void)?
     /// Override to make `purchase(_:)` throw a specific error in previews / tests.
@@ -18,10 +20,14 @@ final class PreviewSubscriptionService: SubscriptionService {
     init(
         isPro: Bool = false,
         offering: SubscriptionOffering? = .kept_default,
+        billingIssue: BillingIssue? = nil,
+        proAccessExpiry: ProAccessExpiry? = nil,
         nextPurchaseError: SubscriptionServiceError? = nil
     ) {
         self.isPro = isPro
         self.offering = offering
+        self.billingIssue = billingIssue
+        self.proAccessExpiry = proAccessExpiry
         self.nextPurchaseError = nextPurchaseError
     }
 
@@ -44,9 +50,29 @@ final class PreviewSubscriptionService: SubscriptionService {
         }
         return isPro
     }
+
+    func grantTrialBoost() async throws {
+        // In previews / tests just flip isPro so the celebration overlay
+        // and any Pro-gated UI reflect the granted entitlement.
+        isPro = true
+    }
 }
 
 extension SubscriptionOffering {
+    /// Default preview offering, but with a win-back offer attached to the
+    /// monthly package so the Paywall's welcome-back banner + per-card
+    /// discount pill render in previews without needing a live RC eligible
+    /// customer.
+    static var kept_withWinBack: SubscriptionOffering {
+        var o = kept_default
+        o.monthly?.winBackOffer = WinBackOffer(
+            identifier: "winback_monthly_50off_1mo",
+            priceString: "£2.49",
+            summary: "50% off first month"
+        )
+        return o
+    }
+
     /// Default preview offering — mirrors real Kept Pro pricing.
     static let kept_default = SubscriptionOffering(
         monthly: SubscriptionPackage(
@@ -58,10 +84,17 @@ extension SubscriptionOffering {
         ),
         yearly: SubscriptionPackage(
             id: "pro_yearly",
-            priceString: "£29.99",
+            priceString: "£41.99",
             periodString: "per year",
-            introOfferString: "7-day free trial, then £29.99/year",
-            savingsBadge: "50% OFF"
+            introOfferString: "7-day free trial, then £41.99/year",
+            savingsBadge: "30% OFF"
+        ),
+        lifetime: SubscriptionPackage(
+            id: "pro_lifetime",
+            priceString: "£99.99",
+            periodString: "one-time",
+            introOfferString: nil,
+            savingsBadge: nil
         )
     )
 }

@@ -9,7 +9,11 @@ import SwiftUI
 struct AccessibilityTile: View {
     let icon: String
     let tint: Color
-    let label: String
+    /// Row title. Pass a literal — treated as a catalog key so it localises.
+    let label: LocalizedStringKey
+    /// Trailing value on the row. This is usually a dynamic string sourced
+    /// from a state enum ("Large" / "System" / "Off"), so callers pre-
+    /// localise it via `String(localized:)` and we render verbatim.
     var detail: String? = nil
     let action: () -> Void
 
@@ -21,7 +25,7 @@ struct AccessibilityTile: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 if let detail {
-                    Text(detail)
+                    Text(verbatim: detail)
                         .foregroundStyle(.secondary)
                 }
                 Image(systemName: "chevron.right")
@@ -31,9 +35,8 @@ struct AccessibilityTile: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .accessibilityValue(detail ?? "")
-        .accessibilityHint("Opens Kept's \(label.lowercased()) settings.")
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(verbatim: detail ?? ""))
     }
 
     private var iconTile: some View {

@@ -7,6 +7,7 @@ import PhotosUI
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(SubscriptionAccess.self) private var subscription
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
@@ -17,6 +18,10 @@ struct LibraryView: View {
 
     @State private var isCapturing = false
     @State private var isSettingsPresented = false
+    /// Set to true after a successful trial-boost grant so the celebration
+    /// alert fires once, then latches off via `TrialBoostEngagement.markGranted`.
+    @State private var isTrialBoostAlertPresented = false
+    @State private var isEvaluatingBoost = false
     /// Purchase to play the entry animation on (set from CaptureView.onSave,
     /// auto-cleared after the animation window elapses).
     @State private var justAddedPurchaseID: PersistentIdentifier?
@@ -60,6 +65,13 @@ struct LibraryView: View {
                     modeContent
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let issue = subscription.billingIssue {
+                    BillingIssueBanner(issue: issue)
+                        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.32),
+                                   value: issue)
+                }
+            }
             .navigationTitle("Kept")  // stays for VoiceOver / back-button labelling
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Purchase.self) { purchase in
@@ -70,11 +82,26 @@ struct LibraryView: View {
                 await CoverageNotificationScheduler.rescheduleAll(purchases)
                 await WeeklySummaryScheduler.reschedule(with: purchases)
             }
+            .task(id: purchases.count) {
+                await evaluateTrialBoost()
+                await evaluateFreeCapNudge()
+            }
+            .task(id: subscription.billingIssue) {
+                await evaluateBillingIssueNudge()
+            }
+            .task(id: subscription.proAccessExpiry) {
+                await evaluateProAccessEndingNudge()
+            }
+            .alert(
+                "Kept Pro unlocked for 7 days",
+                isPresented: $isTrialBoostAlertPresented
+            ) {
+                Button("Continue", role: .cancel) {}
+            } message: {
+                Text("You've saved a few receipts already here's a week on us to see what the upgrade unlocks.")
+            }
             .sensoryFeedback(.impact(weight: .light), trigger: deletedTick)
             .toolbar {
-                // Principal placement replaces the text title with the
-                // seal + wordmark lockup. Template rendering + .primary
-                // foreground = auto-tints for light/dark mode.
                 ToolbarItem(placement: .principal) {
                     Image("KeptLockup")
                         .renderingMode(.template)
@@ -124,6 +151,34 @@ struct LibraryView: View {
                                         }
                                     }
                                 }
+                            }
+                        }
+                        Section("Trial boost") {
+                            Button {
+                                // Preview the celebration alert without a
+                                // real RC grant. Purely UI iteration.
+                                isTrialBoostAlertPresented = true
+                            } label: {
+                                Label("Preview celebration alert", systemImage: "sparkles")
+                            }
+                            Button {
+                                // Re-arm the flow: clear the "granted"
+                                // latch and re-anchor first-launch to
+                                // now so the next 3-receipt threshold
+                                // triggers the real grant path.
+                                TrialBoostEngagement.resetForDebug()
+                            } label: {
+                                Label("Reset engagement window", systemImage: "arrow.counterclockwise")
+                            }
+                            Button {
+                                // Fire the OS-level celebration notification
+                                // in 5 seconds — bypasses the 4-hour delay +
+                                // once-per-install latch so you can actually
+                                // see it in the notification centre while
+                                // testing.
+                                Task { await OfferNotificationScheduler.fireTrialBoostNudgeSoonForDebug() }
+                            } label: {
+                                Label("Fire boost notification in 5s", systemImage: "bell.badge")
                             }
                         }
                     }
@@ -214,6 +269,61 @@ struct LibraryView: View {
         CoverageNotificationScheduler.cancel(for: purchase)
         modelContext.delete(purchase)
         deletedTick &+= 1
+    }
+
+    /// Checks the engagement rules and, if they pass, calls Kept's Cloudflare
+    /// Worker to grant 7 days of Pro via RevenueCat's REST API. On success
+    /// marks the boost as granted (persisted so we don't re-trigger) and
+    /// pops the celebration sheet. Failures are silent — the user just
+    /// keeps their Free tier, no error banner to distract from what they
+    /// were doing.
+    private func evaluateTrialBoost() async {
+        guard !isEvaluatingBoost else { return }
+        guard TrialBoostEngagement.shouldGrant(
+            purchaseCount: purchases.count,
+            isPro: subscription.isPro
+        ) else { return }
+        isEvaluatingBoost = true
+        defer { isEvaluatingBoost = false }
+        do {
+            try await subscription.grantTrialBoost()
+            TrialBoostEngagement.markGranted()
+            isTrialBoostAlertPresented = true
+            await OfferNotificationScheduler.scheduleTrialBoostGrantedNudge()
+        } catch {
+            // Swallowed intentionally — the boost is a bonus, not a
+            // guarantee. Next launch will re-evaluate if the user is still
+            // eligible inside the 24-hour window.
+        }
+    }
+
+    private func evaluateBillingIssueNudge() async {
+        if let issue = subscription.billingIssue {
+            await OfferNotificationScheduler.scheduleBillingIssueNudge(
+                gracePeriodEndsAt: issue.gracePeriodEndsAt
+            )
+        } else {
+            OfferNotificationScheduler.cancelBillingIssueNudge()
+        }
+    }
+
+    private func evaluateProAccessEndingNudge() async {
+        if let expiry = subscription.proAccessExpiry {
+            await OfferNotificationScheduler.scheduleProAccessEndingNudge(
+                endsAt: expiry.endsAt,
+                reason: expiry.reason
+            )
+        } else {
+            OfferNotificationScheduler.cancelProAccessEndingNudge()
+        }
+    }
+
+    private func evaluateFreeCapNudge() async {
+        // Fire when the user hits 4 saved receipts on the free tier — one
+        // short of the current cap. Once-per-install, gated inside the
+        // scheduler.
+        guard !subscription.isPro, purchases.count == 4 else { return }
+        await OfferNotificationScheduler.scheduleFreeCapApproachingNudge()
     }
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.

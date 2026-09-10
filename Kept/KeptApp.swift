@@ -3,14 +3,18 @@ import SwiftData
 
 @main
 struct KeptApp: App {
-    /// Real subscription service, kept alive for the app's lifetime. Injected
-    /// into the view hierarchy via `.environment(subscriptionAccess)` so views
-    /// see only `SubscriptionAccess` and never import RevenueCat directly.
     @State private var subscriptionAccess: SubscriptionAccess = {
         RevenueCatBootstrap.configure()
         BricolageAppearance.apply()
         return SubscriptionAccess(service: RevenueCatSubscriptionService())
     }()
+
+    init() {
+        // Anchor the "first 24 hours" engagement window on the earliest
+        // possible signal — the very first cold launch. Idempotent on
+        // every subsequent launch. Feeds `TrialBoostEngagement.shouldGrant`.
+        TrialBoostEngagement.noteAppLaunch()
+    }
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -18,19 +22,6 @@ struct KeptApp: App {
             WarrantyTerm.self,
             PassRecord.self,
         ])
-        // `cloudKitDatabase: .automatic` opts the local SwiftData store into
-        // CloudKit sync via NSPersistentCloudKitContainer. Every model here
-        // has been audited for CloudKit compatibility (every stored property
-        // has a default, every relationship optional, no @Attribute(.unique)).
-        //
-        // Fail-safe: if the user is signed out of iCloud, restricted, or the
-        // container is otherwise unavailable, the store still works locally —
-        // sync just stays quiet until iCloud comes back. No error banner, no
-        // nag. Sync is trust infrastructure, not a feature.
-        //
-        // Receipt images (@Attribute(.externalStorage)) sync as CKAssets and
-        // do not count against the record size budget — they live in the
-        // user's own iCloud storage quota.
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,

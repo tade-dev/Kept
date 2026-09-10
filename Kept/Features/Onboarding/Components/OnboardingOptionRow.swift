@@ -4,7 +4,13 @@ import SwiftUI
 /// Icon renders inside a white circle so it reads over either background without recoloring.
 struct OnboardingOptionRow: View {
     let icon: String
-    let title: String
+    /// Row title — a catalog key. Pass a literal at the call site so SwiftUI
+    /// resolves it against the localised strings.
+    let title: LocalizedStringKey
+    /// Row subtitle. Often built from a dynamic enum ("Electronics" →
+    /// "Phones, laptops, headphones.") that's already pre-localised via
+    /// `String(localized:)`, so callers hand us a plain string and we
+    /// display it verbatim rather than treating it as another key.
     var subtitle: String? = nil
     let selected: Bool
     let onTap: () -> Void
@@ -16,17 +22,17 @@ struct OnboardingOptionRow: View {
                     .font(KeptFont.sans(18, weight: .semibold, relativeTo: .body))
                     .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white))
+                    .background(Circle().fill(KeptColor.adaptiveOnInk))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.keptTitle3)
-                        .foregroundStyle(selected ? KeptColor.onInk : .primary)
+                        .foregroundStyle(selected ? KeptColor.adaptiveOnInk : .primary)
 
                     if let subtitle {
                         Text(subtitle)
                             .font(.keptSubheadline)
-                            .foregroundStyle(selected ? KeptColor.onInk.opacity(0.75) : .secondary)
+                            .foregroundStyle(selected ? KeptColor.adaptiveOnInk.opacity(0.75) : .secondary)
                     }
                 }
 
@@ -36,7 +42,7 @@ struct OnboardingOptionRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(selected ? KeptColor.ink : Color(.secondarySystemBackground))
+                    .fill(selected ? KeptColor.adaptiveInk : Color(.secondarySystemBackground))
             )
         }
         .buttonStyle(.plain)

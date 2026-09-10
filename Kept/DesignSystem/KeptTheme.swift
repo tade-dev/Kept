@@ -17,6 +17,24 @@ enum KeptColor {
 
     /// Foreground that reads on `ink` fills.
     static let onInk = Color.white
+
+    /// Ink-toned fill that flips in dark mode. Use for primary buttons and
+    /// chrome that should keep an "ink slab" identity in both appearances —
+    /// deep navy on light, warm paper on dark. Pair with `adaptiveOnInk` for
+    /// legible text on top.
+    static let adaptiveInk = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0.960, green: 0.960, blue: 0.933, alpha: 1.0)
+            : UIColor(red: 0.055, green: 0.090, blue: 0.165, alpha: 1.0)
+    })
+
+    /// Foreground counterpart to `adaptiveInk`. Renders as paper-white in
+    /// light mode (on ink) and as ink in dark mode (on paper).
+    static let adaptiveOnInk = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0.055, green: 0.090, blue: 0.165, alpha: 1.0)
+            : UIColor.white
+    })
 }
 
 /// Spacing scale. Prefer these to raw pixel constants.

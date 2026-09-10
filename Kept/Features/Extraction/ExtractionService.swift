@@ -29,13 +29,23 @@ struct DefaultExtractionService: ExtractionService {
     var model: ModelExtractor = ModelExtractor()
 
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
+        try await extract(from: lines, proContext: nil)
+    }
+
+    /// Same as `extract(from:)` but threads a Pro-tier auth context to the
+    /// cloud extractor so verified-Pro customers are served the Pro model.
+    /// Passing `nil` matches free-tier behaviour.
+    func extract(
+        from lines: [RecognizedLine],
+        proContext: ExtractionProContext?
+    ) async throws -> ExtractedReceipt {
         guard !lines.isEmpty else { throw ExtractionError.emptyInput }
 
         let floor = rules.extract(from: lines)
 
         if let cloud {
             do {
-                let remote = try await cloud.extract(from: lines)
+                let remote = try await cloud.extract(from: lines, proContext: proContext)
                 return CloudExtractor.merge(rules: floor, cloud: remote)
             } catch {
                 // Soft-fail: never block capture. Caller should persist OCR for re-extract.

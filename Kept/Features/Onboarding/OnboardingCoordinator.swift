@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 /// Eight ordered steps. Progress bar + back chevron only on 1–6.
 enum OnboardingStep: Int, CaseIterable, Identifiable {
@@ -43,7 +44,7 @@ enum TrackedCategory: String, CaseIterable, Identifiable, Codable, Hashable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringKey {
         switch self {
         case .electronics: "Electronics"
         case .appliances: "Appliances"

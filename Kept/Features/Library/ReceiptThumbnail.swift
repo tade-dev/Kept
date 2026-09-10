@@ -29,12 +29,12 @@ struct ReceiptThumbnail: View {
 extension Purchase {
     var displayMerchant: String {
         let trimmed = merchant.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? "Unnamed" : trimmed
+        return trimmed.isEmpty ? String(localized: "Unnamed", comment: "Fallback when a purchase has no merchant") : trimmed
     }
 
     var displayItem: String {
         let trimmed = itemName.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? "Receipt" : trimmed
+        return trimmed.isEmpty ? String(localized: "Receipt", comment: "Fallback when a purchase has no item name") : trimmed
     }
 
     var finderMetadata: String {
@@ -60,10 +60,11 @@ extension Purchase {
 
         let merchantTrimmed = merchant.trimmingCharacters(in: .whitespaces)
         if !merchantTrimmed.isEmpty {
-            parts.append("from \(merchantTrimmed)")
+            parts.append(String(localized: "from \(merchantTrimmed)", comment: "VoiceOver: '<item> from <merchant>'"))
         }
 
-        parts.append("purchased \(purchaseDate.formatted(.dateTime.day().month().year()))")
+        let dateString = purchaseDate.formatted(.dateTime.day().month().year())
+        parts.append(String(localized: "purchased \(dateString)", comment: "VoiceOver purchase-date fragment"))
 
         if let term = nextDeadline {
             parts.append(coverageDescription(for: term))
@@ -78,18 +79,26 @@ extension Purchase {
             from: Calendar.current.startOfDay(for: .now),
             to: Calendar.current.startOfDay(for: term.expiryDate)
         ).day ?? 0
-        let kindWord = term.kind == .returnWindow ? "return window" : "warranty"
+        let isReturn = term.kind == .returnWindow
 
         if days > 1 {
-            return "\(kindWord) ends in \(days) days"
+            return isReturn
+                ? String(localized: "return window ends in \(days) days", comment: "VoiceOver return-window countdown; needs plural handling")
+                : String(localized: "warranty ends in \(days) days", comment: "VoiceOver warranty countdown; needs plural handling")
         }
         if days == 1 {
-            return "\(kindWord) ends tomorrow"
+            return isReturn
+                ? String(localized: "return window ends tomorrow")
+                : String(localized: "warranty ends tomorrow")
         }
         if days == 0 {
-            return "\(kindWord) ends today"
+            return isReturn
+                ? String(localized: "return window ends today")
+                : String(localized: "warranty ends today")
         }
         let ago = -days
-        return "\(kindWord) ended \(ago) \(ago == 1 ? "day" : "days") ago"
+        return isReturn
+            ? String(localized: "return window ended \(ago) days ago", comment: "VoiceOver expired return; needs plural handling")
+            : String(localized: "warranty ended \(ago) days ago", comment: "VoiceOver expired warranty; needs plural handling")
     }
 }

@@ -26,9 +26,9 @@ struct CoverageCard: View {
 
         var label: String {
             switch self {
-            case .covered:    "Covered"
-            case .endingSoon: "Ending soon"
-            case .expired:    "Expired"
+            case .covered:    String(localized: "Covered")
+            case .endingSoon: String(localized: "Ending soon")
+            case .expired:    String(localized: "Expired")
             }
         }
     }
@@ -86,7 +86,10 @@ struct CoverageCard: View {
                         .monospacedDigit()
                         .foregroundStyle(state.accent)
                         .contentTransition(.numericText(countsDown: true))
-                    Text(daysRemaining == 1 ? "day left" : "days left")
+                    // Two separate keys because the count renders as its own
+                    // display element above; localizers can adjust the noun
+                    // form directly per language.
+                    Text(daysRemaining == 1 ? "day left" : "days left", comment: "Coverage countdown subtitle next to the big day number")
                         .font(.keptSubheadline)
                         .foregroundStyle(.secondary)
                 }

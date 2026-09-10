@@ -152,8 +152,26 @@ function buildPassJson(env: Env, request: PassRequest) {
         ? PASS_THEME.urgent
         : PASS_THEME.calm;
 
-  const daysLabel =
-    daysRemaining <= 0 ? "ENDED" : daysRemaining === 1 ? "DAY LEFT" : "DAYS LEFT";
+  // Header field renders as a Wallet-native relative date ("in 45 days" /
+  // "Tomorrow" / "Today" / "Yesterday"). PassKit re-evaluates it every time
+  // the pass is displayed, so the countdown stays live for the life of the
+  // pass with no server round-trip. If the date is invalid, fall back to
+  // static text so we still render something sensible.
+  const headerField = endsValid
+    ? {
+        key: "days",
+        label: "COVER",
+        value: ends.toISOString(),
+        dateStyle: "PKDateStyleShort",
+        isRelative: true,
+        textAlignment: "PKTextAlignmentRight",
+      }
+    : {
+        key: "days",
+        label: "COVER",
+        value: "—",
+        textAlignment: "PKTextAlignmentRight",
+      };
 
   return {
     formatVersion: 1,
@@ -170,14 +188,7 @@ function buildPassJson(env: Env, request: PassRequest) {
     expirationDate: endsValid ? ends.toISOString() : undefined,
     relevantDate: endsValid ? ends.toISOString() : undefined,
     generic: {
-      headerFields: [
-        {
-          key: "days",
-          label: daysLabel,
-          value: String(daysRemaining),
-          textAlignment: "PKTextAlignmentRight",
-        },
-      ],
+      headerFields: [headerField],
       primaryFields: [
         {
           key: "item",

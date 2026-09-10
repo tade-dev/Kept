@@ -3,6 +3,7 @@ import SwiftData
 
 struct PurchaseDetailView: View {
     @Bindable var purchase: Purchase
+    @Environment(SubscriptionAccess.self) private var subscription
 
     @State private var warrantyMonthsText: String = ""
     @State private var returnDaysText: String = ""
@@ -270,7 +271,11 @@ struct PurchaseDetailView: View {
         guard !lines.isEmpty else { return }
 
         let service = DefaultExtractionService()
-        guard let receipt = try? await service.extract(from: lines) else { return }
+        let proContext = ExtractionProContext.from(
+            isPro: subscription.isPro,
+            appUserID: subscription.appUserID
+        )
+        guard let receipt = try? await service.extract(from: lines, proContext: proContext) else { return }
         let extraction = ReceiptExtraction.from(
             receipt: receipt,
             confidences: nil,
@@ -331,7 +336,7 @@ struct PurchaseDetailView: View {
 
     private var displayTitle: String {
         let trimmed = purchase.merchant.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? "Receipt" : trimmed
+        return trimmed.isEmpty ? String(localized: "Receipt", comment: "Nav title fallback when the purchase has no merchant") : trimmed
     }
 
     private func recomputeExpiry() {

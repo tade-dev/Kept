@@ -1,5 +1,7 @@
 import { extractWithLLM, UpstreamError } from "./llm";
 import { buildSignedPass, parsePassRequest } from "./pass";
+import { grantTrialBoost, parseTrialBoostRequest } from "./trialBoost";
+import { isKeptPro } from "./proVerification";
 import type { Env, ExtractRequest, OCRLine } from "./types";
 
 export default {
@@ -34,8 +36,35 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/pass") {
     return handlePass(request, env);
   }
+  if (url.pathname === "/pro-boost") {
+    return handleTrialBoost(request, env);
+  }
 
   return json({ error: "Not found." }, 404);
+}
+
+async function handleTrialBoost(request: Request, env: Env): Promise<Response> {
+  if (!checkAuth(request, env)) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  const limited = await rateLimit(request, env);
+  if (limited) return limited;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const parsed = parseTrialBoostRequest(body);
+  if (!parsed) {
+    return json({ error: "Body must be { appUserID }." }, 400);
+  }
+
+  await grantTrialBoost(env, parsed);
+  return json({ ok: true });
 }
 
 async function handleExtract(request: Request, env: Env): Promise<Response> {
@@ -68,8 +97,31 @@ async function handleExtract(request: Request, env: Env): Promise<Response> {
     return json({ error: "Too many lines." }, 413);
   }
 
-  const extraction = await extractWithLLM(env, lines);
+  // Pro-tier model routing. The client sends its best guess (`isProClaimed`
+  // + `appUserID`); we only verify against RC when Pro is claimed to save
+  // the extra hop for the common free-user path. Free users trying to
+  // spoof the flag get silently downgraded — RC comes back "not pro" and
+  // we use the free model.
+  let modelOverride: string | undefined;
+  const authClaim = parseProClaim(body);
+  if (authClaim.isProClaimed && authClaim.appUserID) {
+    const verified = await isKeptPro(env, authClaim.appUserID);
+    if (verified && env.LLM_MODEL_PRO) {
+      modelOverride = env.LLM_MODEL_PRO;
+    }
+  }
+
+  const extraction = await extractWithLLM(env, lines, modelOverride);
   return json(extraction, 200);
+}
+
+function parseProClaim(body: unknown): { isProClaimed: boolean; appUserID: string } {
+  if (!body || typeof body !== "object") return { isProClaimed: false, appUserID: "" };
+  const obj = body as Record<string, unknown>;
+  return {
+    isProClaimed: obj.isProClaimed === true,
+    appUserID: typeof obj.appUserID === "string" ? obj.appUserID.trim() : "",
+  };
 }
 
 async function handlePass(request: Request, env: Env): Promise<Response> {

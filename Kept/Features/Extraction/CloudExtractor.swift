@@ -77,6 +77,22 @@ enum CloudExtractionError: Error, LocalizedError, Sendable, Equatable {
 }
 
 /// POSTs OCR lines to the Kept extract worker and maps the JSON into `ExtractedReceipt`.
+/// Auth context passed from the app to the worker so the Pro-tier
+/// extraction model can be served on verified requests. The worker cross-
+/// checks `appUserID` against RevenueCat before honouring `isProClaimed`,
+/// so the client sending `true` on its own doesn't earn the premium model.
+struct ExtractionProContext: Equatable, Sendable {
+    var appUserID: String
+    var isProClaimed: Bool
+
+    /// Nil when we don't know the customer's identity yet (e.g. RC not
+    /// configured in this build). Falls back to the free model server-side.
+    static func from(isPro: Bool, appUserID: String) -> ExtractionProContext? {
+        guard !appUserID.isEmpty else { return nil }
+        return ExtractionProContext(appUserID: appUserID, isProClaimed: isPro)
+    }
+}
+
 struct CloudExtractor: ExtractionService {
     var configuration: CloudExtractConfiguration
     var session: URLSession
@@ -109,14 +125,28 @@ struct CloudExtractor: ExtractionService {
     }
 
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        try await extractDetailed(from: lines).receipt
+        try await extractDetailed(from: lines, proContext: nil).receipt
+    }
+
+    func extract(
+        from lines: [RecognizedLine],
+        proContext: ExtractionProContext?
+    ) async throws -> ExtractedReceipt {
+        try await extractDetailed(from: lines, proContext: proContext).receipt
     }
 
     func extractDetailed(from lines: [RecognizedLine]) async throws -> CloudExtractionPayload {
+        try await extractDetailed(from: lines, proContext: nil)
+    }
+
+    func extractDetailed(
+        from lines: [RecognizedLine],
+        proContext: ExtractionProContext?
+    ) async throws -> CloudExtractionPayload {
         guard !lines.isEmpty else { throw CloudExtractionError.emptyInput }
 
         do {
-            return try await perform(lines: lines, allowRetry: true)
+            return try await perform(lines: lines, proContext: proContext, allowRetry: true)
         } catch let error as CloudExtractionError {
             throw error
         } catch {
@@ -128,6 +158,7 @@ struct CloudExtractor: ExtractionService {
 
     private func perform(
         lines: [RecognizedLine],
+        proContext: ExtractionProContext?,
         allowRetry: Bool
     ) async throws -> CloudExtractionPayload {
         let url = configuration.baseURL.appendingPathComponent("extract")
@@ -139,7 +170,11 @@ struct CloudExtractor: ExtractionService {
             forHTTPHeaderField: "Authorization"
         )
         request.timeoutInterval = configuration.timeout
-        request.httpBody = try JSONEncoder().encode(CloudExtractRequest(lines: lines.map(CloudOCRLine.init)))
+        request.httpBody = try JSONEncoder().encode(CloudExtractRequest(
+            lines: lines.map(CloudOCRLine.init),
+            appUserID: proContext?.appUserID,
+            isProClaimed: proContext?.isProClaimed
+        ))
 
         let data: Data
         let response: URLResponse
@@ -162,7 +197,7 @@ struct CloudExtractor: ExtractionService {
             throw CloudExtractionError.rateLimited
         case 500...599:
             if allowRetry {
-                return try await perform(lines: lines, allowRetry: false)
+                return try await perform(lines: lines, proContext: proContext, allowRetry: false)
             }
             throw CloudExtractionError.serverUnavailable
         default:
@@ -200,6 +235,8 @@ struct CloudExtractor: ExtractionService {
 
 private struct CloudExtractRequest: Encodable {
     var lines: [CloudOCRLine]
+    var appUserID: String?
+    var isProClaimed: Bool?
 }
 
 private struct CloudOCRLine: Encodable {

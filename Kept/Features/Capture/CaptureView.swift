@@ -5,6 +5,7 @@ struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(SubscriptionAccess.self) private var subscription
 
     @Namespace private var receiptNamespace
 
@@ -142,9 +143,9 @@ struct CaptureView: View {
 
     private var navigationTitle: String {
         switch status {
-        case .review: "Review receipt"
-        case .recognizing, .extracting: "Reading receipt"
-        default: "Scan receipt"
+        case .review: String(localized: "Review receipt")
+        case .recognizing, .extracting: String(localized: "Reading receipt")
+        default: String(localized: "Scan receipt")
         }
     }
 
@@ -251,17 +252,17 @@ struct CaptureView: View {
 
     private var processingTitle: String {
         switch status {
-        case .recognizing: "Reading receipt…"
-        case .extracting: "Understanding warranty…"
-        case .failed: "Couldn't finish reading"
-        default: "Working…"
+        case .recognizing: String(localized: "Reading receipt…")
+        case .extracting: String(localized: "Understanding warranty…")
+        case .failed: String(localized: "Couldn't finish reading")
+        default: String(localized: "Working…")
         }
     }
 
     private var processingSubtitle: String {
         switch status {
-        case .recognizing: "On-device OCR"
-        case .extracting: "Filling what we can"
+        case .recognizing: String(localized: "On-device OCR")
+        case .extracting: String(localized: "Filling what we can")
         default: ""
         }
     }
@@ -540,7 +541,11 @@ struct CaptureView: View {
         let floor = rulesExtractor.extract(from: lines)
         if let cloudExtractor {
             do {
-                let remote = try await cloudExtractor.extractDetailed(from: lines)
+                let proContext = ExtractionProContext.from(
+                    isPro: subscription.isPro,
+                    appUserID: subscription.appUserID
+                )
+                let remote = try await cloudExtractor.extractDetailed(from: lines, proContext: proContext)
                 // Server classified the document. If it's not a receipt, route
                 // to the rejection sheet instead of the review screen.
                 // Don't apply extraction (all fields are null anyway per the

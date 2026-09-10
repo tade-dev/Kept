@@ -109,21 +109,27 @@ struct CoverageStatusBadge: View {
     private var label: String {
         switch status {
         case .none:
-            "No Deadline"
+            String(localized: "No Deadline")
         case .active(let days) where days == 0:
-            isReturn ? "Return today" : "Expires today"
-        case .active(let days) where days == 1:
-            isReturn ? "Return · 1 day" : "1 day left"
+            isReturn ? String(localized: "Return today") : String(localized: "Expires today")
         case .active(let days) where days < 60:
-            isReturn ? "Return · \(days)d" : "\(days) days left"
+            isReturn
+                ? String(localized: "Return · \(days)d", comment: "Compact days badge, e.g. 'Return · 5d'")
+                : String(localized: "\(days) days left", comment: "Days remaining until warranty expires; needs plural handling")
         case .active(let days):
-            isReturn ? "Return · \(days / 30)mo" : "\(days / 30) mo left"
+            isReturn
+                ? String(localized: "Return · \(days / 30)mo", comment: "Compact months badge, e.g. 'Return · 3mo'")
+                : String(localized: "\(days / 30) mo left", comment: "Months remaining until warranty expires; needs plural handling")
         case .expired(let days) where days == 0:
-            isReturn ? "Return ended" : "Expired today"
+            isReturn ? String(localized: "Return ended") : String(localized: "Expired today")
         case .expired(let days) where days < 30:
-            isReturn ? "Return ended \(days)d ago" : "Expired \(days)d ago"
+            isReturn
+                ? String(localized: "Return ended \(days)d ago", comment: "Days since return window ended")
+                : String(localized: "Expired \(days)d ago", comment: "Days since warranty expired")
         case .expired(let days):
-            isReturn ? "Return ended \(days / 30)mo ago" : "Expired \(days / 30)mo ago"
+            isReturn
+                ? String(localized: "Return ended \(days / 30)mo ago", comment: "Months since return window ended")
+                : String(localized: "Expired \(days / 30)mo ago", comment: "Months since warranty expired")
         }
     }
 
