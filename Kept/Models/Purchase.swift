@@ -5,6 +5,7 @@ import SwiftData
 final class Purchase {
     var merchant: String = ""
     var itemName: String = ""
+    var serialNumber: String = ""
     var price: Decimal = 0
     var currency: String = "USD"
     var purchaseDate: Date = Date(timeIntervalSinceReferenceDate: 0)
@@ -38,6 +39,7 @@ final class Purchase {
     init(
         merchant: String = "",
         itemName: String = "",
+        serialNumber: String = "",
         price: Decimal = 0,
         currency: String = Locale.current.currency?.identifier ?? "USD",
         purchaseDate: Date = .now,
@@ -49,6 +51,7 @@ final class Purchase {
     ) {
         self.merchant = merchant
         self.itemName = itemName
+        self.serialNumber = serialNumber
         self.price = price
         self.currency = currency
         self.purchaseDate = purchaseDate
