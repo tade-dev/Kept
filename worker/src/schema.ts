@@ -26,6 +26,25 @@ export const extractionResponseSchema = {
       description:
         "Primary item for warranty tracking: highest-value durable good, or a short summary like Grocery shop when many small lines. Null if unclear.",
     },
+    category: {
+      type: ["string", "null"],
+      description:
+        "Short human-friendly bucket for the receipt (e.g. 'Groceries', 'Restaurant', 'Fashion', 'Electronics', 'Home', 'Repair', 'Fuel', 'Travel', 'Beauty', 'Books', 'Other'). Used as the receipt's subtitle in the app UI — should be recognisable at a glance.",
+      enum: [
+        "Groceries",
+        "Restaurant",
+        "Fashion",
+        "Electronics",
+        "Home",
+        "Repair",
+        "Fuel",
+        "Travel",
+        "Beauty",
+        "Books",
+        "Other",
+        null,
+      ],
+    },
     items: {
       type: "array",
       description:
@@ -96,6 +115,7 @@ export const extractionResponseSchema = {
     "documentType",
     "merchant",
     "itemName",
+    "category",
     "items",
     "total",
     "currencyCode",
@@ -114,6 +134,7 @@ export type ExtractionResponse = {
   documentType: string;
   merchant: string | null;
   itemName: string | null;
+  category: string | null;
   items: Array<{ name: string; price: number }>;
   total: number | null;
   currencyCode: string | null;

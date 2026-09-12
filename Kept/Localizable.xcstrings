@@ -142,6 +142,9 @@
         }
       }
     },
+    "%lld characters" : {
+
+    },
     "%lld days before" : {
       "localizations" : {
         "es" : {
@@ -892,6 +895,7 @@
       }
     },
     "By continuing, you agree to our " : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -912,6 +916,9 @@
           }
         }
       }
+    },
+    "By continuing, you agree to our [Terms of Service](https://getkept.xyz/terms)." : {
+
     },
     "Cancel" : {
       "localizations" : {
@@ -3135,6 +3142,9 @@
         }
       }
     },
+    "Message to the seller" : {
+
+    },
     "months" : {
       "localizations" : {
         "es" : {
@@ -3691,6 +3701,9 @@
         }
       }
     },
+    "Open in Settings" : {
+
+    },
     "Open Settings" : {
       "localizations" : {
         "es" : {
@@ -3779,6 +3792,9 @@
           }
         }
       }
+    },
+    "Optional" : {
+
     },
     "Optional. Clothing and many retailers allow returns for a short window." : {
       "localizations" : {
@@ -5369,6 +5385,9 @@
         }
       }
     },
+    "Serial number" : {
+
+    },
     "Settings" : {
       "localizations" : {
         "es" : {
@@ -5682,6 +5701,7 @@
       }
     },
     "Terms of Service" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

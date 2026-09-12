@@ -246,7 +246,7 @@ struct CaptureView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .keptGlassBackground(cornerRadius: 18)
         .animation(statusAnimation, value: status)
     }
 
@@ -636,6 +636,7 @@ struct CaptureView: View {
         let purchase = Purchase(
             merchant: merchant.trimmingCharacters(in: .whitespaces),
             itemName: primaryName,
+            category: extraction?.category ?? "",
             price: price,
             currency: currencyText.uppercased(),
             purchaseDate: purchaseDate,

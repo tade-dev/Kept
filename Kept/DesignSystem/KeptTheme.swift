@@ -54,3 +54,22 @@ enum Radius {
     static let lg: CGFloat = 20
     static let xl: CGFloat = 28
 }
+
+// MARK: - Glass background (iOS 26 fallback)
+
+extension View {
+    /// Applies iOS 26's Liquid Glass when available, otherwise falls back
+    /// to `ultraThinMaterial` in a rounded rect. Keeps chrome legible over
+    /// photos, camera previews, and warm paper backgrounds on both eras.
+    @ViewBuilder
+    func keptGlassBackground(cornerRadius: CGFloat) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            self.background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+        }
+    }
+}

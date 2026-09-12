@@ -5,6 +5,12 @@ import SwiftData
 final class Purchase {
     var merchant: String = ""
     var itemName: String = ""
+    /// Short human-friendly bucket ("Groceries", "Fashion", "Repair", …) used
+    /// as the receipt's subtitle in the Library list and Review sheet. The
+    /// Wallet pass keeps using `itemName` (which carries the "+N more" form).
+    /// Empty for records saved before category was introduced — UI falls back
+    /// to `itemName` in that case.
+    var category: String = ""
     var serialNumber: String = ""
     var price: Decimal = 0
     var currency: String = "USD"
@@ -39,6 +45,7 @@ final class Purchase {
     init(
         merchant: String = "",
         itemName: String = "",
+        category: String = "",
         serialNumber: String = "",
         price: Decimal = 0,
         currency: String = Locale.current.currency?.identifier ?? "USD",
@@ -51,6 +58,7 @@ final class Purchase {
     ) {
         self.merchant = merchant
         self.itemName = itemName
+        self.category = category
         self.serialNumber = serialNumber
         self.price = price
         self.currency = currency

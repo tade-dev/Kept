@@ -5,7 +5,13 @@ import SwiftUI
 /// an unloaded black frame; text follows on a staggered schedule.
 struct WelcomeStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var appeared = Reveal()
+
+    private var demoResource: String {
+        colorScheme == .dark ? "onboarding-demo-dark" : "onboarding-demo-white"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -16,7 +22,8 @@ struct WelcomeStepView: View {
             .padding(.top, Spacing.xs)
             .padding(.bottom, Spacing.sm)
 
-            DemoVideoView(resourceName: "onboarding-demo", cornerRadius: 0)
+            DemoVideoView(resourceName: demoResource, cornerRadius: 0)
+                .id(demoResource)
                 .aspectRatio(9.0 / 16.0, contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .scaleEffect(appeared.demo ? 1.0 : 0.94)

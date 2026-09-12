@@ -261,6 +261,7 @@ private struct CloudExtractResponse: Decodable {
     var documentType: String?
     var merchant: String?
     var itemName: String?
+    var category: String?
     var items: [CloudLineItem]?
     var total: Double?
     var currencyCode: String?
@@ -322,6 +323,7 @@ private struct CloudExtractResponse: Decodable {
         let receipt = ExtractedReceipt(
             merchant: merchant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             itemName: primaryName,
+            category: category?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             price: reconciledTotal,
             currency: (currencyCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
                 .flatMap { $0.isEmpty ? nil : $0 } ?? "USD",
@@ -396,6 +398,7 @@ extension CloudExtractor {
         return ExtractedReceipt(
             merchant: merchant,
             itemName: itemName,
+            category: cloud.category,
             price: price,
             currency: currency,
             purchaseDate: purchaseDate,

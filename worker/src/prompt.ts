@@ -30,16 +30,33 @@ When documentType != "receipt", the reasoning should briefly explain WHY (e.g. "
 - Null if only a logo is present, or the name is unreadable.
 - NEVER use a promotional banner, tagline, or website URL as the merchant.
 
-# ITEMNAME (single primary label, not a list)
-- Purpose: one short label the user can recognise this purchase by.
-- Prefer: highest-value durable good (e.g. "Coffee Machine"), or a category summary for groceries/meals ("Grocery shop", "Lunch", "Dinner", "Auto parts").
-- NEVER use ANY of these as itemName:
-  - Street address, city, postal code, phone number, transaction/register/cashier IDs
-  - The merchant name itself (put it in merchant, not itemName)
-  - Location names printed as subtitles (e.g. "Grosse Scheidegg", "Terminal 3", "Store #42")
-  - "Subtotal", "Total", "Tax", "VAT", "Change", "Cash", "Card"
-- Use the printed product name for single-item fashion / electronics / hardware receipts. Only summarise ("Grocery shop", "Lunch") for true multi-item grocery / restaurant / fuel tickets.
-- If nothing else fits, use a category word like "Groceries", "Meal", "Repair", "Purchase".
+# CATEGORY (short bucket the user recognises at a glance)
+- Must be exactly ONE of: Groceries, Restaurant, Fashion, Electronics, Home, Repair, Fuel, Travel, Beauty, Books, Other.
+- Choose based on the primary purpose of the whole receipt:
+  - Groceries: supermarkets, grocers, convenience stores. Tesco, Aldi, Trader Joe's, corner shops.
+  - Restaurant: sit-down restaurants, cafes, takeaway, delivery, bars, pubs, food trucks.
+  - Fashion: clothing, shoes, accessories, jewellery, cosmetics-only stores. Primark, Zara, Nike, Sephora.
+  - Electronics: consumer electronics, appliances, gadgets. Apple, Best Buy, Currys.
+  - Home: furniture, homewares, hardware, garden, DIY, decor. IKEA, Home Depot, B&Q.
+  - Repair: repair shops, mechanics, service invoices, workshop tickets. East Repair Inc., auto shops, bike repair, phone repair.
+  - Fuel: petrol/gas stations, EV charging, LPG.
+  - Travel: hotels, airlines, trains, taxis, rideshare, airport parking, luggage.
+  - Beauty: salons, spas, barbers, tattoo studios, gyms, wellness services.
+  - Books: bookstores, stationery, art supplies, printing.
+  - Other: anything that doesn't fit the above (tickets, memberships, one-off services).
+- Category is set from the RECEIPT'S PURPOSE, not any single item — a bike shop receipt with brake cables + labor is "Repair", not "Home".
+- Return null only when you truly cannot tell (unreadable OCR).
+
+# ITEMNAME (advisory — the worker builds the final label from items[])
+- The worker computes the displayed label from items[] deterministically:
+  - 1 item  → that item's name
+  - 2+ items → "{highest-priced item}, +N more"
+  - 0 items → your itemName is used as a last-resort fallback
+- So focus on getting items[] right. For itemName itself:
+  - Groceries / restaurant / fuel tickets: use a category summary ("Grocery shop", "Lunch", "Dinner", "Fuel"). The worker preserves these summaries even when items[] has rows.
+  - Any other receipt with itemised rows: itemName is ignored — just return the best single label you'd pick (or null). Don't stress the wording.
+  - When items[] is empty and no product name is printed: return a category word ("Groceries", "Meal", "Purchase"). Never return "Sale", "Promo", "Repair", "Invoice", "Receipt" — those describe the receipt, not the purchase.
+- NEVER put any of these in itemName: merchant name, address/postcode, phone, transaction ID, "Subtotal/Total/Tax/VAT/Change/Cash/Card", promotional banners ("SALE", "PROMO", "CLEARANCE", "OFFER", "DISCOUNT", "SPECIAL").
 
 # ITEMS (line-item array — MUST be populated when the receipt shows itemised rows)
 - Every purchased product line with its price. Include quantities in the name if printed (e.g. "2x Latte Macchiato").

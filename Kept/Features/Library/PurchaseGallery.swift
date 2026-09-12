@@ -104,7 +104,7 @@ struct PurchaseGallery: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1...2)
 
-            Text(purchase.displayItem)
+            Text(purchase.displaySubtitle)
                 .font(.keptSubheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1...2)
@@ -129,7 +129,7 @@ struct PurchaseGallery: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .keptGlassBackground(cornerRadius: 18)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(purchase.accessibilityDescription)
         .accessibilityAction(named: Text("Delete")) {

@@ -121,8 +121,19 @@ struct AccessibilityStatusSheet: View {
     let currentStatus: String
     let systemExplanation: String
     let inKeptExplanation: String
+    /// Deep link into the relevant iOS Settings pane. Uses the
+    /// undocumented `App-Prefs:` scheme — supported since iOS 10 but
+    /// technically private, so we gate the CTA behind `canOpenURL` and
+    /// silently hide it if a future iOS clamps down.
+    var settingsURL: URL? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    private var canOpenSettings: Bool {
+        guard let settingsURL else { return false }
+        return UIApplication.shared.canOpenURL(settingsURL)
+    }
 
     var body: some View {
         NavigationStack {
@@ -134,6 +145,21 @@ struct AccessibilityStatusSheet: View {
                               body: systemExplanation)
                     infoBlock(title: "How Kept adapts",
                               body: inKeptExplanation)
+
+                    if let settingsURL, canOpenSettings {
+                        Button {
+                            openURL(settingsURL)
+                            dismiss()
+                        } label: {
+                            Label("Open in Settings", systemImage: "arrow.up.forward.app")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle(radius: 14))
+                        .padding(.top, 4)
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 28)

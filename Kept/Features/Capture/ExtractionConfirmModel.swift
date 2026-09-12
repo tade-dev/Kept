@@ -188,6 +188,7 @@ final class ExtractionConfirmModel {
         let purchase = Purchase(
             merchant: merchant.trimmingCharacters(in: .whitespaces),
             itemName: itemName.trimmingCharacters(in: .whitespaces),
+            category: extraction.category,
             price: parsedTotal ?? 0,
             currency: currency.uppercased(),
             purchaseDate: purchaseDate,

@@ -130,7 +130,8 @@ private struct VoiceOverRow: View {
                 title: "VoiceOver",
                 currentStatus: enabled ? "on" : "off",
                 systemExplanation: "Turn VoiceOver on or off in iOS Settings → Accessibility → VoiceOver, or triple-click the side button if you've set it as an accessibility shortcut.",
-                inKeptExplanation: "Every receipt in Kept has a full spoken description — item, merchant, purchase date, coverage remaining. Swipe actions and coach marks are reachable via the Actions rotor."
+                inKeptExplanation: "Every receipt in Kept has a full spoken description — item, merchant, purchase date, coverage remaining. Swipe actions and coach marks are reachable via the Actions rotor.",
+                settingsURL: URL(string: "App-Prefs:root=ACCESSIBILITY&path=VOICEOVER_TITLE")
             )
             .presentationDetents([.medium, .large])
         }
@@ -157,7 +158,8 @@ private struct ContrastRow: View {
                 title: "Increase Contrast",
                 currentStatus: enabled ? "on" : "off",
                 systemExplanation: "Turn Increase Contrast on or off in iOS Settings → Accessibility → Display & Text Size → Increase Contrast.",
-                inKeptExplanation: "Kept bumps up divider weights, borders, and secondary text when this is on so the ink-on-paper aesthetic stays legible without straining."
+                inKeptExplanation: "Kept bumps up divider weights, borders, and secondary text when this is on so the ink-on-paper aesthetic stays legible without straining.",
+                settingsURL: URL(string: "App-Prefs:root=ACCESSIBILITY&path=DISPLAY")
             )
             .presentationDetents([.medium, .large])
         }

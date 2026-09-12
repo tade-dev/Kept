@@ -25,7 +25,7 @@ struct PurchaseRow: View {
                     .font(.keptBody)
                     .lineLimit(1...2)
 
-                Text(purchase.displayItem)
+                Text(purchase.displaySubtitle)
                     .font(.keptSubheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1...2)

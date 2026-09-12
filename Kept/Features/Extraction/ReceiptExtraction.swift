@@ -15,6 +15,9 @@ nonisolated struct ReceiptExtraction: Equatable, Sendable {
     var currency: Field<String>
     var purchaseDate: Field<Date>
     var coverage: Field<CoverageEstimate>
+    /// Semantic bucket ("Groceries", "Fashion", "Repair", …) surfaced as
+    /// the receipt's subtitle in Library + Review. Empty when unknown.
+    var category: String = ""
     /// Line items extracted from the receipt. Empty when the receipt has
     /// no itemised rows or the extractor couldn't read them.
     var lineItems: [ReceiptLineItem] = []
@@ -26,6 +29,7 @@ nonisolated struct ReceiptExtraction: Equatable, Sendable {
         currency: Field(),
         purchaseDate: Field(),
         coverage: Field(),
+        category: "",
         lineItems: []
     )
 }
@@ -83,6 +87,7 @@ extension ReceiptExtraction {
             ),
             coverage: Self.coverageField(from: receipt)
         )
+        extraction.category = receipt.category.trimmingCharacters(in: .whitespacesAndNewlines)
         extraction.lineItems = lineItems
         return extraction
     }

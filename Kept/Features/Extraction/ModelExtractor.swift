@@ -1,53 +1,26 @@
 import Foundation
+#if canImport(FoundationModels)
 import FoundationModels
+#endif
 
 /// Foundation Models enrichment. Optional — never required for a complete product.
+/// Gated to iOS 26+ because the Foundation Models framework is 26-only; on
+/// older iOS the type still exists but `isAvailable` always returns false and
+/// `enrich` throws, so callers naturally fall back to rules.
 struct ModelExtractor: Sendable {
     var isAvailable: Bool {
-        if case .available = SystemLanguageModel.default.availability {
-            return true
+        if #available(iOS 26.0, *) {
+            return Self.systemModelAvailable()
         }
         return false
     }
 
     func enrich(lines: [RecognizedLine], using floor: ExtractedReceipt) async throws -> ExtractedReceipt {
         guard !lines.isEmpty else { throw ExtractionError.emptyInput }
-        try assertAvailable()
-
-        let orderedText = lines.map(\.text).joined(separator: "\n")
-        let session = LanguageModelSession(instructions: Self.instructions)
-        do {
-            let response = try await session.respond(
-                to: """
-                Extract the purchase and warranty details from this receipt. Lines are ordered top-to-bottom.
-
-                Rules-parser hints (prefer these for price/date/currency when they look right):
-                merchant=\(floor.merchant)
-                price=\(floor.price)
-                currency=\(floor.currency)
-                purchaseDate=\(floor.purchaseDate)
-
-                ---
-                \(orderedText)
-                ---
-                """,
-                generating: ExtractedReceipt.self
-            )
-            return Self.merge(rules: floor, model: response.content)
-        } catch {
-            throw ExtractionError.underlying(error)
+        if #available(iOS 26.0, *) {
+            return try await Self.enrichOnDevice(lines: lines, using: floor)
         }
-    }
-
-    private func assertAvailable() throws {
-        switch SystemLanguageModel.default.availability {
-        case .available:
-            return
-        case .unavailable(let reason):
-            throw ExtractionError.modelUnavailable(reason: String(describing: reason))
-        @unknown default:
-            throw ExtractionError.modelUnavailable(reason: "unknown")
-        }
+        throw ExtractionError.modelUnavailable(reason: "iOS 26+ required")
     }
 
     /// Rules own money/date when present; model owns item naming, warranty, and return windows.
@@ -152,4 +125,106 @@ struct ModelExtractor: Sendable {
     OTHER
     - Confidence: 0.0–1.0. Fashion receipts can be high-confidence with returnWindowDays set and warrantyDurationMonths = 0.
     """
+
+    // MARK: - iOS 26+ Foundation Models bridge
+
+    @available(iOS 26.0, *)
+    private static func systemModelAvailable() -> Bool {
+        if case .available = SystemLanguageModel.default.availability {
+            return true
+        }
+        return false
+    }
+
+    @available(iOS 26.0, *)
+    private static func enrichOnDevice(
+        lines: [RecognizedLine],
+        using floor: ExtractedReceipt
+    ) async throws -> ExtractedReceipt {
+        switch SystemLanguageModel.default.availability {
+        case .available:
+            break
+        case .unavailable(let reason):
+            throw ExtractionError.modelUnavailable(reason: String(describing: reason))
+        @unknown default:
+            throw ExtractionError.modelUnavailable(reason: "unknown")
+        }
+
+        let orderedText = lines.map(\.text).joined(separator: "\n")
+        let session = LanguageModelSession(instructions: Self.instructions)
+        do {
+            let response = try await session.respond(
+                to: """
+                Extract the purchase and warranty details from this receipt. Lines are ordered top-to-bottom.
+
+                Rules-parser hints (prefer these for price/date/currency when they look right):
+                merchant=\(floor.merchant)
+                price=\(floor.price)
+                currency=\(floor.currency)
+                purchaseDate=\(floor.purchaseDate)
+
+                ---
+                \(orderedText)
+                ---
+                """,
+                generating: GenerableReceipt.self
+            )
+            return Self.merge(rules: floor, model: response.content.toExtractedReceipt())
+        } catch {
+            throw ExtractionError.underlying(error)
+        }
+    }
 }
+
+// MARK: - Foundation Models generation shape (iOS 26+)
+
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable
+private struct GenerableReceipt: Sendable {
+    @Guide(description: "The retailer or merchant name printed at the top of the receipt. Prefer the storefront name over any parent company or holding entity.")
+    var merchant: String
+
+    @Guide(description: "The main purchased item's short name. If the receipt has multiple line items, pick the highest-value one that a warranty would cover. For clothing or multi-item fashion receipts, use a cleaned product name. For groceries, summarise as Grocery shop.")
+    var itemName: String
+
+    @Guide(description: "Total price paid, as a positive decimal number in the receipt's currency. Exclude currency symbols.")
+    var price: Double
+
+    @Guide(description: "ISO 4217 three-letter currency code (for example USD, GBP, EUR, NGN).")
+    var currency: String
+
+    @Guide(description: "Purchase date as ISO 8601 date only, formatted YYYY-MM-DD. If the receipt has no date, use today's date.")
+    var purchaseDate: String
+
+    @Guide(description: "Manufacturer or retailer warranty length in months. Use 0 for clothing, groceries, and other purchases with no real repair warranty. Prefer an explicit warranty/guarantee printed on the receipt.")
+    var warrantyDurationMonths: Int
+
+    @Guide(description: "true when the warranty length was inferred rather than printed. false when explicit or when warrantyDurationMonths is 0.")
+    var warrantyIsInferred: Bool
+
+    @Guide(description: "Retailer return or refund window in days (for example 14, 28, 30). Clothing and general merchandise usually have a return window even with no warranty. Use 0 for groceries, restaurants, fuel, and other non-returnable purchases, or when no return policy applies.")
+    var returnWindowDays: Int
+
+    @Guide(description: "true when the return window was inferred from merchant/category rather than printed. false when the receipt states it or when returnWindowDays is 0.")
+    var returnWindowIsInferred: Bool
+
+    @Guide(description: "Overall extraction confidence between 0.0 and 1.0. Lower values when the receipt is partially unreadable or ambiguous.")
+    var confidence: Double
+
+    func toExtractedReceipt() -> ExtractedReceipt {
+        ExtractedReceipt(
+            merchant: merchant,
+            itemName: itemName,
+            price: price,
+            currency: currency,
+            purchaseDate: purchaseDate,
+            warrantyDurationMonths: warrantyDurationMonths,
+            warrantyIsInferred: warrantyIsInferred,
+            returnWindowDays: returnWindowDays,
+            returnWindowIsInferred: returnWindowIsInferred,
+            confidence: confidence
+        )
+    }
+}
+#endif

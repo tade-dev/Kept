@@ -37,6 +37,16 @@ extension Purchase {
         return trimmed.isEmpty ? String(localized: "Receipt", comment: "Fallback when a purchase has no item name") : trimmed
     }
 
+    /// Subtitle shown in the Library list + Review sheet. Prefers the
+    /// category bucket ("Groceries", "Fashion", "Repair", …) so multi-item
+    /// receipts don't need to render the noisy "Cargo Trousers, +4 more"
+    /// form outside of the Wallet pass. Falls back to `displayItem` for
+    /// receipts saved before category was introduced.
+    var displaySubtitle: String {
+        let cat = category.trimmingCharacters(in: .whitespaces)
+        return cat.isEmpty ? displayItem : cat
+    }
+
     var finderMetadata: String {
         if price > 0 {
             price.formatted(.currency(code: currency))

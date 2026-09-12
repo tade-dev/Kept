@@ -436,18 +436,26 @@ struct PaywallView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            (
-                Text("By continuing, you agree to our ")
-                    .foregroundStyle(.secondary)
-                +
-                Text("Terms of Service")
-                    .foregroundStyle(.secondary)
-                    .underline()
-            )
-            .font(.keptCaption)
-            .multilineTextAlignment(.center)
+            Text(termsAttributedString)
+                .font(.keptCaption)
+                .foregroundStyle(.secondary)
+                .tint(.primary)
+                .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 20)
+    }
+
+    /// Markdown-linked terms fine print — the `[Terms of Service](...)`
+    /// run gets weight + underline so users clearly read it as tappable
+    /// (SwiftUI otherwise renders markdown links as plain tinted text).
+    private var termsAttributedString: AttributedString {
+        let source = String(localized: "By continuing, you agree to our [Terms of Service](https://getkept.xyz/terms).")
+        var attributed = (try? AttributedString(markdown: source)) ?? AttributedString(source)
+        for run in attributed.runs where run.link != nil {
+            attributed[run.range].underlineStyle = .single
+            attributed[run.range].font = .caption.weight(.semibold)
+        }
+        return attributed
     }
 
     private var trialEndsCopy: String {

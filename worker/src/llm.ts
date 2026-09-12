@@ -176,12 +176,14 @@ function normaliseExtraction(raw: unknown): ExtractionResponse {
   const items = isReceipt ? normaliseItems(obj.items) : [];
   let itemName = isReceipt ? nullableString(obj.itemName) : null;
   itemName = isReceipt ? refineItemName(itemName, items) : null;
+  const category = isReceipt ? normaliseCategory(obj.category) : null;
   const total = isReceipt ? reconcileTotal(nullableNumber(obj.total), items) : null;
 
   return {
     documentType,
     merchant: isReceipt ? nullableString(obj.merchant) : null,
     itemName,
+    category,
     items,
     total,
     currencyCode: isReceipt
@@ -240,22 +242,80 @@ function reconcileTotal(
   return round2(total);
 }
 
+/**
+ * Deterministic itemName. Rather than trust the LLM to format the label,
+ * we build it here from `items[]`:
+ *
+ *   0 items:  fall through to whatever the LLM guessed (last-resort merchant/
+ *             category hint like "Grocery shop" — usually right when items[]
+ *             genuinely couldn't be parsed).
+ *   1 item:   the item's name verbatim.
+ *   2+ items: "{highest-priced item}, +N more"
+ *             UNLESS the LLM classified this as a grocery / restaurant / fuel
+ *             receipt (kept as a summary since those baskets have no single
+ *             "primary" the user would identify with).
+ *
+ * This means the LLM can never again randomly pick "Sale" / "Repair" /
+ * "Promotion" as itemName when there are real product rows to work with.
+ */
 function refineItemName(
   itemName: string | null,
   items: Array<{ name: string; price: number }>,
 ): string | null {
   if (items.length === 0) return itemName;
-  const top = items.reduce((a, b) => (a.price >= b.price ? a : b));
-  if (!itemName) return top.name;
-  const generics = new Set([
+  if (items.length === 1) return cleanItemName(items[0].name);
+
+  const basketSummaries = new Set([
     "grocery shop",
+    "groceries",
     "restaurant meal",
+    "meal",
+    "lunch",
+    "dinner",
+    "breakfast",
     "fuel",
-    "shopping",
+    "petrol",
+    "gas",
   ]);
-  // Only replace basket summaries for single-product slips (fashion / packing).
-  if (generics.has(itemName.toLowerCase()) && items.length === 1) return top.name;
-  return itemName;
+  if (itemName && basketSummaries.has(itemName.toLowerCase())) {
+    return itemName;
+  }
+
+  const primary = items.reduce((a, b) => (a.price >= b.price ? a : b));
+  const remaining = items.length - 1;
+  return `${cleanItemName(primary.name)}, +${remaining} more`;
+}
+
+function cleanItemName(name: string): string {
+  // Trim trailing punctuation the LLM sometimes leaves on OCR fragments.
+  return name.replace(/[\s.,;:—-]+$/, "").trim();
+}
+
+const CATEGORY_VALUES = new Set([
+  "Groceries",
+  "Restaurant",
+  "Fashion",
+  "Electronics",
+  "Home",
+  "Repair",
+  "Fuel",
+  "Travel",
+  "Beauty",
+  "Books",
+  "Other",
+]);
+
+/**
+ * Snap the model's category output to the fixed enum. Returns null when the
+ * model returned nothing usable — the iOS side falls back to the primary
+ * item name as the list subtitle in that case.
+ */
+function normaliseCategory(raw: unknown): string | null {
+  const s = nullableString(raw);
+  if (!s) return null;
+  // Title-case the first letter so "electronics" → "Electronics".
+  const canonical = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  return CATEGORY_VALUES.has(canonical) ? canonical : null;
 }
 
 function round2(value: number): number {

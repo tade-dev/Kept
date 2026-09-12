@@ -284,12 +284,12 @@ struct SettingsView: View {
         Section("About") {
             LabeledContent("Version", value: "\(appVersion) (\(buildNumber))")
 
-            Link(destination: URL(string: "mailto:support@kept.app")!) {
+            Link(destination: URL(string: "mailto:hello@getkept.xyz")!) {
                 Label("Contact support", systemImage: "envelope")
                     .labelStyle(.settingsTile(tint: darkAccent.tint))
             }
 
-            Link(destination: URL(string: "https://kept.app/privacy")!) {
+            Link(destination: URL(string: "https://getkept.xyz/privacy")!) {
                 Label("Privacy policy", systemImage: "hand.raised")
                     .labelStyle(.settingsTile(tint: darkAccent.tint))
             }

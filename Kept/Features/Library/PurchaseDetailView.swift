@@ -114,7 +114,7 @@ struct PurchaseDetailView: View {
                 } header: {
                     Text("Items")
                 } footer: {
-                    Text("Tracked for warranty: \(purchase.itemName)")
+                    Text("Tracked for warranty: \(purchase.displaySubtitle)")
                 }
             }
 
