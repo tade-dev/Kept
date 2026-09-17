@@ -9,13 +9,23 @@ struct ExtractionConfirmView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(SubscriptionAccess.self) private var subscription
 
+    /// Live count of the user's saved receipts. Used to enforce the free-
+    /// tier cap — free users can save up to `Self.freeReceiptCap` receipts
+    /// before the 6th tap opens the paywall instead of committing.
+    @Query private var storedPurchases: [Purchase]
+
     @State private var model: ExtractionConfirmModel
     @State private var savedTick = 0
-    /// Reserved for future paywall triggers (Wallet pass add, claim-pack
-    /// export, etc.). The old free-tier cap was removed as a launch call —
-    /// Pro now sells on the premium features (Claim Pack, Family Sharing,
-    /// Pro extraction), not on a receipt-count wall.
+    /// Fires the paywall on the premium-feature moments (6th save on free,
+    /// Wallet pass add, claim-pack export, manual upgrade). Nil == no
+    /// paywall visible.
     @State private var paywallReason: PaywallView.Reason?
+
+    /// Free tier can save up to this many receipts before the paywall
+    /// blocks further saves. Sits just above the "you've scanned your first
+    /// couple" moment and just below where casual users abandon — tight
+    /// enough to force a decision, loose enough to have felt the value.
+    static let freeReceiptCap = 5
 
     /// Fires with the inserted Purchase. Save is already committed by then;
     /// parent decides what to close (nav pop vs sheet dismiss).
@@ -387,9 +397,15 @@ struct ExtractionConfirmView: View {
     }
 
     private func save() {
-        // Free tier is unlimited. Paywall triggers live on the premium-
-        // feature moments (Wallet pass add, claim-pack export, manual
-        // upgrade from Settings) — not on receipt count.
+        // Pro users always save. Free users hit the paywall on the
+        // (cap+1)th save — the reason enum carries the "you've filled
+        // your free five" subtitle so the paywall messaging fits the
+        // moment. `.onChange(of: subscription.isPro)` above auto-retries
+        // the save the instant Pro flips on inside the paywall.
+        if !subscription.isPro && storedPurchases.count >= Self.freeReceiptCap {
+            paywallReason = .capReached
+            return
+        }
         commitSave()
     }
 
@@ -431,10 +447,11 @@ private struct PaywallReasonBox: Identifiable {
     let reason: PaywallView.Reason
     var id: String {
         switch reason {
-        case .capReached:     "capReached"
-        case .firstPassAdded: "firstPassAdded"
-        case .manual:         "manual"
-        case .claimPack:      "claimPack"
+        case .capReached:      "capReached"
+        case .firstPassAdded:  "firstPassAdded"
+        case .manual:          "manual"
+        case .claimPack:       "claimPack"
+        case .onboardingEntry: "onboardingEntry"
         }
     }
 }

@@ -472,6 +472,9 @@
         }
       }
     },
+    "7 days free" : {
+
+    },
     "7 days of Kept Pro" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -740,6 +743,9 @@
         }
       }
     },
+    "Add receipts to Apple Wallet" : {
+
+    },
     "Add to Apple Wallet" : {
       "localizations" : {
         "es" : {
@@ -943,6 +949,7 @@
       }
     },
     "Capture" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -964,7 +971,7 @@
         }
       }
     },
-    "Capture OCR fixture" : {
+    "Category, price, and merchant capture" : {
 
     },
     "Check the highlighted fields." : {
@@ -1099,9 +1106,6 @@
         }
       }
     },
-    "Cloud extract failed — showing on-device rules parse. Check wrangler (0.0.0.0:8787) + Wi‑Fi." : {
-
-    },
     "confirmed by owner" : {
       "localizations" : {
         "es" : {
@@ -1167,6 +1171,12 @@
           }
         }
       }
+    },
+    "Continue with Free" : {
+
+    },
+    "Continue with limited version" : {
+
     },
     "Copied to clipboard" : {
       "localizations" : {
@@ -1501,9 +1511,6 @@
         }
       }
     },
-    "Debug" : {
-
-    },
     "Decrease" : {
       "localizations" : {
         "es" : {
@@ -1660,9 +1667,6 @@
           }
         }
       }
-    },
-    "e.g. faded total, glare on date" : {
-
     },
     "Edit anyway" : {
       "localizations" : {
@@ -1839,9 +1843,6 @@
           }
         }
       }
-    },
-    "Expected (fill after eyeballing lines)" : {
-
     },
     "Expired" : {
       "localizations" : {
@@ -2082,6 +2083,7 @@
       }
     },
     "Export all" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2147,6 +2149,9 @@
         }
       }
     },
+    "Family Sharing" : {
+
+    },
     "Filling what we can" : {
       "localizations" : {
         "es" : {
@@ -2168,15 +2173,6 @@
           }
         }
       }
-    },
-    "Fire boost notification in 5s" : {
-
-    },
-    "Fixture capture" : {
-
-    },
-    "Fixtures" : {
-
     },
     "Follow iOS" : {
       "comment" : "Language picker option that defers to the system language",
@@ -2378,6 +2374,9 @@
         }
       }
     },
+    "Here's what you can do without Pro — and what unlocks with a trial." : {
+
+    },
     "I'll scan as I buy from here." : {
       "localizations" : {
         "es" : {
@@ -2424,9 +2423,6 @@
           }
         }
       }
-    },
-    "Image never leaves the phone. Only OCR text is written into the fixture JSON." : {
-
     },
     "Includes all four." : {
       "localizations" : {
@@ -2539,6 +2535,7 @@
       }
     },
     "Item name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2650,6 +2647,9 @@
           }
         }
       }
+    },
+    "Kept Free" : {
+
     },
     "Kept guessed the return window. Edit if the receipt says otherwise." : {
       "localizations" : {
@@ -3541,12 +3541,6 @@
         }
       }
     },
-    "OCR fixtures" : {
-
-    },
-    "OCR lines (%lld, top → bottom)" : {
-
-    },
     "Off" : {
       "localizations" : {
         "es" : {
@@ -3656,6 +3650,9 @@
           }
         }
       }
+    },
+    "One-tap Claim Pack export" : {
+
     },
     "One-time payment · pay once, own forever" : {
       "localizations" : {
@@ -3928,9 +3925,6 @@
         }
       }
     },
-    "Pick from Photos" : {
-
-    },
     "Plenty of time to book a repair." : {
       "localizations" : {
         "es" : {
@@ -4019,9 +4013,6 @@
         }
       }
     },
-    "Preview celebration alert" : {
-
-    },
     "Price" : {
       "localizations" : {
         "es" : {
@@ -4069,6 +4060,9 @@
     "PRO" : {
 
     },
+    "Pro-tier extraction model" : {
+
+    },
     "Purchase" : {
       "localizations" : {
         "es" : {
@@ -4092,6 +4086,7 @@
       }
     },
     "Purchase date (yyyy-MM-dd)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4556,6 +4551,7 @@
       }
     },
     "Rescan" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4576,9 +4572,6 @@
           }
         }
       }
-    },
-    "Reset engagement window" : {
-
     },
     "Reset onboarding" : {
       "localizations" : {
@@ -5206,9 +5199,6 @@
         }
       }
     },
-    "Save fixture" : {
-
-    },
     "Save receipt" : {
       "localizations" : {
         "es" : {
@@ -5232,6 +5222,7 @@
       }
     },
     "Saved on device" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5274,6 +5265,9 @@
           }
         }
       }
+    },
+    "Scan and save up to 5 receipts" : {
+
     },
     "Scan cancelled." : {
       "localizations" : {
@@ -5921,9 +5915,6 @@
         }
       }
     },
-    "Trial boost" : {
-
-    },
     "Try again" : {
       "localizations" : {
         "es" : {
@@ -5945,6 +5936,9 @@
           }
         }
       }
+    },
+    "Try Kept Pro free for 7 days. Unlimited receipts, Apple Wallet passes, and the claim pack when it matters." : {
+
     },
     "Tune the personality of Kept." : {
       "localizations" : {
@@ -5989,6 +5983,9 @@
           }
         }
       }
+    },
+    "Unlimited receipts" : {
+
     },
     "Unlimited receipts and the claim pack for the day it matters." : {
       "localizations" : {
@@ -6254,6 +6251,9 @@
           }
         }
       }
+    },
+    "Warranty & return deadline reminders" : {
+
     },
     "warranty ended %lld days ago" : {
       "comment" : "VoiceOver expired warranty; needs plural handling",
@@ -6691,6 +6691,9 @@
           }
         }
       }
+    },
+    "You're on Kept Free" : {
+
     },
     "You've filled your free five — keep every warranty from here." : {
       "localizations" : {

@@ -12,6 +12,12 @@ import SwiftUI
 ///   3. Manual, from Settings › Account
 struct PaywallView: View {
     var reason: Reason = .capReached
+    /// Optional escape hatch shown as a secondary button in the CTA bar.
+    /// When non-nil, "Continue with limited version" appears below the
+    /// primary CTA. Used by the onboarding-entry flow to let the user
+    /// bounce out to the free-tier explainer sheet instead of subscribing.
+    /// When nil, no skip button appears (default paywall behaviour).
+    var onSkip: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(SubscriptionAccess.self) private var subscription
@@ -26,13 +32,18 @@ struct PaywallView: View {
         case firstPassAdded
         case manual
         case claimPack
+        /// Front-door paywall shown once after onboarding finishes. Framed
+        /// as "try Pro for 7 days" rather than "you hit a wall" — the user
+        /// hasn't done anything yet, so the copy needs to invite, not scold.
+        case onboardingEntry
 
         var subtitle: String {
             switch self {
-            case .capReached:     String(localized: "You've filled your free five — keep every warranty from here.")
-            case .firstPassAdded: String(localized: "Unlimited receipts, plus the claim pack for the day it matters.")
-            case .manual:         String(localized: "Unlimited receipts and the claim pack for the day it matters.")
-            case .claimPack:      String(localized: "Export a signed claim pack in one tap. Included with Pro.")
+            case .capReached:      String(localized: "You've filled your free five — keep every warranty from here.")
+            case .firstPassAdded:  String(localized: "Unlimited receipts, plus the claim pack for the day it matters.")
+            case .manual:          String(localized: "Unlimited receipts and the claim pack for the day it matters.")
+            case .claimPack:       String(localized: "Export a signed claim pack in one tap. Included with Pro.")
+            case .onboardingEntry: String(localized: "Try Kept Pro free for 7 days. Unlimited receipts, Apple Wallet passes, and the claim pack when it matters.")
             }
         }
     }
@@ -77,16 +88,21 @@ struct PaywallView: View {
             }
             .background(Color(.systemGroupedBackground))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
+                // In the onboarding-entry flow the user cannot close via ✕ —
+                // they must either start the trial or take the visible skip
+                // button in the CTA bar, so the choice is deliberate rather
+                // than an accidental swipe-away.
+                if onSkip == nil {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
+                        }
+                        .accessibilityLabel("Close")
                     }
-                    .accessibilityLabel("Close")
                 }
-                
             }
             .safeAreaInset(edge: .bottom) { ctaBar }
             .alert(
@@ -210,6 +226,20 @@ struct PaywallView: View {
             }
         } label: {
             VStack(alignment: .leading, spacing: 6) {
+                // Trial badge sits ABOVE the price so users notice it
+                // before selecting — otherwise they miss that yearly is
+                // the only plan with a 7-day free trial and pick monthly
+                // by default. Only yearly currently ships an intro offer
+                // (config verified in ASC), so we only decorate that card.
+                if package?.introOfferString != nil {
+                    Text("7 days free")
+                        .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.18)))
+                }
+
                 if let package {
                     Text(package.priceString)
                         .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
@@ -395,6 +425,15 @@ struct PaywallView: View {
             .disabled(isWorking || subscription.offering == nil)
 
             legalFineprint
+
+            if let onSkip {
+                // Visible skip that the App Review team + Apple guideline
+                // 3.1.2 both require — no dark-pattern hiding behind a ✕.
+                Button("Continue with limited version", action: onSkip)
+                    .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
 
             HStack(spacing: 20) {
                 Button("Restore") { Task { await restore() } }

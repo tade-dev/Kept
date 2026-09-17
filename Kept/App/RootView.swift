@@ -9,11 +9,17 @@ import SwiftUI
 /// stays coordinated in one place.
 struct RootView: View {
     @AppStorage(SettingsKeys.hasOnboarded) private var hasOnboarded: Bool = false
+    @AppStorage(SettingsKeys.hasSeenOnboardingPaywall) private var hasSeenOnboardingPaywall: Bool = false
     @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
     @AppStorage(SettingsKeys.darkAccent) private var darkAccentRaw: String = DarkAccentPreference.midnight.rawValue
     @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @State private var openCaptureAfterOnboarding = false
     @State private var isSplashShowing = true
+    /// Bound to the trial-entry paywall cover. Flips true the moment the
+    /// onboarding cover dismisses so the paywall lands immediately after —
+    /// no gap frame of Library between the two covers. Persisted-once via
+    /// `hasSeenOnboardingPaywall` so subsequent launches skip it.
+    @State private var showsOnboardingPaywall = false
 
     /// Total splash budget from process launch to dismissal.
     private static let splashDuration: TimeInterval = 3.0
@@ -47,13 +53,40 @@ struct RootView: View {
                         OnboardingView { hasExistingReceipts in
                             openCaptureAfterOnboarding = hasExistingReceipts
                             hasOnboarded = true
+                            // Chain the trial-entry paywall on next runloop
+                            // tick so SwiftUI has time to dismiss the
+                            // onboarding cover before the paywall cover
+                            // presents (two full-screen covers can't animate
+                            // simultaneously otherwise).
+                            if !hasSeenOnboardingPaywall {
+                                DispatchQueue.main.async {
+                                    showsOnboardingPaywall = true
+                                }
+                            }
                         }
                         // Belt-and-braces: keep the status bar visible even if
                         // any nested view accidentally sets .persistentSystemOverlays(.hidden).
                         .persistentSystemOverlays(.visible)
                     }
-                    .sheet(isPresented: $openCaptureAfterOnboarding) {
+                    .fullScreenCover(isPresented: $showsOnboardingPaywall) {
+                        OnboardingPaywallGate()
+                            .persistentSystemOverlays(.visible)
+                    }
+                    // Post-capture routing waits for the paywall gate to
+                    // clear — no point auto-opening the scanner while the
+                    // trial-entry sheet still owns the screen.
+                    .sheet(isPresented: Binding(
+                        get: { openCaptureAfterOnboarding && !showsOnboardingPaywall },
+                        set: { openCaptureAfterOnboarding = $0 }
+                    )) {
                         CaptureView()
+                    }
+                    .onChange(of: showsOnboardingPaywall) { _, isPresented in
+                        // Stamp the flag when the gate dismisses so subsequent
+                        // launches never re-show it (regardless of whether
+                        // the user bought, started a trial, or continued
+                        // with free — every exit counts as "seen").
+                        if !isPresented { hasSeenOnboardingPaywall = true }
                     }
                     .transition(.opacity)
             }

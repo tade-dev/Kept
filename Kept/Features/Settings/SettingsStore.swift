@@ -14,6 +14,10 @@ enum SettingsKeys {
     static let trackedCategoriesCSV = "settings.trackedCategoriesCSV"
     /// Set true when onboarding ends with "Yes, a few" — Library uses it to route.
     static let hasExistingReceipts = "settings.hasExistingReceipts"
+    /// Set true once the trial-entry paywall has been shown after onboarding.
+    /// Ensures the front-door paywall + explainer sheet fire exactly once per
+    /// install — subsequent conversions happen on premium-feature moments.
+    static let hasSeenOnboardingPaywall = "settings.hasSeenOnboardingPaywall"
 }
 
 enum SettingsDefaults {
