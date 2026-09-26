@@ -7884,30 +7884,30 @@
         }
       }
     },
-    "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters." : {
+    "Unlimited receipts, and the claim pack when it matters." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters."
+            "value" : "Unlimited receipts, and the claim pack when it matters."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters."
+            "value" : "Unlimited receipts, and the claim pack when it matters."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters."
+            "value" : "Unlimited receipts, and the claim pack when it matters."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters."
+            "value" : "Unlimited receipts, and the claim pack when it matters."
           }
         }
       }

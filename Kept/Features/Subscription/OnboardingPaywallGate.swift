@@ -12,8 +12,9 @@ import SwiftUI
 /// Either purchasing Pro OR tapping "Continue" on the explainer dismisses
 /// the whole gate. RootView sets a UserDefaults flag on first present so
 /// the gate never fires again — post-install conversion happens on the
-/// per-feature paywalls (wallet pass add, claim-pack export, 6th save on
-/// free, Settings › Upgrade).
+/// per-feature paywalls (after the first Wallet pass, claim-pack export,
+/// 6th save on free, Settings › Upgrade). Adding a Wallet pass is available
+/// on Free; the pass moment is a soft prompt, not a lock.
 struct OnboardingPaywallGate: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SubscriptionAccess.self) private var subscription
@@ -106,7 +107,8 @@ struct FreeTierExplainerSheet: View {
                 rows: [
                     .init(icon: "checkmark", included: true,  text: String(localized: "Scan and save up to 5 receipts")),
                     .init(icon: "checkmark", included: true,  text: String(localized: "Warranty & return deadline reminders")),
-                    .init(icon: "checkmark", included: true,  text: String(localized: "Category, price, and merchant capture"))
+                    .init(icon: "checkmark", included: true,  text: String(localized: "Category, price, and merchant capture")),
+                    .init(icon: "wallet.pass", included: true, text: String(localized: "Add receipts to Apple Wallet"))
                 ]
             )
 
@@ -115,7 +117,6 @@ struct FreeTierExplainerSheet: View {
                 tint: KeptColor.adaptiveInk.opacity(0.08),
                 rows: [
                     .init(icon: "sparkles",       included: true, text: String(localized: "Unlimited receipts")),
-                    .init(icon: "wallet.pass",    included: true, text: String(localized: "Add receipts to Apple Wallet")),
                     .init(icon: "doc.text",       included: true, text: String(localized: "One-tap Claim Pack export")),
                     .init(icon: "cpu",            included: true, text: String(localized: "Pro-tier extraction model")),
                     .init(icon: "person.2",       included: true, text: String(localized: "Family Sharing"))

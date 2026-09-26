@@ -45,7 +45,7 @@ struct PaywallView: View {
             case .firstPassAdded:  String(localized: "Unlimited receipts, plus the claim pack for the day it matters.")
             case .manual:          String(localized: "Unlimited receipts and the claim pack for the day it matters.")
             case .claimPack:       String(localized: "Export a signed claim pack in one tap. Included with Pro.")
-            case .onboardingEntry: String(localized: "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters.")
+            case .onboardingEntry: String(localized: "Unlimited receipts, and the claim pack when it matters.")
             }
         }
     }
