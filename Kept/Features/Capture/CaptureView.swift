@@ -455,7 +455,7 @@ struct CaptureView: View {
             Label("Point at a receipt", systemImage: "doc.viewfinder")
                 .font(.keptTitle3)
         } description: {
-            Text("Receipts sync through your iCloud. To read one, we send its text to our server, never the photo.")
+            Text(OnboardingCopy.privacyLine)
                 .font(.keptSubheadline)
         }
     }

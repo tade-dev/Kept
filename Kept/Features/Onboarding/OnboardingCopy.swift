@@ -15,10 +15,12 @@ enum OnboardingCopy {
     static let keyMomentCTA = LocalizedStringKey("Choose when to remind me")
     static let keyMomentCTACompact = LocalizedStringKey("Set reminders")
 
-    static let privacyTitle = LocalizedStringKey("Synced through your iCloud")
-    /// Accurate against `CloudExtractor`: the extract request is OCR text lines
-    /// and bounding boxes, plus the RevenueCat user id. The photo is not sent.
-    static let privacyLine = LocalizedStringKey("Receipts sync through your iCloud. To read one, we send its text to our server, never the photo.")
+    static let privacyTitle = LocalizedStringKey("Your photos stay yours")
+    /// Accurate against `CloudExtractor` and the worker: `/extract` receives OCR
+    /// text lines and bounding boxes, not image bytes. Receipt photos still
+    /// sync to the user's own iCloud via SwiftData. Keep this sentence identical
+    /// to `INFOPLIST_KEY_NSCameraUsageDescription`.
+    static let privacyLine = LocalizedStringKey("We never upload your receipt photos. To read one, we send only its text to our server.")
 
     static let emptyLibraryCaption = LocalizedStringKey("When something breaks, this is what you'll see.")
     static let emptyLibraryTitle = LocalizedStringKey("Start your library")

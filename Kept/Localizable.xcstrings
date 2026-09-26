@@ -250,59 +250,6 @@
         }
       }
     },
-    "%lld items stored on this device." : {
-      "comment" : "Footer under Data section. Needs plural handling on 'items'.",
-      "localizations" : {
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld artículo guardado en este dispositivo."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld artículos guardados en este dispositivo."
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld article stocké sur cet appareil."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld articles stockés sur cet appareil."
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "本设备已保存 %lld 项。"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld mo left" : {
       "comment" : "Months remaining until warranty expires; needs plural handling",
       "localizations" : {
@@ -3859,28 +3806,6 @@
         }
       }
     },
-    "Photos never leave your phone" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Las fotos nunca salen de tu teléfono"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Les photos ne quittent jamais votre téléphone"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "照片永不离开你的手机"
-          }
-        }
-      }
-    },
     "Pick any that apply." : {
       "localizations" : {
         "es" : {
@@ -4348,28 +4273,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "收据"
-          }
-        }
-      }
-    },
-    "Receipt images live only on this device." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Las imágenes de los recibos viven solo en este dispositivo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Les images des reçus restent uniquement sur cet appareil."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "收据图片仅保存在本设备上。"
           }
         }
       }
@@ -6831,28 +6734,6 @@
         }
       }
     },
-    "Your receipts stay yours." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Tus recibos son tuyos."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Vos reçus restent les vôtres."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "你的收据只属于你。"
-          }
-        }
-      }
-    },
     "Your trial ends on %@. Afterwards, you will be billed %@ %@ly. Cancel anytime before the trial ends at no cost." : {
       "comment" : "Paywall trial-end fine print",
       "localizations" : {
@@ -7051,58 +6932,58 @@
         }
       }
     },
-    "Synced through your iCloud" : {
+    "Your photos stay yours" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Synced through your iCloud"
+            "value" : "Your photos stay yours"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Synced through your iCloud"
+            "value" : "Your photos stay yours"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Synced through your iCloud"
+            "value" : "Your photos stay yours"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Synced through your iCloud"
+            "value" : "Your photos stay yours"
           }
         }
       }
     },
-    "Receipts sync through your iCloud. To read one, we send its text to our server, never the photo." : {
+    "We never upload your receipt photos. To read one, we send only its text to our server." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Receipts sync through your iCloud. To read one, we send its text to our server, never the photo."
+            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Receipts sync through your iCloud. To read one, we send its text to our server, never the photo."
+            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Receipts sync through your iCloud. To read one, we send its text to our server, never the photo."
+            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Receipts sync through your iCloud. To read one, we send its text to our server, never the photo."
+            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
           }
         }
       }
@@ -7555,30 +7436,86 @@
         }
       }
     },
-    "%lld items in your library." : {
+    "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%lld items in your library."
+            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library."
+            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library."
+            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library."
+            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
+          }
+        }
+      }
+    },
+    "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack."
+          }
+        }
+      }
+    },
+    "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it."
           }
         }
       }

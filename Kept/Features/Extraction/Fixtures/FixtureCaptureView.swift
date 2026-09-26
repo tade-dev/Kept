@@ -81,7 +81,7 @@ struct FixtureCaptureView: View {
                     .font(.keptFootnote)
                     .foregroundStyle(.secondary)
             }
-            Text("Image never leaves the phone. Only OCR text is written into the fixture JSON.")
+            Text("The fixture JSON stores OCR text only. The image is not included.")
                 .font(.keptFootnote)
                 .foregroundStyle(.secondary)
         }

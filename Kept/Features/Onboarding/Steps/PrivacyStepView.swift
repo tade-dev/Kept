@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// Privacy reassurance. Row 1 matches what the app actually does: photos sync
-/// through CloudKit, and extraction sends OCR text, not the image.
+/// Privacy reassurance. The step title and first row match extraction:
+/// the worker receives OCR text, not the photo. Photos still sync to the
+/// user's own iCloud; that fact lives in Settings, not in this row.
 /// Rows 2 and 3 are the existing assurances.
 struct PrivacyStepView: View {
     var body: some View {
         OnboardingScaffold(
-            title: "Your receipts stay yours.",
+            title: OnboardingCopy.privacyTitle,
             subtitle: "Kept was built for people who don't want another app sitting on their private stuff."
         ) {
             VStack {
@@ -51,7 +52,7 @@ struct PrivacyStepView: View {
     private var assurances: some View {
         VStack(spacing: 0) {
             row(
-                symbol: "icloud",
+                symbol: "photo",
                 title: OnboardingCopy.privacyTitle,
                 subtitle: OnboardingCopy.privacyLine
             )
