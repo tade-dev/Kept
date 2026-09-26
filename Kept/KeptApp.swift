@@ -15,6 +15,7 @@ struct KeptApp: App {
         // every subsequent launch. Feeds `TrialBoostEngagement.shouldGrant`.
         TrialBoostEngagement.noteAppLaunch()
         SettingsSnapshot.migrateReminderTogglesIfNeeded()
+        SettingsSnapshot.removeRetiredLeadTimeSettings()
     }
 
     var sharedModelContainer: ModelContainer = {

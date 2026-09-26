@@ -286,6 +286,145 @@ struct ReminderPlannerTests {
         #expect(center.pending[ReminderPlanner.weeklyIdentifier] != nil)
     }
 
+    @Test("return-window alerts keep the old 14-day 09:30 fire and the old copy")
+    func returnWindowMatchesOldScheduler() throws {
+        let expiry = utcDate(2026, 12, 20, hour: 15)
+        let now = utcDate(2026, 8, 1, hour: 12)
+        let planner = ReminderPlanner(now: now, calendar: utc)
+        let expected = CoverageNotificationScheduler.fireDate(
+            expiry: expiry,
+            now: now,
+            calendar: utc,
+            leadDays: ReminderPlanner.returnWindowLeadDays,
+            hour: ReminderPlanner.returnWindowHour,
+            minute: ReminderPlanner.returnWindowMinute
+        )
+        let fire = try #require(planner.returnWindowFireDate(expiry: expiry))
+        #expect(fire == expected)
+        let parts = utc.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
+        #expect(parts.year == 2026)
+        #expect(parts.month == 12)
+        #expect(parts.day == 6)
+        #expect(parts.hour == 9)
+        #expect(parts.minute == 30)
+
+        let notes = planner.expiryNotifications(for: [
+            ExpiryReminderItem(id: "coat", itemName: "Coat", merchant: "COS", returnEnd: expiry)
+        ])
+        #expect(notes.count == 1)
+        #expect(notes[0].identifier == ReminderPlanner.returnWindowIdentifier(itemID: "coat"))
+        #expect(notes[0].identifier == "kept.coverage.coat.returnWindow.14")
+        #expect(notes[0].kind == "returnWindow")
+        #expect(notes[0].title == "Return window ending")
+        #expect(notes[0].body == "Coat from COS — return window ends in 14 days.")
+        #expect(notes[0].fireDate == fire)
+
+        #expect(
+            ReminderCopy.returnWindowBody(itemName: "Coat", merchant: "", daysLeft: 1)
+                == "Coat — return window ends in 1 day."
+        )
+        #expect(
+            ReminderCopy.returnWindowBody(itemName: " ", merchant: "COS", daysLeft: 3)
+                == "your purchase from COS — return window ends in 3 days."
+        )
+        #expect(
+            ReminderCopy.returnWindowBody(itemName: " ", merchant: " ", daysLeft: 3)
+                == "your purchase — return window ends in 3 days."
+        )
+    }
+
+    @Test("a return window already inside the lead still fires before it ends")
+    func returnWindowInsideLead() throws {
+        let now = utcDate(2026, 8, 10, hour: 12)
+        let expiry = utcDate(2026, 8, 20, hour: 12)
+        let planner = ReminderPlanner(now: now, calendar: utc)
+        let fire = try #require(planner.returnWindowFireDate(expiry: expiry))
+        let old = CoverageNotificationScheduler.fireDate(expiry: expiry, now: now, calendar: utc)
+        #expect(fire == old)
+        #expect(fire == now.addingTimeInterval(30))
+        #expect(fire < expiry)
+
+        let ended = utcDate(2026, 8, 1, hour: 12)
+        #expect(planner.returnWindowFireDate(expiry: ended) == nil)
+        #expect(planner.expiryNotifications(for: [
+            ExpiryReminderItem(id: "gone", itemName: "Scarf", merchant: "COS", returnEnd: ended)
+        ]).isEmpty)
+    }
+
+    @Test("expiry and return alerts share one soonest-first budget")
+    func combinedBudgetKeepsSoonest() throws {
+        let now = utcDate(2026, 1, 1, hour: 8)
+        let soonReturn = utcDate(2026, 1, 10, hour: 12)
+        let laterWarranty = utcDate(2026, 3, 1, hour: 12)
+        let planner = ReminderPlanner(now: now, calendar: utc, expiryBudget: 3)
+
+        let soonItem = ExpiryReminderItem(
+            id: "soon",
+            itemName: "Coat",
+            merchant: "COS",
+            warrantyEnd: laterWarranty,
+            returnEnd: soonReturn
+        )
+        let laterItem = ExpiryReminderItem(
+            id: "later",
+            itemName: "Lamp",
+            merchant: "IKEA",
+            warrantyEnd: utcDate(2026, 6, 1, hour: 12)
+        )
+        let notes = planner.expiryNotifications(for: [laterItem, soonItem])
+        #expect(notes.count == 3)
+
+        let returnFire = try #require(planner.returnWindowFireDate(expiry: soonReturn))
+        let warrantyThirty = try #require(planner.triggerDate(expiry: laterWarranty, leadDays: 30))
+        #expect(returnFire < warrantyThirty)
+        #expect(notes[0].identifier == ReminderPlanner.returnWindowIdentifier(itemID: "soon"))
+        #expect(notes[0].kind == "returnWindow")
+        #expect(notes[0].fireDate == returnFire)
+        #expect(notes[1].identifier == ReminderPlanner.expiryIdentifier(itemID: "soon", leadDays: 30))
+        #expect(notes[1].kind == "warrantyExpiry")
+        #expect(notes[1].fireDate == warrantyThirty)
+        #expect(notes.allSatisfy { $0.identifier.contains("soon") })
+        #expect(notes.map(\.kind).contains("returnWindow"))
+        #expect(notes.map(\.kind).contains("warrantyExpiry"))
+        #expect(zip(notes, notes.dropFirst()).allSatisfy { $0.0.fireDate <= $0.1.fireDate })
+
+        // The dropped alerts are the later warranty leads, not the return window.
+        let unlimited = ReminderPlanner(now: now, calendar: utc, expiryBudget: 63)
+        let all = unlimited.expiryNotifications(for: [laterItem, soonItem])
+        #expect(all.count > 3)
+        #expect(all.map(\.identifier).contains(ReminderPlanner.returnWindowIdentifier(itemID: "soon")))
+        #expect(Set(notes.map(\.identifier)).isSubset(of: Set(all.prefix(3).map(\.identifier))))
+    }
+
+    @Test("reconcile cancels the retired Sunday summary, pending and delivered")
+    func cancelsLegacyWeeklySummary() async {
+        let now = utcDate(2026, 1, 1, hour: 8)
+        let planner = ReminderPlanner(now: now, calendar: utc)
+        let center = FakeReminderNotificationCenter()
+        let summary = ReminderPlanner.legacyWeeklySummaryIdentifier
+        center.pending[summary] = PlannedLocalNotification(
+            identifier: summary,
+            title: "Your Kept summary",
+            body: "3 items covered.",
+            fireDate: now,
+            leadDays: nil,
+            kind: "weeklySummary"
+        )
+        center.delivered.insert(summary)
+        center.delivered.insert("kept.warranty.keep.30")
+        center.pending[ReminderPlanner.weeklyIdentifier] = planner.weeklyNotification(lastOpen: now)
+
+        let scheduler = ReminderNotificationScheduler(center: center, planner: planner)
+        await scheduler.reconcileExpiry(items: [], enabled: false)
+
+        #expect(center.pending[summary] == nil)
+        #expect(center.delivered.contains(summary) == false)
+        #expect(center.delivered.contains("kept.warranty.keep.30"))
+        #expect(center.pending[ReminderPlanner.weeklyIdentifier] != nil)
+        #expect(center.events.contains(.remove([summary])))
+        #expect(center.events.contains(.removeDelivered([summary])))
+    }
+
     @Test("the system prompt waits until the paywall is gone and is not repeated")
     func permissionTiming() {
         #expect(
@@ -341,10 +480,12 @@ struct ReminderPlannerTests {
 private final class FakeReminderNotificationCenter: ReminderNotificationCenter {
     enum Event: Equatable {
         case remove([String])
+        case removeDelivered([String])
         case schedule([String])
     }
 
     var pending: [String: PlannedLocalNotification] = [:]
+    var delivered: Set<String> = []
     var events: [Event] = []
 
     func pendingIdentifiers() async -> [String] {
@@ -355,6 +496,13 @@ private final class FakeReminderNotificationCenter: ReminderNotificationCenter {
         events.append(.remove(identifiers))
         for identifier in identifiers {
             pending.removeValue(forKey: identifier)
+        }
+    }
+
+    func removeDelivered(withIdentifiers identifiers: [String]) async {
+        events.append(.removeDelivered(identifiers))
+        for identifier in identifiers {
+            delivered.remove(identifier)
         }
     }
 

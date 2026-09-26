@@ -518,20 +518,19 @@ struct LibraryView: View {
         scheduleTrialBoostRelease()
     }
 
-    /// Expiry end dates only, so typing a name does not reschedule.
-    /// A CloudKit import that adds or edits a warranty changes this token.
+    /// Warranty and return end dates, so typing a name does not reschedule.
+    /// A CloudKit import that adds or edits either deadline changes this token.
     private var reminderSyncToken: String {
         purchases.map { purchase in
-            let end = purchase.primaryWarranty?.expiryDate.timeIntervalSinceReferenceDate ?? -1
-            return "\(purchase.persistentModelID)|\(end)"
+            let warranty = purchase.primaryWarranty?.expiryDate.timeIntervalSinceReferenceDate ?? -1
+            let returns = purchase.returnWindow?.expiryDate.timeIntervalSinceReferenceDate ?? -1
+            return "\(purchase.persistentModelID)|\(warranty)|\(returns)"
         }.joined(separator: "\n")
     }
 
     private func reconcileReminders(includingWeekly: Bool) async {
         if includingWeekly {
             await ReminderCoordinator.reconcileOnForeground(modelContext: modelContext)
-            let current = (try? modelContext.fetch(FetchDescriptor<Purchase>())) ?? purchases
-            await WeeklySummaryScheduler.reschedule(with: current)
         } else {
             await ReminderCoordinator.reconcileFromContext(modelContext, rescheduleWeekly: false)
         }

@@ -1,12 +1,14 @@
 import Foundation
 
-/// One warranty Kept may remind the user about. The id is stable for the
+/// One purchase Kept may remind the user about. The id is stable for the
 /// life of the local SwiftData row (see `ReminderPlanner.itemToken`).
+/// A row can have a warranty end, a return-window end, or both.
 struct ExpiryReminderItem: Equatable {
     var id: String
     var itemName: String
     var merchant: String
-    var warrantyEnd: Date
+    var warrantyEnd: Date? = nil
+    var returnEnd: Date? = nil
 }
 
 /// A local notification the scheduler can hand to `UNUserNotificationCenter`
@@ -17,6 +19,8 @@ struct PlannedLocalNotification: Equatable {
     var body: String
     var fireDate: Date
     var leadDays: Int?
+    /// `warrantyExpiry`, `returnWindow`, or `weeklyReminder`.
+    var kind: String = "warrantyExpiry"
 }
 
 /// When the one-time system notification prompt may appear.
@@ -36,7 +40,8 @@ enum NotificationPromptTiming: Equatable {
     }
 }
 
-/// Pure date and copy planning for warranty reminders and the weekly note.
+/// Pure date and copy planning for warranty reminders, return-window
+/// alerts, and the weekly note.
 ///
 /// `now` and `calendar` are injected so tests can pin a time zone, including
 /// a daylight-saving transition, without talking to `UNUserNotificationCenter`.
@@ -60,6 +65,14 @@ struct ReminderPlanner {
     static let expiryIdentifierPrefix = "kept.warranty."
     static let legacyCoveragePrefix = "kept.coverage."
     static let weeklyIdentifier = "kept.weeklyReminder"
+    /// Sunday summary removed in favour of the weekly note. Reconcile
+    /// cancels this id from both the pending and delivered lists.
+    static let legacyWeeklySummaryIdentifier = "kept.weeklySummary"
+    /// Previous default lead and clock time for a return window.
+    /// Warranty alerts stay on the fixed 30- and 7-day, 9:00 schedule.
+    static let returnWindowLeadDays = 14
+    static let returnWindowHour = 9
+    static let returnWindowMinute = 30
 
     static func expiryIdentifier(itemID: String, leadDays: Int) -> String {
         "\(expiryIdentifierPrefix)\(itemID).\(leadDays)"
@@ -67,6 +80,11 @@ struct ReminderPlanner {
 
     static func expiryIdentifiers(forItemID itemID: String, leadDays: [Int] = [30, 7]) -> [String] {
         leadDays.map { expiryIdentifier(itemID: itemID, leadDays: $0) }
+    }
+
+    /// Same identifier the old scheduler used for the default 14-day return alert.
+    static func returnWindowIdentifier(itemID: String) -> String {
+        "\(legacyCoveragePrefix)\(itemID).returnWindow.\(returnWindowLeadDays)"
     }
 
     /// Identifiers the previous lead-day scheduler used for this row, so a
@@ -105,24 +123,58 @@ struct ReminderPlanner {
         return fire
     }
 
-    /// Soonest expiry reminders first, capped at `expiryBudget`.
+    /// 9:30 local, `returnWindowLeadDays` before the return end.
+    /// If that moment has already passed and the window is still open, the
+    /// old scheduler's short-notice fire (about 30 seconds out) is used.
+    func returnWindowFireDate(expiry: Date) -> Date? {
+        CoverageNotificationScheduler.fireDate(
+            expiry: expiry,
+            now: now,
+            calendar: calendar,
+            leadDays: Self.returnWindowLeadDays,
+            hour: Self.returnWindowHour,
+            minute: Self.returnWindowMinute
+        )
+    }
+
+    /// Soonest warranty and return-window reminders first, capped at `expiryBudget`.
     func expiryNotifications(for items: [ExpiryReminderItem]) -> [PlannedLocalNotification] {
         var planned: [PlannedLocalNotification] = []
-        planned.reserveCapacity(items.count * leadDays.count)
+        planned.reserveCapacity(items.count * (leadDays.count + 1))
         for item in items {
-            for lead in leadDays {
-                guard let fire = triggerDate(expiry: item.warrantyEnd, leadDays: lead) else { continue }
+            if let warrantyEnd = item.warrantyEnd {
+                for lead in leadDays {
+                    guard let fire = triggerDate(expiry: warrantyEnd, leadDays: lead) else { continue }
+                    planned.append(
+                        PlannedLocalNotification(
+                            identifier: Self.expiryIdentifier(itemID: item.id, leadDays: lead),
+                            title: ReminderCopy.expiryTitle,
+                            body: ReminderCopy.expiryBody(
+                                itemName: item.itemName,
+                                merchant: item.merchant,
+                                leadDays: lead
+                            ),
+                            fireDate: fire,
+                            leadDays: lead,
+                            kind: "warrantyExpiry"
+                        )
+                    )
+                }
+            }
+            if let returnEnd = item.returnEnd, let fire = returnWindowFireDate(expiry: returnEnd) {
+                let daysLeft = returnWindowDaysLeft(fire: fire, expiry: returnEnd)
                 planned.append(
                     PlannedLocalNotification(
-                        identifier: Self.expiryIdentifier(itemID: item.id, leadDays: lead),
-                        title: ReminderCopy.expiryTitle,
-                        body: ReminderCopy.expiryBody(
+                        identifier: Self.returnWindowIdentifier(itemID: item.id),
+                        title: ReminderCopy.returnWindowTitle,
+                        body: ReminderCopy.returnWindowBody(
                             itemName: item.itemName,
                             merchant: item.merchant,
-                            leadDays: lead
+                            daysLeft: daysLeft
                         ),
                         fireDate: fire,
-                        leadDays: lead
+                        leadDays: Self.returnWindowLeadDays,
+                        kind: "returnWindow"
                     )
                 )
             }
@@ -136,6 +188,17 @@ struct ReminderPlanner {
             return Array(planned.prefix(budget))
         }
         return planned
+    }
+
+    /// Whole calendar days from the fire date to the return end, at least 1.
+    /// Matches the old scheduler's copy, which never said "0 days".
+    func returnWindowDaysLeft(fire: Date, expiry: Date) -> Int {
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: fire),
+            to: calendar.startOfDay(for: expiry)
+        ).day ?? Self.returnWindowLeadDays
+        return max(1, days)
     }
 
     /// 6:00 pm local, seven calendar days after `lastOpen`.
@@ -165,7 +228,8 @@ struct ReminderPlanner {
             title: ReminderCopy.weeklyTitle,
             body: WeeklyReminderCopy.localizedLine(at: index),
             fireDate: weeklyFireDate(lastOpen: lastOpen),
-            leadDays: nil
+            leadDays: nil,
+            kind: "weeklyReminder"
         )
     }
 
@@ -204,6 +268,41 @@ enum ReminderCopy {
         return String(
             localized: "Warranty on \(itemText) from \(shop) ends in \(leadDays) days.",
             comment: "Warranty reminder naming the item and merchant. leadDays is 30 or 7."
+        )
+    }
+
+    static var returnWindowTitle: String {
+        String(localized: "Return window ending", comment: "Title of a local notification before a return window ends")
+    }
+
+    /// Same sentences the previous scheduler used. `daysLeft` is at least 1.
+    static func returnWindowBody(itemName: String, merchant: String, daysLeft: Int) -> String {
+        let item = itemName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shop = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        let itemText = item.isEmpty
+            ? String(localized: "your purchase", comment: "Fallback item name in a return-window reminder")
+            : item
+        if daysLeft == 1 {
+            if shop.isEmpty {
+                return String(
+                    localized: "\(itemText) — return window ends in 1 day.",
+                    comment: "Return-window reminder without a merchant, one day left"
+                )
+            }
+            return String(
+                localized: "\(itemText) from \(shop) — return window ends in 1 day.",
+                comment: "Return-window reminder naming the item and merchant, one day left"
+            )
+        }
+        if shop.isEmpty {
+            return String(
+                localized: "\(itemText) — return window ends in \(daysLeft) days.",
+                comment: "Return-window reminder without a merchant"
+            )
+        }
+        return String(
+            localized: "\(itemText) from \(shop) — return window ends in \(daysLeft) days.",
+            comment: "Return-window reminder naming the item and merchant"
         )
     }
 }

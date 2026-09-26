@@ -59,14 +59,12 @@ struct OnboardingView: View {
             WelcomeStepView()
         case .keyMoment:
             KeyMomentStepView(coordinator: coordinator)
-        case .leadTimes:
-            LeadTimesStepView(coordinator: coordinator)
         case .privacy:
             PrivacyStepView()
         case .existingReceipts:
             ExistingReceiptsStepView(coordinator: coordinator)
         case .notifications:
-            NotificationsStepView(coordinator: coordinator)
+            NotificationsStepView()
         }
     }
 
@@ -79,9 +77,7 @@ struct OnboardingView: View {
             case .welcome:
                 singleCTA(OnboardingCopy.welcomeCTA, enabled: true) { coordinator.advance() }
             case .keyMoment:
-                keyMomentCTA { coordinator.advance() }
-            case .leadTimes:
-                singleCTA("Continue", enabled: coordinator.canAdvance) { coordinator.advance() }
+                singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .privacy:
                 singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .notifications:
@@ -91,29 +87,6 @@ struct OnboardingView: View {
             }
         }
         .transition(ctaTransition)
-    }
-
-    /// Visible from the first frame. Back does not replay the key moment;
-    /// `OnboardingCoordinator.hasPlayedKeyMoment` keeps the settled frame.
-    /// The compact label is used only when the long one does not fit, including
-    /// accessibility XXXL.
-    private func keyMomentCTA(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            ViewThatFits(in: .horizontal) {
-                Text(OnboardingCopy.keyMomentCTA)
-                    .lineLimit(1)
-                Text(OnboardingCopy.keyMomentCTACompact)
-                    .lineLimit(1)
-            }
-            .font(.keptHeadline)
-            .foregroundStyle(KeptColor.adaptiveOnInk)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md + 2)
-            .background(Capsule().fill(KeptColor.adaptiveInk))
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.top, Spacing.sm)
-        .padding(.bottom, Spacing.md)
     }
 
     private func singleCTA(_ label: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {

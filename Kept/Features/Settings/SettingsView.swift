@@ -81,7 +81,7 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Removes every purchase, warranty, and pending reminder. This can't be undone.")
+                Text("Removes every purchase and its reminders, including the weekly note. This can't be undone.")
             }
             .onChange(of: expiryRemindersEnabled) { _, enabled in
                 Task { await handleExpiryToggle(enabled) }
@@ -119,7 +119,7 @@ struct SettingsView: View {
         } header: {
             Text("Reminders")
         } footer: {
-            Text("Warranty reminders arrive 30 days and 7 days before cover ends, at 9:00. A weekly note arrives only after a week away, at 6:00 pm.")
+            Text("Warranty reminders arrive 30 days and 7 days before cover ends, at 9:00. A return window is reminded 14 days before it closes, at 9:30. A weekly note arrives only after a week away, at 6:00 pm.")
         }
     }
 
@@ -292,11 +292,6 @@ struct SettingsView: View {
         SettingsSnapshot.setNotificationsMaster(enabled: master)
         await ReminderCoordinator.reconcile(purchases: purchases, rescheduleWeekly: false)
         await ReminderCoordinator.rescheduleWeeklyReminder()
-        if master {
-            await WeeklySummaryScheduler.reschedule(with: purchases)
-        } else {
-            WeeklySummaryScheduler.cancel()
-        }
     }
 
     private func refreshExportURL() {
@@ -334,6 +329,8 @@ struct SettingsView: View {
             modelContext.delete(purchase)
         }
         ReminderCoordinator.cancelAllExpiryReminders()
+        ReminderCoordinator.cancelWeeklyReminder()
+        ReminderCoordinator.cancelLegacyWeeklySummary()
         try? modelContext.save()
         refreshExportURL()
     }

@@ -1,6 +1,8 @@
 import Foundation
 
-/// Lead-window date helper kept for the original unit tests.
+/// Lead-window date helper kept for the original unit tests, and used by
+/// `ReminderPlanner` for return-window alerts (14 days at 9:30, or a short
+/// notice when that moment has already passed).
 ///
 /// Warranty reminders (30 days and 7 days) and the weekly note are planned
 /// by `ReminderPlanner` and applied by `ReminderCoordinator`. This type no

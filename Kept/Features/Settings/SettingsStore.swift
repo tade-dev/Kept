@@ -6,10 +6,6 @@ enum SettingsKeys {
     static let expiryRemindersEnabled = "settings.expiryRemindersEnabled"
     static let weeklyReminderEnabled = "settings.weeklyReminderEnabled"
     static let lastAppOpen = "settings.lastAppOpen"
-    /// CSV of lead-day ints — @AppStorage doesn't support Set<Int> directly.
-    static let leadDaysCSV = "settings.leadDaysCSV"
-    static let notifyHour = "settings.notifyHour"
-    static let notifyMinute = "settings.notifyMinute"
     static let appearance = "settings.appearance"
     static let darkAccent = "settings.darkAccent"
     static let hasOnboarded = "settings.hasOnboarded"
@@ -30,15 +26,6 @@ enum SettingsKeys {
 
 enum SettingsDefaults {
     static let notificationsEnabled = true
-    static let leadDays: Set<Int> = [14]
-    static let notifyHour = 9
-    static let notifyMinute = 30
-}
-
-/// Canonical lead-day options offered anywhere in the app (onboarding + settings).
-/// Used by the scheduler's cancel path to sweep stale IDs when the set changes.
-enum LeadDayOption {
-    static let all: [Int] = [7, 14, 30]
 }
 
 /// Read-only snapshot for services (scheduler, app root) that need current settings
@@ -49,22 +36,6 @@ enum SettingsSnapshot {
             return SettingsDefaults.notificationsEnabled
         }
         return UserDefaults.standard.bool(forKey: SettingsKeys.notificationsEnabled)
-    }
-
-    static var leadDaysSet: Set<Int> {
-        guard let raw = UserDefaults.standard.string(forKey: SettingsKeys.leadDaysCSV) else {
-            return SettingsDefaults.leadDays
-        }
-        let ints = raw.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-        return ints.isEmpty ? SettingsDefaults.leadDays : Set(ints)
-    }
-
-    static var notifyHour: Int {
-        (UserDefaults.standard.object(forKey: SettingsKeys.notifyHour) as? Int) ?? SettingsDefaults.notifyHour
-    }
-
-    static var notifyMinute: Int {
-        (UserDefaults.standard.object(forKey: SettingsKeys.notifyMinute) as? Int) ?? SettingsDefaults.notifyMinute
     }
 
     static var appearance: AppearancePreference {
@@ -89,8 +60,9 @@ enum SettingsSnapshot {
         UserDefaults.standard.bool(forKey: SettingsKeys.hasExistingReceipts)
     }
 
-    /// On unless the user turned warranty reminders off. A missing key follows
-    /// the older master notifications toggle, which itself defaults to on.
+    /// On unless the user turned expiry reminders off. That toggle covers
+    /// warranty and return-window alerts. A missing key follows the older
+    /// master notifications toggle, which itself defaults to on.
     static var expiryRemindersEnabled: Bool {
         migrateReminderTogglesIfNeeded()
         return UserDefaults.standard.bool(forKey: SettingsKeys.expiryRemindersEnabled)
@@ -130,15 +102,21 @@ enum SettingsSnapshot {
             defaults.set(master, forKey: SettingsKeys.weeklyReminderEnabled)
         }
     }
+
+    /// Drops the lead-time picker values. They lived in UserDefaults only.
+    /// Warranty terms are unchanged, so this is not a SwiftData or CloudKit
+    /// migration. Safe to call on every launch.
+    static func removeRetiredLeadTimeSettings() {
+        let defaults = UserDefaults.standard
+        // These keys only served the removed picker: which lead days, and
+        // the hour and minute of the old coverage alert.
+        defaults.removeObject(forKey: "settings.leadDaysCSV")
+        defaults.removeObject(forKey: "settings.notifyHour")
+        defaults.removeObject(forKey: "settings.notifyMinute")
+    }
 }
 
 extension SettingsSnapshot {
-    /// Persist the onboarding answers to app-wide settings. Called once when the flow finishes.
-    static func write(leadDays: Set<Int>) {
-        let csv = leadDays.sorted().map(String.init).joined(separator: ",")
-        UserDefaults.standard.set(csv, forKey: SettingsKeys.leadDaysCSV)
-    }
-
     static func markOnboarded(hasExistingReceipts: Bool) {
         UserDefaults.standard.set(true, forKey: SettingsKeys.hasOnboarded)
         UserDefaults.standard.set(hasExistingReceipts, forKey: SettingsKeys.hasExistingReceipts)

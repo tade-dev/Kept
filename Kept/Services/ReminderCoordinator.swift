@@ -162,6 +162,22 @@ enum ReminderCoordinator {
         }
     }
 
+    /// The rolling weekly note. Pending only, matching warranty and return cancels.
+    static func cancelWeeklyReminder() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [ReminderPlanner.weeklyIdentifier]
+        )
+    }
+
+    /// Sunday summary from the scheduler this build removes.
+    /// Pending and delivered, so the old banner does not linger after an upgrade.
+    static func cancelLegacyWeeklySummary() {
+        let identifiers = [ReminderPlanner.legacyWeeklySummaryIdentifier]
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
     #if DEBUG
     /// Schedules a one-off banner in 10 seconds. Release builds do not
     /// include this. It does not replace the real 30- and 7-day requests.
@@ -169,7 +185,9 @@ enum ReminderCoordinator {
         guard await NotificationAuthorization.isSchedulingAllowed() else { return }
         let sample = purchases
             .compactMap(ExpiryReminderItem.init(purchase:))
-            .sorted { $0.warrantyEnd < $1.warrantyEnd }
+            .sorted { lhs, rhs in
+                (lhs.warrantyEnd ?? .distantFuture) < (rhs.warrantyEnd ?? .distantFuture)
+            }
             .first
         await schedulePreview(
             identifier: "kept.debug.expiryReminder",
@@ -208,20 +226,23 @@ enum ReminderCoordinator {
 }
 
 extension ExpiryReminderItem {
-    /// Latest warranty end on the purchase. Return windows are not included;
-    /// a purchase with no warranty produces no expiry reminder.
+    /// Latest warranty end, plus the return window when the row has one.
+    /// A purchase with neither date produces no reminder.
     init?(purchase: Purchase) {
-        let ends = (purchase.warranties ?? [])
+        let warrantyEnd = (purchase.warranties ?? [])
             .filter { $0.kind == .warranty }
             .map(\.expiryDate)
-        guard let warrantyEnd = ends.max() else { return nil }
+            .max()
+        let returnEnd = purchase.returnWindow?.expiryDate
+        guard warrantyEnd != nil || returnEnd != nil else { return nil }
         self.init(
             id: ReminderPlanner.itemToken(
                 forPersistentID: String(describing: purchase.persistentModelID)
             ),
             itemName: purchase.itemName,
             merchant: purchase.merchant,
-            warrantyEnd: warrantyEnd
+            warrantyEnd: warrantyEnd,
+            returnEnd: returnEnd
         )
     }
 }

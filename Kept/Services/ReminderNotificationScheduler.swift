@@ -6,6 +6,7 @@ import UserNotifications
 protocol ReminderNotificationCenter {
     func pendingIdentifiers() async -> [String]
     func removePending(withIdentifiers identifiers: [String]) async
+    func removeDelivered(withIdentifiers identifiers: [String]) async
     func schedule(_ notifications: [PlannedLocalNotification], calendar: Calendar) async
 }
 
@@ -23,6 +24,11 @@ struct UNReminderNotificationCenter: ReminderNotificationCenter {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
+    func removeDelivered(withIdentifiers identifiers: [String]) async {
+        guard !identifiers.isEmpty else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
     func schedule(_ notifications: [PlannedLocalNotification], calendar: Calendar) async {
         let center = UNUserNotificationCenter.current()
         for notification in notifications {
@@ -30,11 +36,11 @@ struct UNReminderNotificationCenter: ReminderNotificationCenter {
             content.title = notification.title
             content.body = notification.body
             content.sound = .default
+            var info: [AnyHashable: Any] = ["kind": notification.kind]
             if let leadDays = notification.leadDays {
-                content.userInfo = ["leadDays": leadDays, "kind": "warrantyReminder"]
-            } else {
-                content.userInfo = ["kind": "weeklyReminder"]
+                info["leadDays"] = leadDays
             }
+            content.userInfo = info
             let components = calendar.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],
                 from: notification.fireDate
@@ -64,6 +70,10 @@ struct ReminderNotificationScheduler {
     var planner: ReminderPlanner
 
     func reconcileExpiry(items: [ExpiryReminderItem], enabled: Bool) async {
+        // Every reconcile is an app open or a settings change. Retire the
+        // Sunday summary here so an upgrade clears it even when reminders
+        // are off. Both lists: a delivered banner would otherwise stay.
+        await retireLegacyWeeklySummary()
         let pending = await center.pendingIdentifiers()
         let foreignCount = pending.reduce(into: 0) { count, identifier in
             let reservedWeekly = identifier == ReminderPlanner.weeklyIdentifier
@@ -93,6 +103,12 @@ struct ReminderNotificationScheduler {
             await center.removePending(withIdentifiers: replacements)
         }
         await center.schedule(desired, calendar: capped.calendar)
+    }
+
+    private func retireLegacyWeeklySummary() async {
+        let identifier = ReminderPlanner.legacyWeeklySummaryIdentifier
+        await center.removePending(withIdentifiers: [identifier])
+        await center.removeDelivered(withIdentifiers: [identifier])
     }
 
     /// One weekly request. The same identifier is removed before the new
