@@ -9,44 +9,70 @@ struct EmptyLibraryState: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Spacer(minLength: Spacing.lg)
 
-            ReceiptHero()
-                .frame(width: 148, height: 190)
-                .clothWaveShimmer(isActive: !reduceMotion, amplitude: 2.5)
-                .padding(.bottom, 28)
+                    // Sample only — not a Purchase, never inserted or counted.
+                    CoverageCard(
+                        state: SampleCoverageCard.phase,
+                        merchant: SampleCoverageCard.merchant,
+                        item: SampleCoverageCard.item,
+                        daysRemaining: SampleCoverageCard.daysRemaining,
+                        proof: .illustrative
+                    )
+                    .padding(.horizontal, Spacing.lg)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Sample coverage card, not a saved purchase. Covered, \(SampleCoverageCard.daysRemaining) days left.")
 
-            VStack(spacing: 10) {
-                Text("Start your library")
-                    .font(.keptTitle2)
-                    .foregroundStyle(.primary)
+                    // Locked caption. Body copy lives in OnboardingCopy (DESIGN-PENDING).
+                    Text(OnboardingCopy.emptyLibraryCaption)
+                        .font(.keptFootnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.sm)
+                        .padding(.bottom, Spacing.lg)
 
-                Text("Snap your first receipt, Kept keeps the warranty countdown for you.")
-                    .font(.keptSubheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 40)
+                    ReceiptHero()
+                        .frame(width: 148, height: 190)
+                        .clothWaveShimmer(isActive: !reduceMotion, amplitude: 2.5)
+                        .padding(.bottom, 28)
+
+                    VStack(spacing: 10) {
+                        Text("Start your library")
+                            .font(.keptTitle2)
+                            .foregroundStyle(.primary)
+
+                        Text(OnboardingCopy.emptyLibraryBody)
+                            .font(.keptSubheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 40)
+                    }
+                    .padding(.bottom, 28)
+                    .accessibilityElement(children: .combine)
+
+                    Button(action: onScan) {
+                        Label("Scan a receipt", systemImage: "doc.viewfinder")
+                            .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(KeptColor.ink)
+                    .controlSize(.large)
+                    .clipShape(Capsule())
+
+                    Spacer(minLength: Spacing.lg)
+                }
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-            .padding(.bottom, 28)
-
-            Button(action: onScan) {
-                Label("Scan a receipt", systemImage: "doc.viewfinder")
-                    .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(KeptColor.ink)
-            .controlSize(.large)
-            .clipShape(Capsule())
-
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("No receipts yet. Scan a receipt to start tracking your warranties.")
     }
 }
 

@@ -1,12 +1,41 @@
 import SwiftUI
 
 
+/// Optional proof row under the day count. Omit it and `CoverageCard` renders
+/// exactly as before. Illustrative samples use `CoverageProof.illustrative`;
+/// a real save can pass the receipt image bytes.
+struct CoverageProof: Equatable {
+    var imageData: Data? = nil
+    var receiptStatus: String
+    var claimPackStatus: String
+
+    /// DESIGN-PENDING: thumbnail treatment when there is no real receipt image.
+    /// The two status strings are locked product copy.
+    static let illustrative = CoverageProof(
+        imageData: nil,
+        receiptStatus: String(localized: "Receipt ✓", comment: "Coverage card proof row"),
+        claimPackStatus: String(localized: "Claim pack ready ✓", comment: "Coverage card proof row")
+    )
+
+    init(
+        imageData: Data? = nil,
+        receiptStatus: String = String(localized: "Receipt ✓", comment: "Coverage card proof row"),
+        claimPackStatus: String = String(localized: "Claim pack ready ✓", comment: "Coverage card proof row")
+    ) {
+        self.imageData = imageData
+        self.receiptStatus = receiptStatus
+        self.claimPackStatus = claimPackStatus
+    }
+}
+
 struct CoverageCard: View {
     let state: Phase
     let merchant: String
     let item: String
     let daysRemaining: Int
     var emphasized: Bool = false
+    /// Opt-in. Existing call sites that omit this keep the previous layout.
+    var proof: CoverageProof? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tiltPhase: Double = 0
@@ -85,7 +114,8 @@ struct CoverageCard: View {
                         .font(KeptFont.sans(56, weight: .semibold, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(state.accent)
-                        .contentTransition(.numericText(countsDown: true))
+                        // Value beat counts up into Covered. A resting card does not animate.
+                        .contentTransition(.numericText(countsDown: false))
                     // Two separate keys because the count renders as its own
                     // display element above; localizers can adjust the noun
                     // form directly per language.
@@ -93,6 +123,11 @@ struct CoverageCard: View {
                         .font(.keptSubheadline)
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            if let proof {
+                Divider().opacity(0.4)
+                proofRow(proof)
             }
         }
         .padding(Spacing.lg)
@@ -150,6 +185,40 @@ struct CoverageCard: View {
 
     // MARK: - Bits
 
+    private func proofRow(_ proof: CoverageProof) -> some View {
+        HStack(spacing: Spacing.sm) {
+            proofThumbnail(proof)
+            Text(proof.receiptStatus)
+            Text(proof.claimPackStatus)
+            Spacer(minLength: 0)
+        }
+        .font(KeptFont.sans(12, weight: .semibold, relativeTo: .caption))
+        .foregroundStyle(.primary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+
+    private func proofThumbnail(_ proof: CoverageProof) -> some View {
+        Group {
+            if let data = proof.imageData, let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                // DESIGN-PENDING: illustrative receipt thumbnail.
+                ZStack {
+                    Color.secondary.opacity(0.12)
+                    Image(systemName: "doc.text")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(width: 36, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+        .accessibilityHidden(true)
+    }
+
     private var statePill: some View {
         Text(state.label)
             .font(KeptFont.sans(12, weight: .semibold, relativeTo: .caption))
@@ -182,4 +251,16 @@ struct CoverageCard: View {
 #Preview("Hero — expired") {
     CoverageCard(state: .expired, merchant: "Sony", item: "WH-1000XM5 Headphones", daysRemaining: 0, emphasized: true)
         .padding()
+}
+
+#Preview("Hero — covered with proof") {
+    CoverageCard(
+        state: .covered,
+        merchant: SampleCoverageCard.merchant,
+        item: SampleCoverageCard.item,
+        daysRemaining: SampleCoverageCard.daysRemaining,
+        emphasized: true,
+        proof: .illustrative
+    )
+    .padding()
 }

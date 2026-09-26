@@ -276,7 +276,7 @@ struct SettingsView: View {
         } header: {
             Text("Data")
         } footer: {
-            Text("\(purchases.count) items stored on this device.", comment: "Footer under Data section. Needs plural handling on 'items'.")
+            Text("\(purchases.count) items in your library. They sync with iCloud when you're signed in.", comment: "Data section footer. Receipts sync via CloudKit, not device-only. Needs plural handling on 'items'.")
         }
     }
 
@@ -340,6 +340,8 @@ struct SettingsView: View {
 
     private func resetOnboarding() {
         UserDefaults.standard.set(false, forKey: SettingsKeys.hasOnboarded)
+        UserDefaults.standard.set(false, forKey: SettingsKeys.hasSeenOnboardingPaywall)
+        UserDefaults.standard.set(false, forKey: SettingsKeys.hasSeenFirstSavePayoff)
         dismiss()
     }
 

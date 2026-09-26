@@ -10,6 +10,13 @@ struct LibraryView: View {
     @Environment(SubscriptionAccess.self) private var subscription
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
+    /// Set by RootView when onboarding ended with "Yes, a few".
+    var captureAfterOnboarding: Binding<Bool> = .constant(false)
+    /// True while the front-door paywall cover is up, so capture waits.
+    var paywallIsShowing: Bool = false
+    /// Called after the one-time first-save sheet finishes dismissing.
+    var onFirstSavePayoffDismissed: () -> Void = {}
+
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
     /// Zoom navigation into purchase detail.
     @Namespace private var receiptNamespace
@@ -29,6 +36,9 @@ struct LibraryView: View {
     /// Delete haptic trigger. Not debug-only — the sensoryFeedback
     /// modifier reads it in release too, so it lives outside the #if.
     @State private var deletedTick = 0
+    @AppStorage(SettingsKeys.hasSeenFirstSavePayoff) private var hasSeenFirstSavePayoff = false
+    @State private var showsFirstSavePayoff = false
+    @State private var payoffPurchase: Purchase?
     #if DEBUG
     @State private var isPhotoPickerPresented = false
     @State private var isFixtureCapturePresented = false
@@ -190,6 +200,17 @@ struct LibraryView: View {
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
             }
+            .sheet(isPresented: $showsFirstSavePayoff, onDismiss: onFirstSavePayoffDismissed) {
+                if let payoffPurchase {
+                    FirstSavePayoffSheet(purchase: payoffPurchase)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { captureAfterOnboarding.wrappedValue && !paywallIsShowing },
+                set: { captureAfterOnboarding.wrappedValue = $0 }
+            )) {
+                CaptureView(onSave: flagNewlyAdded)
+            }
             #if DEBUG
             .sheet(isPresented: $isFixtureCapturePresented) {
                 FixtureCaptureView()
@@ -319,12 +340,36 @@ struct LibraryView: View {
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.
     /// Clears after ~1.5s so a subsequent view refresh doesn't re-trigger.
+    /// Schedules the one-time payoff sheet when this save is the 0 → 1 transition.
     private func flagNewlyAdded(_ purchase: Purchase) {
         justAddedClearTask?.cancel()
         justAddedPurchaseID = purchase.persistentModelID
         justAddedClearTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1600))
             justAddedPurchaseID = nil
+        }
+        scheduleFirstSavePayoffIfNeeded(purchase)
+    }
+
+    /// User-save only. A CloudKit download that changes the query does not
+    /// come through here, so an existing library never grows a sample sheet.
+    /// Waits briefly so the payoff doesn't stack on the capture sheet.
+    private func scheduleFirstSavePayoffIfNeeded(_ purchase: Purchase) {
+        let alreadyListed = purchases.contains { $0.persistentModelID == purchase.persistentModelID }
+        let countBefore = alreadyListed ? purchases.count - 1 : purchases.count
+        guard FirstSavePayoffPolicy.shouldPresent(
+            previousCount: countBefore,
+            newCount: countBefore + 1,
+            hasSeen: hasSeenFirstSavePayoff
+        ) else { return }
+
+        payoffPurchase = purchase
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(650))
+            guard payoffPurchase?.persistentModelID == purchase.persistentModelID else { return }
+            guard !hasSeenFirstSavePayoff else { return }
+            hasSeenFirstSavePayoff = true
+            showsFirstSavePayoff = true
         }
     }
 

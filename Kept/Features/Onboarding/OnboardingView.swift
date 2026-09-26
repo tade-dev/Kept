@@ -6,7 +6,7 @@ struct OnboardingView: View {
     @State private var isRequestingAuth = false
     @State private var finishedTick = 0
 
-    /// Fires when step 7 completes. Bool = whether the user said "Yes, a few".
+    /// Fires when the last step completes. Bool = whether the user said "Yes, a few".
     let onFinish: (Bool) -> Void
 
     var body: some View {
@@ -58,24 +58,16 @@ struct OnboardingView: View {
         switch coordinator.step {
         case .welcome:
             WelcomeStepView()
-        case .categories:
-            CategoriesStepView(coordinator: coordinator)
-        case .leadTimes:
-            LeadTimesStepView(coordinator: coordinator)
         case .valueBeat:
             ValueBeatStepView(coordinator: coordinator)
+        case .leadTimes:
+            LeadTimesStepView(coordinator: coordinator)
         case .privacy:
-            PrivacyStepView(coordinator: coordinator)
+            PrivacyStepView()
         case .existingReceipts:
             ExistingReceiptsStepView(coordinator: coordinator)
         case .notifications:
             NotificationsStepView(coordinator: coordinator)
-        case .settingUp:
-            SettingUpStepView {
-                coordinator.finish()
-                finishedTick &+= 1
-                onFinish(coordinator.result.hasExistingReceipts)
-            }
         }
     }
 
@@ -87,23 +79,17 @@ struct OnboardingView: View {
             switch coordinator.step {
             case .welcome:
                 singleCTA("Get Started", enabled: true) { coordinator.advance() }
-            case .categories, .leadTimes:
+            case .leadTimes:
                 singleCTA("Continue", enabled: coordinator.canAdvance) { coordinator.advance() }
             case .privacy:
                 singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .notifications:
                 notificationsCTA
-            case .valueBeat, .existingReceipts, .settingUp:
+            case .valueBeat, .existingReceipts:
                 EmptyView()
             }
         }
         .transition(ctaTransition)
-    }
-
-    /// Negative on Privacy so the button pulls up into the step body and Z-covers the
-    /// bottom of the assurances card — stacked look, button stays fully rounded.
-    private var ctaTopSpacing: CGFloat {
-        coordinator.step == .privacy ? -32 : Spacing.sm
     }
 
     private func singleCTA(_ label: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {
@@ -118,7 +104,7 @@ struct OnboardingView: View {
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
         .padding(.horizontal, Spacing.lg)
-        .padding(.top, ctaTopSpacing)
+        .padding(.top, Spacing.sm)
         .padding(.bottom, Spacing.md)
     }
 
@@ -142,7 +128,7 @@ struct OnboardingView: View {
             }
             .disabled(isRequestingAuth)
 
-            Button("Not now") { coordinator.advance() }
+            Button("Not now") { finishOnboarding() }
                 .font(KeptFont.sans(15, weight: .medium, relativeTo: .subheadline))
                 .foregroundStyle(.secondary)
         }
@@ -155,7 +141,13 @@ struct OnboardingView: View {
         isRequestingAuth = true
         _ = await CoverageNotificationScheduler.requestAuthorizationIfNeeded()
         isRequestingAuth = false
-        coordinator.advance()
+        finishOnboarding()
+    }
+
+    private func finishOnboarding() {
+        coordinator.finish()
+        finishedTick &+= 1
+        onFinish(coordinator.result.hasExistingReceipts)
     }
 
     // MARK: - Motion

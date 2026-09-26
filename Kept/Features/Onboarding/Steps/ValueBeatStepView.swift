@@ -1,25 +1,41 @@
 import SwiftUI
 
+/// Resting state of the key-moment animation. The card resolves to
+/// Covered · N days left and never lands on Expired.
+enum ValueBeatScript {
+    static let restingPhase = SampleCoverageCard.phase
+    static let restingDays = SampleCoverageCard.daysRemaining
+
+    /// Day counts the card climbs through. Each stays in the covered range;
+    /// the last value is the rest state.
+    static var ticks: [Int] {
+        [30, 90, 180, restingDays]
+    }
+}
+
 struct ValueBeatStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var coordinator: OnboardingCoordinator
 
-    @State private var phase: CoverageCard.Phase = .covered
-    @State private var daysRemaining: Int = 14
+    @State private var phase: CoverageCard.Phase = ValueBeatScript.restingPhase
+    @State private var daysRemaining: Int = ValueBeatScript.ticks.first ?? ValueBeatScript.restingDays
+    @State private var showProof = false
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your headphones die in month 13. The warranty ran 12."
+            // Copy: OnboardingCopy.valueBeatTitle (DESIGN-PENDING)
+            title: OnboardingCopy.valueBeatTitle
         ) {
             VStack(spacing: Spacing.lg) {
                 Spacer(minLength: 0)
 
                 CoverageCard(
                     state: phase,
-                    merchant: "Sony",
-                    item: "WH-1000XM5 Headphones",
+                    merchant: SampleCoverageCard.merchant,
+                    item: SampleCoverageCard.item,
                     daysRemaining: daysRemaining,
-                    emphasized: true
+                    emphasized: true,
+                    proof: showProof ? .illustrative : nil
                 )
 
                 Spacer(minLength: 0)
@@ -32,44 +48,34 @@ struct ValueBeatStepView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { coordinator.advance() }
-        .task { await runLoop() }
+        .task { await runAnimation() }
     }
 
-    private func runLoop() async {
+    /// Resolves to Covered · N days left. Does not transition to `.expired`.
+    private func runAnimation() async {
         if reduceMotion {
-            phase = .endingSoon
-            daysRemaining = 3
+            phase = ValueBeatScript.restingPhase
+            daysRemaining = ValueBeatScript.restingDays
+            showProof = true
             return
         }
 
-        while !Task.isCancelled {
-            withAnimation(.easeInOut(duration: 0.6)) {
-                phase = .covered
-                daysRemaining = 14
-            }
-            try? await Task.sleep(nanoseconds: 900_000_000)
+        phase = ValueBeatScript.restingPhase
+        daysRemaining = ValueBeatScript.ticks.first ?? ValueBeatScript.restingDays
+        showProof = false
 
-            for value in stride(from: 13, through: 3, by: -1) {
-                withAnimation(.snappy(duration: 0.12)) {
-                    daysRemaining = value
-                }
-                try? await Task.sleep(nanoseconds: 90_000_000)
+        for value in ValueBeatScript.ticks {
+            if Task.isCancelled { return }
+            withAnimation(.snappy(duration: 0.35)) {
+                phase = ValueBeatScript.restingPhase
+                daysRemaining = value
             }
-            withAnimation(.easeInOut(duration: 0.5)) {
-                phase = .endingSoon
-            }
-            try? await Task.sleep(nanoseconds: 900_000_000)
+            try? await Task.sleep(nanoseconds: 420_000_000)
+        }
 
-            for value in stride(from: 2, through: 0, by: -1) {
-                withAnimation(.snappy(duration: 0.15)) {
-                    daysRemaining = value
-                }
-                try? await Task.sleep(nanoseconds: 140_000_000)
-            }
-            withAnimation(.easeInOut(duration: 0.6)) {
-                phase = .expired
-            }
-            try? await Task.sleep(nanoseconds: 1_400_000_000)
+        if Task.isCancelled { return }
+        withAnimation(.easeInOut(duration: 0.45)) {
+            showProof = true
         }
     }
 }

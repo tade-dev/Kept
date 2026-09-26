@@ -31,7 +31,8 @@ struct WelcomeStepView: View {
                 .opacity(appeared.demo ? 1 : 0)
 
             VStack(spacing: Spacing.sm) {
-                Text("Every receipt is a promise.")
+                // Copy: OnboardingCopy.welcomeHeadline (DESIGN-PENDING)
+                Text(OnboardingCopy.welcomeHeadline)
                     .font(KeptFont.sans(34, weight: .bold, relativeTo: .largeTitle))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -39,10 +40,12 @@ struct WelcomeStepView: View {
                     .offset(y: appeared.headline ? 0 : 16)
                     .blur(radius: appeared.headline ? 0 : 4)
 
-                Text("Kept remembers when it expires.")
+                // Copy: OnboardingCopy.welcomeSubhead (DESIGN-PENDING)
+                Text(OnboardingCopy.welcomeSubhead)
                     .font(.keptTitle3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .opacity(appeared.subhead ? 1 : 0)
                     .offset(y: appeared.subhead ? 0 : 10)
             }

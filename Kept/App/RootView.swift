@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Presents the library. When the user hasn't onboarded, overlays onboarding full-screen.
-/// If step 4 was "Yes, a few", opens capture immediately after the cover dismisses.
+/// If the existing-receipts step was "Yes, a few", LibraryView opens capture
+/// once the front-door paywall is not showing.
 ///
 /// On every cold launch a `SplashView` covers the whole scene for ~3s before
 /// fading away — the seal + wordmark springs up from below and settles at
@@ -48,7 +49,10 @@ struct RootView: View {
                 SplashView()
                     .transition(.opacity)
             } else {
-                LibraryView()
+                LibraryView(
+                    captureAfterOnboarding: $openCaptureAfterOnboarding,
+                    paywallIsShowing: showsOnboardingPaywall
+                )
                     .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                         OnboardingView { hasExistingReceipts in
                             openCaptureAfterOnboarding = hasExistingReceipts
@@ -71,15 +75,6 @@ struct RootView: View {
                     .fullScreenCover(isPresented: $showsOnboardingPaywall) {
                         OnboardingPaywallGate()
                             .persistentSystemOverlays(.visible)
-                    }
-                    // Post-capture routing waits for the paywall gate to
-                    // clear — no point auto-opening the scanner while the
-                    // trial-entry sheet still owns the screen.
-                    .sheet(isPresented: Binding(
-                        get: { openCaptureAfterOnboarding && !showsOnboardingPaywall },
-                        set: { openCaptureAfterOnboarding = $0 }
-                    )) {
-                        CaptureView()
                     }
                     .onChange(of: showsOnboardingPaywall) { _, isPresented in
                         // Stamp the flag when the gate dismisses so subsequent
