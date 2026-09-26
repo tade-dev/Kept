@@ -4,9 +4,10 @@ import Foundation
 ///
 /// Revenue decision, kept separate so it can be reverted on its own:
 /// the paywall waits until the first save. If that save shows the payoff
-/// sheet, the paywall waits for the sheet to dismiss. If the sheet is
-/// skipped (no active warranty), the paywall still appears.
-/// Finishing onboarding does not present it.
+/// sheet, the gate is presented from that sheet's `onDismiss` only, after
+/// the sheet is gone — never stacked on top of it. If the sheet is skipped
+/// (no active warranty), the gate is presented from the capture sheet's
+/// `onDismiss` instead. Finishing onboarding does not present it.
 enum OnboardingPaywallPolicy {
     enum Event: Equatable {
         case onboardingFinished

@@ -220,6 +220,8 @@ struct LibraryView: View {
                 SettingsView()
             }
             .sheet(item: $payoffPurchase, onDismiss: {
+                // The sheet is fully gone. The front-door gate is a cover
+                // on the library, not a sheet stacked on this one.
                 onFirstSaveMomentFinished(.firstSaveSheetDismissed)
                 scheduleTrialBoostRelease()
             }) { purchase in

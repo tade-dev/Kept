@@ -70,11 +70,16 @@ struct RootView: View {
                             .persistentSystemOverlays(.visible)
                     }
                     .onChange(of: showsOnboardingPaywall) { _, isPresented in
-                        // Stamp the flag when the gate dismisses so subsequent
-                        // launches never re-show it (regardless of whether
-                        // the user bought, started a trial, or continued
-                        // with free — every exit counts as "seen").
-                        if !isPresented { hasSeenOnboardingPaywall = true }
+                        if isPresented {
+                            // The front-door gate is the paywall for this
+                            // moment. Consume the one-time Wallet soft prompt
+                            // so Add to Wallet cannot raise a second paywall.
+                            UserDefaults.standard.set(true, forKey: "kept.hasShownPaywallAfterFirstPass")
+                        } else {
+                            // Stamp when the gate dismisses so subsequent
+                            // launches never re-show it (buy, trial, or skip).
+                            hasSeenOnboardingPaywall = true
+                        }
                     }
                     .transition(.opacity)
             }
@@ -95,15 +100,14 @@ struct RootView: View {
 
     /// Front-door paywall after the first save, whether or not the payoff
     /// sheet was shown. Not after onboarding.
+    ///
+    /// Called only from a capture or payoff `onDismiss`, after that sheet
+    /// has fully gone. The cover is not presented while the sheet is up.
     private func presentPaywallAfterFirstSave(_ event: OnboardingPaywallPolicy.Event) {
         guard OnboardingPaywallPolicy.trigger(
             for: event,
             hasSeenPaywall: hasSeenOnboardingPaywall
         ) == .showPaywall else { return }
-        // Next runloop tick so a payoff sheet finishes dismissing before
-        // the paywall cover presents.
-        DispatchQueue.main.async {
-            showsOnboardingPaywall = true
-        }
+        showsOnboardingPaywall = true
     }
 }

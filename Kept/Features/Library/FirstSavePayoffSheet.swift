@@ -93,7 +93,7 @@ struct FirstSavePayoffSheet: View {
 
                     if FirstSavePayoff.walletAvailable {
                         VStack(spacing: Spacing.sm) {
-                            AddToWalletButton(purchase: purchase)
+                            AddToWalletButton(purchase: purchase, suppressesFollowUpPaywall: true)
                             Text(OnboardingCopy.walletCaption)
                                 .font(.keptFootnote)
                                 .foregroundStyle(.secondary)
