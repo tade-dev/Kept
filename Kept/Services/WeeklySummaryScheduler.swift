@@ -36,6 +36,8 @@ enum WeeklySummaryScheduler {
             cancel()
             return
         }
+        // Does not present the system prompt. Permission is requested once,
+        // after the first save.
         guard await CoverageNotificationScheduler.requestAuthorizationIfNeeded() else {
             return
         }

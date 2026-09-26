@@ -3,6 +3,9 @@ import SwiftUI
 
 enum SettingsKeys {
     static let notificationsEnabled = "settings.notificationsEnabled"
+    static let expiryRemindersEnabled = "settings.expiryRemindersEnabled"
+    static let weeklyReminderEnabled = "settings.weeklyReminderEnabled"
+    static let lastAppOpen = "settings.lastAppOpen"
     /// CSV of lead-day ints — @AppStorage doesn't support Set<Int> directly.
     static let leadDaysCSV = "settings.leadDaysCSV"
     static let notifyHour = "settings.notifyHour"
@@ -84,6 +87,48 @@ enum SettingsSnapshot {
 
     static var hasExistingReceipts: Bool {
         UserDefaults.standard.bool(forKey: SettingsKeys.hasExistingReceipts)
+    }
+
+    /// On unless the user turned warranty reminders off. A missing key follows
+    /// the older master notifications toggle, which itself defaults to on.
+    static var expiryRemindersEnabled: Bool {
+        migrateReminderTogglesIfNeeded()
+        return UserDefaults.standard.bool(forKey: SettingsKeys.expiryRemindersEnabled)
+    }
+
+    static var weeklyReminderEnabled: Bool {
+        migrateReminderTogglesIfNeeded()
+        return UserDefaults.standard.bool(forKey: SettingsKeys.weeklyReminderEnabled)
+    }
+
+    static var lastAppOpen: Date {
+        let interval = UserDefaults.standard.double(forKey: SettingsKeys.lastAppOpen)
+        guard interval > 0 else { return .now }
+        return Date(timeIntervalSince1970: interval)
+    }
+
+    static func noteAppOpened(at date: Date) {
+        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: SettingsKeys.lastAppOpen)
+    }
+
+    static func setNotificationsMaster(enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: SettingsKeys.notificationsEnabled)
+    }
+
+    /// Writes the two reminder toggles the first time, using the existing
+    /// notifications switch so an earlier opt-out stays off.
+    static func migrateReminderTogglesIfNeeded() {
+        let defaults = UserDefaults.standard
+        let expiryMissing = defaults.object(forKey: SettingsKeys.expiryRemindersEnabled) == nil
+        let weeklyMissing = defaults.object(forKey: SettingsKeys.weeklyReminderEnabled) == nil
+        guard expiryMissing || weeklyMissing else { return }
+        let master = notificationsEnabled
+        if expiryMissing {
+            defaults.set(master, forKey: SettingsKeys.expiryRemindersEnabled)
+        }
+        if weeklyMissing {
+            defaults.set(master, forKey: SettingsKeys.weeklyReminderEnabled)
+        }
     }
 }
 

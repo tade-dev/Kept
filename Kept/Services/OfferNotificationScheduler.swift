@@ -12,9 +12,8 @@ import UserNotifications
 /// off means notifications off."
 ///
 /// The scheduler assumes notification authorization has already been
-/// requested by `CoverageNotificationScheduler.requestAuthorizationIfNeeded()`
-/// during onboarding — we don't request permission here, so users who
-/// declined the initial ask silently get nothing (correct behaviour).
+/// requested after the first save (`NotificationPermissionPrompt`). It does
+/// not request permission itself, so a denial stays silent.
 @MainActor
 enum OfferNotificationScheduler {
     private static let center = UNUserNotificationCenter.current()

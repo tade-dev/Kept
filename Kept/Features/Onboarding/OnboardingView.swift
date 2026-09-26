@@ -3,7 +3,6 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var coordinator = OnboardingCoordinator()
-    @State private var isRequestingAuth = false
     @State private var finishedTick = 0
 
     /// Fires when the last step completes. Bool = whether the user said "Yes, a few".
@@ -136,22 +135,18 @@ struct OnboardingView: View {
     private var notificationsCTA: some View {
         VStack(spacing: Spacing.sm) {
             Button {
-                Task { await requestAuth() }
+                // The system prompt is not raised during onboarding. It is
+                // requested once, after the first save, and only after the
+                // payoff sheet and front-door paywall have left the screen.
+                finishOnboarding()
             } label: {
-                HStack {
-                    if isRequestingAuth {
-                        ProgressView().tint(KeptColor.adaptiveOnInk)
-                    } else {
-                        Text("Enable notifications")
-                            .font(.keptHeadline)
-                    }
-                }
-                .foregroundStyle(KeptColor.adaptiveOnInk)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.md + 2)
-                .background(Capsule().fill(KeptColor.adaptiveInk))
+                Text("Enable notifications")
+                    .font(.keptHeadline)
+                    .foregroundStyle(KeptColor.adaptiveOnInk)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.md + 2)
+                    .background(Capsule().fill(KeptColor.adaptiveInk))
             }
-            .disabled(isRequestingAuth)
 
             Button("Not now") { finishOnboarding() }
                 .font(KeptFont.sans(15, weight: .medium, relativeTo: .subheadline))
@@ -160,13 +155,6 @@ struct OnboardingView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
         .padding(.bottom, Spacing.md)
-    }
-
-    private func requestAuth() async {
-        isRequestingAuth = true
-        _ = await CoverageNotificationScheduler.requestAuthorizationIfNeeded()
-        isRequestingAuth = false
-        finishOnboarding()
     }
 
     private func finishOnboarding() {

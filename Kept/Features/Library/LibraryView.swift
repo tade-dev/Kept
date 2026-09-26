@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(SubscriptionAccess.self) private var subscription
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
@@ -15,7 +16,7 @@ struct LibraryView: View {
     var paywallIsShowing: Bool = false
     /// Called after the first-save sheet dismisses, and when that sheet is
     /// skipped because the first save has no active warranty.
-    var onFirstSaveMomentFinished: (OnboardingPaywallPolicy.Event) -> Void = { _ in }
+    var onFirstSaveMomentFinished: (OnboardingPaywallPolicy.Event) -> Bool = { _ in false }
 
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
     /// Zoom navigation into purchase detail.
@@ -47,6 +48,13 @@ struct LibraryView: View {
     /// Stops the existing-library migration from treating this session's own
     /// first save as a library that was already here.
     @State private var userDidSaveThisSession = false
+    /// True only for the capture sheet that just saved, so dismissing
+    /// without saving does not ask for notification permission.
+    @State private var didSaveThisCapture = false
+    /// The system notification prompt waits until the front-door paywall
+    /// has dismissed, so the two never share the screen.
+    @State private var notificationPromptWaitsForPaywall = false
+    @State private var notificationPromptInFlight = false
     /// PhotosPicker inside a Menu never presents, so the toolbar flips this flag.
     @State private var isPhotoPickerPresented = false
     @State private var photoPickerItem: PhotosPickerItem?
@@ -105,15 +113,26 @@ struct LibraryView: View {
                     .navigationTransition(.zoom(sourceID: purchase.transitionID, in: receiptNamespace))
             }
             .task {
-                await CoverageNotificationScheduler.rescheduleAll(purchases)
-                await WeeklySummaryScheduler.reschedule(with: purchases)
+                await reconcileReminders(includingWeekly: true)
                 stampExistingLibraryIfNeeded()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await reconcileReminders(includingWeekly: true) }
+            }
+            .onChange(of: reminderSyncToken) { _, _ in
+                Task { await reconcileReminders(includingWeekly: false) }
             }
             .onChange(of: purchases.count) { _, _ in
                 stampExistingLibraryIfNeeded()
             }
             .onChange(of: paywallIsShowing) { _, showing in
-                if !showing { releaseHeldTrialBoostAlert() }
+                if !showing {
+                    releaseHeldTrialBoostAlert()
+                    guard notificationPromptWaitsForPaywall else { return }
+                    notificationPromptWaitsForPaywall = false
+                    resolveNotificationPrompt(paywallWillPresent: false)
+                }
             }
             .task(id: purchases.count) {
                 await evaluateTrialBoost()
@@ -238,7 +257,9 @@ struct LibraryView: View {
             .sheet(item: $payoffPurchase, onDismiss: {
                 // The sheet is fully gone. The front-door gate is a cover
                 // on the library, not a sheet stacked on this one.
-                onFirstSaveMomentFinished(.firstSaveSheetDismissed)
+                // Notification permission waits until that cover is gone too.
+                let presentedPaywall = onFirstSaveMomentFinished(.firstSaveSheetDismissed)
+                resolveNotificationPrompt(paywallWillPresent: presentedPaywall)
                 scheduleTrialBoostRelease()
             }) { purchase in
                 FirstSavePayoffSheet(purchase: purchase)
@@ -383,7 +404,7 @@ struct LibraryView: View {
     }
 
     private func delete(_ purchase: Purchase) {
-        CoverageNotificationScheduler.cancel(for: purchase)
+        ReminderCoordinator.cancelExpiryReminders(for: purchase)
         modelContext.delete(purchase)
         deletedTick &+= 1
     }
@@ -441,6 +462,7 @@ struct LibraryView: View {
     /// purchase still has an active warranty.
     private func flagNewlyAdded(_ purchase: Purchase) {
         userDidSaveThisSession = true
+        didSaveThisCapture = true
         justAddedClearTask?.cancel()
         justAddedPurchaseID = purchase.persistentModelID
         justAddedClearTask = Task { @MainActor in
@@ -470,8 +492,12 @@ struct LibraryView: View {
     }
 
     /// Capture has finished dismissing. Present the payoff sheet, or the
-    /// front-door paywall when the sheet does not apply.
+    /// front-door paywall when the sheet does not apply. The notification
+    /// prompt is not raised while either of those is on screen.
     private func handOffAfterCapture() {
+        let saved = didSaveThisCapture
+        didSaveThisCapture = false
+
         if let pending = pendingPayoff {
             payoffPurchase = pending
             pendingPayoff = nil
@@ -479,9 +505,65 @@ struct LibraryView: View {
         }
         if pendingPaywallWithoutSheet {
             pendingPaywallWithoutSheet = false
-            onFirstSaveMomentFinished(.firstSaveWithoutPayoffSheet)
+            let presentedPaywall = onFirstSaveMomentFinished(.firstSaveWithoutPayoffSheet)
+            if saved {
+                resolveNotificationPrompt(paywallWillPresent: presentedPaywall)
+            }
+            scheduleTrialBoostRelease()
+            return
+        }
+        if saved {
+            resolveNotificationPrompt(paywallWillPresent: false)
         }
         scheduleTrialBoostRelease()
+    }
+
+    /// Expiry end dates only, so typing a name does not reschedule.
+    /// A CloudKit import that adds or edits a warranty changes this token.
+    private var reminderSyncToken: String {
+        purchases.map { purchase in
+            let end = purchase.primaryWarranty?.expiryDate.timeIntervalSinceReferenceDate ?? -1
+            return "\(purchase.persistentModelID)|\(end)"
+        }.joined(separator: "\n")
+    }
+
+    private func reconcileReminders(includingWeekly: Bool) async {
+        if includingWeekly {
+            await ReminderCoordinator.reconcileOnForeground(modelContext: modelContext)
+            let current = (try? modelContext.fetch(FetchDescriptor<Purchase>())) ?? purchases
+            await WeeklySummaryScheduler.reschedule(with: current)
+        } else {
+            await ReminderCoordinator.reconcileFromContext(modelContext, rescheduleWeekly: false)
+        }
+    }
+
+    private func resolveNotificationPrompt(paywallWillPresent: Bool) {
+        switch NotificationPromptTiming.decision(
+            hasAsked: NotificationPermissionPrompt.hasAsked,
+            paywallWillPresent: paywallWillPresent
+        ) {
+        case .askNow:
+            notificationPromptWaitsForPaywall = false
+            askForNotificationPermissionIfNeeded()
+        case .waitUntilPaywallDismisses:
+            notificationPromptWaitsForPaywall = true
+        case .skip:
+            notificationPromptWaitsForPaywall = false
+        }
+    }
+
+    /// Short pause so the payoff sheet or paywall cover can finish dismissing
+    /// before the system alert appears.
+    private func askForNotificationPermissionIfNeeded() {
+        guard !notificationPromptInFlight else { return }
+        guard !NotificationPermissionPrompt.hasAsked else { return }
+        notificationPromptInFlight = true
+        let context = modelContext
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            await NotificationPermissionPrompt.askIfNeededThenReconcile(modelContext: context)
+            notificationPromptInFlight = false
+        }
     }
 
     /// Libraries that already have purchases on appear never see the sheet.

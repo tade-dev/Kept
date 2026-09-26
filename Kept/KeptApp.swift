@@ -14,6 +14,7 @@ struct KeptApp: App {
         // possible signal — the very first cold launch. Idempotent on
         // every subsequent launch. Feeds `TrialBoostEngagement.shouldGrant`.
         TrialBoostEngagement.noteAppLaunch()
+        SettingsSnapshot.migrateReminderTogglesIfNeeded()
     }
 
     var sharedModelContainer: ModelContainer = {
