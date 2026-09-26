@@ -1,8 +1,7 @@
-import SwiftUI
-import SwiftData
-#if DEBUG
 import PhotosUI
-#endif
+import SwiftData
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
@@ -24,7 +23,8 @@ struct LibraryView: View {
     /// Thumbnail morph between Icons / List / Gallery.
     @Namespace private var layoutNamespace
 
-    @State private var isCapturing = false
+    /// Nil means no capture sheet. A nil image inside the request opens the camera.
+    @State private var captureRequest: ReceiptCaptureRequest?
     @State private var isSettingsPresented = false
     /// Set to true after a successful trial-boost grant so the celebration
     /// alert fires once, then latches off via `TrialBoostEngagement.markGranted`.
@@ -47,12 +47,16 @@ struct LibraryView: View {
     /// Stops the existing-library migration from treating this session's own
     /// first save as a library that was already here.
     @State private var userDidSaveThisSession = false
-    #if DEBUG
+    /// PhotosPicker inside a Menu never presents, so the toolbar flips this flag.
     @State private var isPhotoPickerPresented = false
+    @State private var photoPickerItem: PhotosPickerItem?
+    @State private var isPDFImporterPresented = false
+    @State private var importFailureMessage: String?
+    #if DEBUG
     @State private var isFixtureCapturePresented = false
-    @State private var pickerItem: PhotosPickerItem?
-    @State private var pickedImage: UIImage?
     #endif
+
+    private var isCapturing: Bool { captureRequest != nil }
 
     private var viewMode: LibraryViewMode {
         LibraryViewMode(rawValue: viewModeRaw) ?? .icons
@@ -140,8 +144,21 @@ struct LibraryView: View {
                         .accessibilityHidden(true)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isCapturing = true
+                    Menu {
+                        Button(action: beginCameraCapture) {
+                            Label("Scan receipt", systemImage: "doc.viewfinder")
+                        }
+                        Button {
+                            // PhotosPicker inside Menu never presents — flip a flag instead.
+                            isPhotoPickerPresented = true
+                        } label: {
+                            Label("Choose from Photos", systemImage: "photo.on.rectangle")
+                        }
+                        Button {
+                            isPDFImporterPresented = true
+                        } label: {
+                            Label("Import PDF", systemImage: "doc")
+                        }
                     } label: {
                         Label("Scan receipt", systemImage: "doc.viewfinder")
                     }
@@ -165,7 +182,6 @@ struct LibraryView: View {
                             Label("Capture OCR fixture", systemImage: "text.viewfinder")
                         }
                         Button {
-                            // PhotosPicker inside Menu never presents — flip a flag instead.
                             isPhotoPickerPresented = true
                         } label: {
                             Label("Pick from Photos", systemImage: "photo.on.rectangle")
@@ -175,7 +191,7 @@ struct LibraryView: View {
                                 ForEach(ReceiptFixtures.names, id: \.self) { name in
                                     Button(name) {
                                         if let image = ReceiptFixtures.image(named: name) {
-                                            pickedImage = image
+                                            beginImportedCapture(image)
                                         }
                                     }
                                 }
@@ -213,8 +229,8 @@ struct LibraryView: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $isCapturing, onDismiss: handOffAfterCapture) {
-                CaptureView(onSave: flagNewlyAdded)
+            .sheet(item: $captureRequest, onDismiss: handOffAfterCapture) { request in
+                CaptureView(image: request.image, onSave: flagNewlyAdded)
             }
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
@@ -233,30 +249,34 @@ struct LibraryView: View {
             ), onDismiss: handOffAfterCapture) {
                 CaptureView(onSave: flagNewlyAdded)
             }
+            .photosPicker(
+                isPresented: $isPhotoPickerPresented,
+                selection: $photoPickerItem,
+                matching: .images
+            )
+            .fileImporter(
+                isPresented: $isPDFImporterPresented,
+                allowedContentTypes: [UTType.pdf]
+            ) { result in
+                importPDF(from: result)
+            }
+            .onChange(of: photoPickerItem) { _, newItem in
+                handleSelectedPhoto(newItem)
+            }
+            .alert(
+                "Couldn't read that",
+                isPresented: Binding(
+                    get: { importFailureMessage != nil },
+                    set: { if !$0 { importFailureMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(verbatim: importFailureMessage ?? "")
+            }
             #if DEBUG
             .sheet(isPresented: $isFixtureCapturePresented) {
                 FixtureCaptureView()
-            }
-            .photosPicker(
-                isPresented: $isPhotoPickerPresented,
-                selection: $pickerItem,
-                matching: .images
-            )
-            .sheet(item: Binding(
-                get: { pickedImage.map(IdentifiedImage.init) },
-                set: { if $0 == nil { pickedImage = nil } }
-            )) { wrapper in
-                CaptureView(image: wrapper.image, onSave: flagNewlyAdded)
-            }
-            .onChange(of: pickerItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        pickedImage = image
-                    }
-                    pickerItem = nil
-                }
             }
             #endif
         }
@@ -304,7 +324,62 @@ struct LibraryView: View {
     }
 
     private var emptyState: some View {
-        EmptyLibraryState(onScan: { isCapturing = true })
+        EmptyLibraryState(onScan: beginCameraCapture, photoPickerItem: $photoPickerItem)
+    }
+
+    private func beginCameraCapture() {
+        captureRequest = .camera()
+    }
+
+    /// Same sheet, save callback, and dismiss hand-off as a camera scan.
+    /// The free-tier cap still runs at save inside `ExtractionConfirmView`.
+    private func beginImportedCapture(_ image: UIImage) {
+        captureRequest = .imported(image)
+    }
+
+    private func handleSelectedPhoto(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+        Task {
+            let outcome = await ReceiptImageImport.loadPhoto(item)
+            if photoPickerItem == item {
+                photoPickerItem = nil
+            }
+            switch outcome {
+            case .ready(let image):
+                beginImportedCapture(image)
+            case .cancelled:
+                break
+            case .failed(let failure):
+                showImportFailure(failure)
+            }
+        }
+    }
+
+    private func importPDF(from result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            // Current iOS does not call this on cancel. Older paths can.
+            guard !ReceiptImageImport.isCancellation(error) else { return }
+            showImportFailure(.unreadablePDF)
+        case .success(let url):
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else {
+                showImportFailure(.unreadablePDF)
+                return
+            }
+            switch ReceiptImageImport.image(fromPDFData: data) {
+            case .success(let image):
+                beginImportedCapture(image)
+            case .failure(let failure):
+                showImportFailure(failure)
+            }
+        }
+    }
+
+    private func showImportFailure(_ failure: ReceiptImageImport.Failure) {
+        importFailureMessage = failure.errorDescription
+            ?? String(localized: "Couldn't read that image.")
     }
 
     private func delete(_ purchase: Purchase) {
@@ -448,12 +523,6 @@ struct LibraryView: View {
         isTrialBoostAlertPresented = true
     }
 
-    #if DEBUG
-    private struct IdentifiedImage: Identifiable {
-        let id = UUID()
-        let image: UIImage
-    }
-    #endif
 }
 
 #Preview("Empty") {

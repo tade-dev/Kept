@@ -7913,6 +7913,18 @@
         }
       }
     },
+    "Choose from Photos" : {
+      "comment" : "Toolbar menu. Opens the photo picker for one image."
+    },
+    "Couldn't read that image." : {
+      "comment" : "Shown when a chosen photo or PDF page cannot be read. Same wording as a failed scan image."
+    },
+    "Import PDF" : {
+      "comment" : "Toolbar menu. Opens Files for a PDF receipt. Only the first page is read."
+    },
+    "or choose from Photos" : {
+      "comment" : "Quiet secondary action under the empty-library Scan a receipt button."
+    },
     "Start free trial" : {
       "localizations" : {
         "en" : {

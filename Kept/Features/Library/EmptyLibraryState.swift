@@ -1,8 +1,11 @@
+import PhotosUI
 import SwiftUI
 
 /// Empty library. The card is a labelled sample, never a `Purchase`.
 struct EmptyLibraryState: View {
     var onScan: () -> Void
+    /// One image. `PhotosPicker` does not prompt for photo-library access.
+    @Binding var photoPickerItem: PhotosPickerItem?
 
     var body: some View {
         GeometryReader { proxy in
@@ -60,6 +63,19 @@ struct EmptyLibraryState: View {
             .controlSize(.large)
             .clipShape(Capsule())
 
+            PhotosPicker(selection: $photoPickerItem, matching: .images) {
+                Text("or choose from Photos")
+                    .font(.keptSubheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .tint(.secondary)
+            .padding(.top, Spacing.sm)
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
@@ -67,15 +83,23 @@ struct EmptyLibraryState: View {
 }
 
 #Preview("Light") {
-    EmptyLibraryState(onScan: {})
+    EmptyLibraryStatePreview()
 }
 
 #Preview("Dark") {
-    EmptyLibraryState(onScan: {})
+    EmptyLibraryStatePreview()
         .preferredColorScheme(.dark)
 }
 
 #Preview("Accessibility") {
-    EmptyLibraryState(onScan: {})
+    EmptyLibraryStatePreview()
         .environment(\.dynamicTypeSize, .accessibility5)
+}
+
+private struct EmptyLibraryStatePreview: View {
+    @State private var photoPickerItem: PhotosPickerItem?
+
+    var body: some View {
+        EmptyLibraryState(onScan: {}, photoPickerItem: $photoPickerItem)
+    }
 }
