@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Final first-run copy from the design handoff, plus the one string that
-/// still waits on design because the categories step is gone.
+/// Final first-run copy from the design handoff.
 enum OnboardingCopy {
     static let welcomeHeadline = LocalizedStringKey("Something broke?\nKnow if it's covered.")
     static let welcomeSubhead = LocalizedStringKey("Scan the receipt once. Kept keeps the cover and the proof.")
@@ -11,10 +10,10 @@ enum OnboardingCopy {
     static let keyMomentQuestion = LocalizedStringKey("Still covered?")
     static let keyMomentPayoff = LocalizedStringKey("Your proof and cover, right there.")
 
-    /// DESIGN-PENDING: the spec CTA was "Choose what to track", which only
-    /// fits if the categories step is still next. Categories stay removed, so
-    /// this step uses Continue until design replaces it.
-    static let keyMomentCTA = LocalizedStringKey("Continue")
+    /// Next step is lead times. At the largest Dynamic Type sizes the long
+    /// label does not fit, and the button falls back to `keyMomentCTACompact`.
+    static let keyMomentCTA = LocalizedStringKey("Choose when to remind me")
+    static let keyMomentCTACompact = LocalizedStringKey("Set reminders")
 
     static let privacyTitle = LocalizedStringKey("Synced through your iCloud")
     /// Accurate against `CloudExtractor`: the extract request is OCR text lines

@@ -80,9 +80,7 @@ struct OnboardingView: View {
             case .welcome:
                 singleCTA(OnboardingCopy.welcomeCTA, enabled: true) { coordinator.advance() }
             case .keyMoment:
-                // DESIGN-PENDING label: OnboardingCopy.keyMomentCTA.
-                // Spec said "Choose what to track"; categories are not next.
-                singleCTA(OnboardingCopy.keyMomentCTA, enabled: true) { coordinator.advance() }
+                keyMomentCTA { coordinator.advance() }
             case .leadTimes:
                 singleCTA("Continue", enabled: coordinator.canAdvance) { coordinator.advance() }
             case .privacy:
@@ -94,6 +92,29 @@ struct OnboardingView: View {
             }
         }
         .transition(ctaTransition)
+    }
+
+    /// Visible from the first frame. Back does not replay the key moment;
+    /// `OnboardingCoordinator.hasPlayedKeyMoment` keeps the settled frame.
+    /// The compact label is used only when the long one does not fit, including
+    /// accessibility XXXL.
+    private func keyMomentCTA(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ViewThatFits(in: .horizontal) {
+                Text(OnboardingCopy.keyMomentCTA)
+                    .lineLimit(1)
+                Text(OnboardingCopy.keyMomentCTACompact)
+                    .lineLimit(1)
+            }
+            .font(.keptHeadline)
+            .foregroundStyle(KeptColor.adaptiveOnInk)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md + 2)
+            .background(Capsule().fill(KeptColor.adaptiveInk))
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.sm)
+        .padding(.bottom, Spacing.md)
     }
 
     private func singleCTA(_ label: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {
