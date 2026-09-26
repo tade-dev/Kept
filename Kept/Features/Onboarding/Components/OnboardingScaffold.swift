@@ -11,6 +11,9 @@ import SwiftUI
 struct OnboardingScaffold<Content: View, Footer: View>: View {
     let title: Text
     var subtitle: Text? = nil
+    /// When false, the title `Text` keeps the fonts and colours the caller set.
+    /// The default applies the 36pt bold title style.
+    var stylesTitle: Bool = true
     @ViewBuilder var content: () -> Content
     @ViewBuilder var footer: () -> Footer
 
@@ -19,11 +22,13 @@ struct OnboardingScaffold<Content: View, Footer: View>: View {
     init(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey? = nil,
+        stylesTitle: Bool = true,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder footer: @escaping () -> Footer = { EmptyView() }
     ) {
         self.title = Text(title)
         self.subtitle = subtitle.map { Text($0) }
+        self.stylesTitle = stylesTitle
         self.content = content
         self.footer = footer
     }
@@ -35,11 +40,13 @@ struct OnboardingScaffold<Content: View, Footer: View>: View {
     init(
         titleText: Text,
         subtitleText: Text? = nil,
+        stylesTitle: Bool = true,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder footer: @escaping () -> Footer = { EmptyView() }
     ) {
         self.title = titleText
         self.subtitle = subtitleText
+        self.stylesTitle = stylesTitle
         self.content = content
         self.footer = footer
     }
@@ -62,10 +69,17 @@ struct OnboardingScaffold<Content: View, Footer: View>: View {
 
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            title
-                .font(KeptFont.sans(36, weight: .bold, relativeTo: .largeTitle))
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            Group {
+                if stylesTitle {
+                    title
+                        .font(KeptFont.sans(36, weight: .bold, relativeTo: .largeTitle))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    title
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             if let subtitle {
                 subtitle

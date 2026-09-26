@@ -58,8 +58,8 @@ struct OnboardingView: View {
         switch coordinator.step {
         case .welcome:
             WelcomeStepView()
-        case .valueBeat:
-            ValueBeatStepView(coordinator: coordinator)
+        case .keyMoment:
+            KeyMomentStepView(coordinator: coordinator)
         case .leadTimes:
             LeadTimesStepView(coordinator: coordinator)
         case .privacy:
@@ -78,14 +78,18 @@ struct OnboardingView: View {
         Group {
             switch coordinator.step {
             case .welcome:
-                singleCTA("Get Started", enabled: true) { coordinator.advance() }
+                singleCTA(OnboardingCopy.welcomeCTA, enabled: true) { coordinator.advance() }
+            case .keyMoment:
+                // DESIGN-PENDING label: OnboardingCopy.keyMomentCTA.
+                // Spec said "Choose what to track"; categories are not next.
+                singleCTA(OnboardingCopy.keyMomentCTA, enabled: true) { coordinator.advance() }
             case .leadTimes:
                 singleCTA("Continue", enabled: coordinator.canAdvance) { coordinator.advance() }
             case .privacy:
                 singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .notifications:
                 notificationsCTA
-            case .valueBeat, .existingReceipts:
+            case .existingReceipts:
                 EmptyView()
             }
         }

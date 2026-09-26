@@ -1,15 +1,20 @@
 import SwiftUI
 
-/// Step 0 — video, title, subtitle. The Get Started button is rendered by
-/// OnboardingView. The demo video drives its own reveal so we don't fade in
-/// an unloaded black frame; text follows on a staggered schedule.
+/// Step 0 — video, title, subtitle. The CTA is rendered by OnboardingView.
+/// The demo video drives its own reveal so we don't fade in an unloaded
+/// black frame; text follows on a staggered schedule.
 struct WelcomeStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
     @State private var appeared = Reveal()
 
     private var demoResource: String {
         colorScheme == .dark ? "onboarding-demo-dark" : "onboarding-demo-white"
+    }
+
+    private var showsDemo: Bool {
+        !dynamicTypeSize.isAccessibilitySize
     }
 
     var body: some View {
@@ -22,16 +27,17 @@ struct WelcomeStepView: View {
             .padding(.top, Spacing.xs)
             .padding(.bottom, Spacing.sm)
 
-            DemoVideoView(resourceName: demoResource, cornerRadius: 0)
-                .id(demoResource)
-                .aspectRatio(9.0 / 16.0, contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .scaleEffect(appeared.demo ? 1.0 : 0.94)
-                .blur(radius: appeared.demo ? 0 : 8)
-                .opacity(appeared.demo ? 1 : 0)
+            if showsDemo {
+                DemoVideoView(resourceName: demoResource, cornerRadius: 0)
+                    .id(demoResource)
+                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scaleEffect(appeared.demo ? 1.0 : 0.94)
+                    .blur(radius: appeared.demo ? 0 : 8)
+                    .opacity(appeared.demo ? 1 : 0)
+            }
 
             VStack(spacing: Spacing.sm) {
-                // Copy: OnboardingCopy.welcomeHeadline (DESIGN-PENDING)
                 Text(OnboardingCopy.welcomeHeadline)
                     .font(KeptFont.sans(34, weight: .bold, relativeTo: .largeTitle))
                     .multilineTextAlignment(.center)
@@ -40,7 +46,6 @@ struct WelcomeStepView: View {
                     .offset(y: appeared.headline ? 0 : 16)
                     .blur(radius: appeared.headline ? 0 : 4)
 
-                // Copy: OnboardingCopy.welcomeSubhead (DESIGN-PENDING)
                 Text(OnboardingCopy.welcomeSubhead)
                     .font(.keptTitle3)
                     .foregroundStyle(.secondary)

@@ -1,42 +1,61 @@
 import SwiftUI
 
-/// Copy for the first-run redesign.
-///
-/// `DESIGN-PENDING` marks placeholder wording DesignBot is still replacing.
-/// Strings without that mark are locked product copy.
+/// Final first-run copy from the design handoff, plus the one string that
+/// still waits on design because the categories step is gone.
 enum OnboardingCopy {
-    // DESIGN-PENDING: Welcome headline. Leads with the moment something broke.
-    static let welcomeHeadline = LocalizedStringKey("Something broke. You have everything you need.")
+    static let welcomeHeadline = LocalizedStringKey("Something broke?\nKnow if it's covered.")
+    static let welcomeSubhead = LocalizedStringKey("Scan the receipt once. Kept keeps the cover and the proof.")
+    static let welcomeCTA = LocalizedStringKey("See how it works")
 
-    // DESIGN-PENDING: Welcome subhead.
-    static let welcomeSubhead = LocalizedStringKey("The receipt, the dates, and the claim — already together.")
+    static let keyMomentContext = LocalizedStringKey("Your headphones just stopped working.")
+    static let keyMomentQuestion = LocalizedStringKey("Still covered?")
+    static let keyMomentPayoff = LocalizedStringKey("Your proof and cover, right there.")
 
-    // DESIGN-PENDING: key-moment screen title (value beat).
-    static let valueBeatTitle = LocalizedStringKey("And this is already waiting.")
+    /// DESIGN-PENDING: the spec CTA was "Choose what to track", which only
+    /// fits if the categories step is still next. Categories stay removed, so
+    /// this step uses Continue until design replaces it.
+    static let keyMomentCTA = LocalizedStringKey("Continue")
 
-    /// DESIGN-PENDING: wording only. The facts are not optional:
-    /// receipts sync through CloudKit when iCloud is signed in, Vision OCR
-    /// runs on device, and the extract worker receives recognized text — not
-    /// a claim that photos never leave the phone.
-    static let privacyLine = LocalizedStringKey("Receipts sync with your iCloud account. The photo is read on your phone; only the recognized text is sent to fill in the details.")
+    static let privacyTitle = LocalizedStringKey("Synced through your iCloud")
+    /// Accurate against `CloudExtractor`: the extract request is OCR text lines
+    /// and bounding boxes, plus the RevenueCat user id. The photo is not sent.
+    static let privacyLine = LocalizedStringKey("Receipts sync through your iCloud. To read one, we send its text to our server, never the photo.")
 
-    /// Locked caption under the empty-library sample card.
     static let emptyLibraryCaption = LocalizedStringKey("When something breaks, this is what you'll see.")
+    static let emptyLibraryTitle = LocalizedStringKey("Start your library")
 
-    // DESIGN-PENDING: empty-library body. Must not use countdown framing.
-    static let emptyLibraryBody = LocalizedStringKey("Scan a receipt once. If it breaks, the proof is already here.")
-
-    /// Locked headline on the first-save sheet.
     static let firstSaveHeadline = LocalizedStringKey("If it breaks, it's all here.")
+    static let firstSaveSubtitle = LocalizedStringKey("Your first receipt is saved.")
+    static let walletCaption = LocalizedStringKey("Adds a countdown pass to Apple Wallet.")
+    static let claimPackCaptionFree = LocalizedStringKey("For the day you need to claim. Included with Kept Pro.")
+    static let claimPackCaptionPro = LocalizedStringKey("A one-page PDF with your receipt, ready to send.")
 }
 
-/// Static sample shown on the value beat and the empty library.
-/// Not a `Purchase`. Never inserted into SwiftData and never counted
-/// toward the free-tier cap or the library total.
-enum SampleCoverageCard {
-    // DESIGN-PENDING: sample merchant, item, and the day count the card rests on.
+/// Scripted key-moment card. Not a `Purchase`.
+enum KeyMomentScript {
     static let merchant = "Sony"
     static let item = "WH-1000XM5 Headphones"
-    static let daysRemaining = 348
+    static let daysRemaining = 214
     static let phase = CoverageCard.Phase.covered
+    /// Stillness after the step is inserted, then the card resolves.
+    static let questionMilliseconds = 1200
+    /// Gap between the resolve and the payoff line.
+    static let payoffMilliseconds = 550
+}
+
+/// Empty-library sample. Not a `Purchase`, never inserted or counted.
+enum SampleCoverageCard {
+    static let merchant = "Dyson"
+    static let item = "V15 Detect"
+    static let daysRemaining = 608
+    static let phase = CoverageCard.Phase.covered
+}
+
+enum DemoAssets {
+    /// Cropped receipt for the key-moment proof row. Nil falls back to the
+    /// `doc.text` thumbnail inside `ReceiptThumbnail`.
+    static var receiptJPEG: Data? {
+        guard let image = UIImage(named: "DemoReceipt") else { return nil }
+        return image.jpegData(compressionQuality: 0.85) ?? image.pngData()
+    }
 }

@@ -20,9 +20,9 @@ enum SettingsKeys {
     /// Ensures the front-door paywall + explainer sheet fire exactly once per
     /// install — subsequent conversions happen on premium-feature moments.
     static let hasSeenOnboardingPaywall = "settings.hasSeenOnboardingPaywall"
-    /// Set true once the first-save payoff sheet has been presented.
-    /// The sheet shows only on the save that takes the library from 0 to 1.
-    static let hasSeenFirstSavePayoff = "settings.hasSeenFirstSavePayoff"
+    /// Same key as `FirstSavePayoff.shownKey`. Stamped when the payoff sheet
+    /// appears. An ineligible save does not set it.
+    static let hasShownFirstSavePayoff = FirstSavePayoff.shownKey
 }
 
 enum SettingsDefaults {

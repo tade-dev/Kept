@@ -4,10 +4,10 @@ import SwiftUI
 
 /// Ordered first-run steps. Welcome is full-bleed; the progress bar and back
 /// chevron show on every step after it. Categories and the "Setting up"
-/// interstitial are gone — the value beat is the first step after Welcome.
-enum OnboardingStep: Int, CaseIterable, Identifiable {
+/// interstitial stay removed. The key moment is the first step after Welcome.
+enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
     case welcome = 0
-    case valueBeat = 1
+    case keyMoment = 1
     case leadTimes = 2
     case privacy = 3
     case existingReceipts = 4
@@ -55,11 +55,14 @@ struct OnboardingResult: Equatable {
 final class OnboardingCoordinator {
     var step: OnboardingStep = .welcome
     var result: OnboardingResult = .empty
+    /// After the key moment has resolved once, returning to the step shows
+    /// the final frame with no replay.
+    var hasPlayedKeyMoment = false
 
     /// Whether the flow has enough state to enable the "Continue" button on the current step.
     var canAdvance: Bool {
         switch step {
-        case .welcome, .valueBeat, .privacy, .existingReceipts, .notifications:
+        case .welcome, .keyMoment, .privacy, .existingReceipts, .notifications:
             return true
         case .leadTimes:
             return !result.warningLeadTimes.isEmpty

@@ -3,7 +3,9 @@ import SwiftUI
 /// Presents the library. When the user hasn't onboarded, overlays onboarding full-screen.
 /// If the existing-receipts step was "Yes, a few", LibraryView opens capture
 /// once the front-door paywall is not showing.
-/// The front-door paywall itself waits until the first-save payoff sheet is dismissed.
+/// The front-door paywall waits until the first save. If that save has an
+/// active warranty, the payoff sheet comes first. If it does not, the
+/// paywall still appears so it is not lost.
 ///
 /// On every cold launch a `SplashView` covers the whole scene for ~3s before
 /// fading away — the seal + wordmark springs up from below and settles at
@@ -17,9 +19,9 @@ struct RootView: View {
     @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @State private var openCaptureAfterOnboarding = false
     @State private var isSplashShowing = true
-    /// Bound to the trial-entry paywall cover. Presented after the first-save
-    /// payoff sheet dismisses, not at the end of onboarding. Persisted-once
-    /// via `hasSeenOnboardingPaywall` so subsequent launches skip it.
+    /// Bound to the trial-entry paywall cover. Presented after the first save,
+    /// once any payoff sheet has dismissed. Persisted-once via
+    /// `hasSeenOnboardingPaywall` so subsequent launches skip it.
     @State private var showsOnboardingPaywall = false
 
     /// Total splash budget from process launch to dismissal.
@@ -52,7 +54,7 @@ struct RootView: View {
                 LibraryView(
                     captureAfterOnboarding: $openCaptureAfterOnboarding,
                     paywallIsShowing: showsOnboardingPaywall,
-                    onFirstSavePayoffDismissed: presentPaywallAfterFirstSave
+                    onFirstSaveMomentFinished: presentPaywallAfterFirstSave
                 )
                     .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                         OnboardingView { hasExistingReceipts in
@@ -91,13 +93,14 @@ struct RootView: View {
         .tint(darkAccent.tint)
     }
 
-    /// Front-door paywall, after the first-save sheet — not after onboarding.
-    private func presentPaywallAfterFirstSave() {
+    /// Front-door paywall after the first save, whether or not the payoff
+    /// sheet was shown. Not after onboarding.
+    private func presentPaywallAfterFirstSave(_ event: OnboardingPaywallPolicy.Event) {
         guard OnboardingPaywallPolicy.trigger(
-            for: .firstSaveSheetDismissed,
+            for: event,
             hasSeenPaywall: hasSeenOnboardingPaywall
         ) == .showPaywall else { return }
-        // Next runloop tick so the payoff sheet finishes dismissing before
+        // Next runloop tick so a payoff sheet finishes dismissing before
         // the paywall cover presents.
         DispatchQueue.main.async {
             showsOnboardingPaywall = true
