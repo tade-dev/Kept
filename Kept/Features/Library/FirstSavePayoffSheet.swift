@@ -87,8 +87,7 @@ struct FirstSavePayoffSheet: View {
                         proof: .init(
                             receiptImage: purchase.receiptImage,
                             showsClaimPackReady: subscription.isPro
-                        ),
-                        usesAccessibleCovered: true
+                        )
                     )
 
                     if FirstSavePayoff.walletAvailable {

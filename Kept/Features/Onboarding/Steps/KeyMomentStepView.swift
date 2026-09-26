@@ -50,7 +50,6 @@ struct KeyMomentStepView: View {
                     receiptImage: DemoAssets.receiptJPEG,
                     showsClaimPackReady: true
                 ),
-                usesAccessibleCovered: true,
                 spokenLeadIn: String(localized: "Example", comment: "VoiceOver lead-in for the scripted key-moment card")
             )
 

@@ -13,9 +13,6 @@ struct CoverageCard: View {
     var remainingStyle: RemainingStyle = .days
     /// Sample tag, no shadow, lighter stroke. Use with `emphasized == false`.
     var isSample: Bool = false
-    /// First-run screens pass true so the Covered pill uses the accessible
-    /// token. Other screens keep `KeptColor.covered`.
-    var usesAccessibleCovered: Bool = false
     /// Spoken prefix for a scripted card, e.g. "Example". Sample cards say "Sample" on their own.
     var spokenLeadIn: String? = nil
 
@@ -74,7 +71,6 @@ struct CoverageCard: View {
 
     private var accent: Color {
         if !isResolved { return Color.secondary }
-        if state == .covered && usesAccessibleCovered { return KeptColor.coveredOnFirstRun }
         return state.accent
     }
 
@@ -381,8 +377,7 @@ private struct CardShadow: ViewModifier {
         item: "WH-1000XM5 Headphones",
         daysRemaining: 214,
         isResolved: false,
-        proof: .init(receiptImage: nil, showsClaimPackReady: true),
-        usesAccessibleCovered: true
+        proof: .init(receiptImage: nil, showsClaimPackReady: true)
     )
     .padding()
 }
@@ -393,8 +388,7 @@ private struct CardShadow: ViewModifier {
         merchant: "Sony",
         item: "WH-1000XM5 Headphones",
         daysRemaining: 214,
-        proof: .init(receiptImage: nil, showsClaimPackReady: true),
-        usesAccessibleCovered: true
+        proof: .init(receiptImage: nil, showsClaimPackReady: true)
     )
     .padding()
 }
@@ -407,8 +401,7 @@ private struct CardShadow: ViewModifier {
         daysRemaining: 608,
         remainingStyle: .adaptive,
         proof: .init(receiptImage: nil, showsClaimPackReady: false),
-        isSample: true,
-        usesAccessibleCovered: true
+        isSample: true
     )
     .padding()
 }
@@ -419,8 +412,7 @@ private struct CardShadow: ViewModifier {
         merchant: "Sony",
         item: "WH-1000XM5 Headphones",
         daysRemaining: 214,
-        proof: .init(receiptImage: nil, showsClaimPackReady: true),
-        usesAccessibleCovered: true
+        proof: .init(receiptImage: nil, showsClaimPackReady: true)
     )
     .padding()
     .preferredColorScheme(.dark)
@@ -432,8 +424,7 @@ private struct CardShadow: ViewModifier {
         merchant: "Sony",
         item: "WH-1000XM5 Headphones",
         daysRemaining: 214,
-        proof: .init(receiptImage: nil, showsClaimPackReady: true),
-        usesAccessibleCovered: true
+        proof: .init(receiptImage: nil, showsClaimPackReady: true)
     )
     .padding()
     .environment(\.dynamicTypeSize, .accessibility5)

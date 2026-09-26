@@ -30,8 +30,7 @@ struct EmptyLibraryState: View {
                     daysRemaining: SampleCoverageCard.daysRemaining,
                     remainingStyle: .adaptive,
                     proof: .init(receiptImage: nil, showsClaimPackReady: false),
-                    isSample: true,
-                    usesAccessibleCovered: true
+                    isSample: true
                 )
                 .contentShape(RoundedRectangle(cornerRadius: Radius.xl, style: .continuous))
                 .onTapGesture(perform: onScan)
