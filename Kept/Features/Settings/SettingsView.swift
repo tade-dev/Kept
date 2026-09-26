@@ -276,7 +276,7 @@ struct SettingsView: View {
         } header: {
             Text("Data")
         } footer: {
-            Text("\(purchases.count) items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro.", comment: "Data section footer. CloudKit sync is on for every account, including receipt photos. Needs plural handling on 'items'.")
+            Text("\(purchases.count) items, synced with your iCloud", comment: "DESIGN-PENDING. Data section footer. Final wording is not locked. CloudKit sync is on for every signed-in account, including receipt photos. Needs plural handling on 'items'.")
         }
     }
 

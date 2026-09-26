@@ -7436,30 +7436,31 @@
         }
       }
     },
-    "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro." : {
+    "%lld items, synced with your iCloud" : {
+      "comment" : "DESIGN-PENDING. Data section footer. Final wording is not locked. Needs plural handling on 'items'.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
+            "value" : "%lld items, synced with your iCloud"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
+            "value" : "%lld items, synced with your iCloud"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
+            "value" : "%lld items, synced with your iCloud"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld items in your library. Receipts, including photos, sync through iCloud for every signed-in account. Sync is on for everyone and isn't part of Pro."
+            "value" : "%lld items, synced with your iCloud"
           }
         }
       }
