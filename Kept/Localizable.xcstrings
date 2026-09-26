@@ -6960,30 +6960,30 @@
         }
       }
     },
-    "We never upload your receipt photos. To read one, we send only its text to our server." : {
+    "We never send your receipt photos to our servers. To read one, we send only its text." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
+            "value" : "We never send your receipt photos to our servers. To read one, we send only its text."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
+            "value" : "We never send your receipt photos to our servers. To read one, we send only its text."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
+            "value" : "We never send your receipt photos to our servers. To read one, we send only its text."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "We never upload your receipt photos. To read one, we send only its text to our server."
+            "value" : "We never send your receipt photos to our servers. To read one, we send only its text."
           }
         }
       }

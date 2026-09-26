@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Privacy reassurance. The step title and first row match extraction:
-/// the worker receives OCR text, not the photo. Photos still sync to the
-/// user's own iCloud; that fact lives in Settings, not in this row.
+/// Privacy reassurance. The step title stays "Your photos stay yours".
+/// The subtitle says we never send photos to our servers, because the
+/// photos still sync to the user's own iCloud. Extraction sends text only.
 /// Rows 2 and 3 are the existing assurances.
 struct PrivacyStepView: View {
     var body: some View {
