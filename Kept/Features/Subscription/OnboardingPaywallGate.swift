@@ -6,7 +6,7 @@ import SwiftUI
 ///   .paywall   → PaywallView(reason: .onboardingEntry) with a visible
 ///                "Continue with limited version" secondary button.
 ///   .explainer → FreeTierExplainerSheet showing what Free actually gets
-///                + a persistent "Start 7-day free trial" CTA that can
+///                + a persistent trial CTA that can
 ///                bounce back to .paywall without dismissing anything.
 ///
 /// Either purchasing Pro OR tapping "Continue" on the explainer dismisses
@@ -51,6 +51,8 @@ struct OnboardingPaywallGate: View {
 struct FreeTierExplainerSheet: View {
     var onStartTrial: () -> Void
     var onContinue: () -> Void
+
+    @Environment(SubscriptionAccess.self) private var subscription
 
     var body: some View {
         NavigationStack {
@@ -158,12 +160,21 @@ struct FreeTierExplainerSheet: View {
         )
     }
 
+    /// Sends the user back to the paywall. The trial length is the yearly
+    /// package's store intro, so this button does not name a day count.
+    private var trialButtonTitle: LocalizedStringKey {
+        if subscription.offering?.yearly?.introBadge != nil {
+            return "Start free trial"
+        }
+        return "See Kept Pro"
+    }
+
     // MARK: - CTA bar
 
     private var ctaBar: some View {
         VStack(spacing: 10) {
             Button(action: onStartTrial) {
-                Text("Start 7-day free trial")
+                Text(trialButtonTitle)
                     .font(.keptHeadline)
                     .foregroundStyle(KeptColor.adaptiveOnInk)
                     .frame(maxWidth: .infinity)

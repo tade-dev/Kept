@@ -59,35 +59,31 @@ final class PreviewSubscriptionService: SubscriptionService {
 }
 
 extension SubscriptionOffering {
-    /// Default preview offering, but with a win-back offer attached to the
-    /// monthly package so the Paywall's welcome-back banner + per-card
-    /// discount pill render in previews without needing a live RC eligible
-    /// customer.
+    /// Preview offering with a yearly win-back offer so the paywall banner
+    /// renders without a live RevenueCat customer. Not a monthly plan.
     static var kept_withWinBack: SubscriptionOffering {
         var o = kept_default
-        o.monthly?.winBackOffer = WinBackOffer(
-            identifier: "winback_monthly_50off_1mo",
-            priceString: "£2.49",
-            summary: "50% off first month"
+        o.yearly?.winBackOffer = WinBackOffer(
+            identifier: "winback_yearly",
+            priceString: o.yearly?.priceString ?? "",
+            summary: "Welcome back offer"
         )
         return o
     }
 
-    /// Default preview offering — mirrors real Kept Pro pricing.
+    /// Preview stand-in for a store offering. `priceString` values imitate
+    /// `storeProduct.localizedPriceString` so SwiftUI previews can render;
+    /// they are not product prices and the paywall never reads them in the app.
+    /// Monthly is omitted — the paywall filters it out even if a fixture includes it.
     static let kept_default = SubscriptionOffering(
-        monthly: SubscriptionPackage(
-            id: "pro_monthly",
-            priceString: "£4.99",
-            periodString: "per month",
-            introOfferString: nil,
-            savingsBadge: nil
-        ),
+        monthly: nil,
         yearly: SubscriptionPackage(
             id: "pro_yearly",
             priceString: "£41.99",
             periodString: "per year",
             introOfferString: "7-day free trial, then £41.99/year",
-            savingsBadge: "30% OFF"
+            introBadge: "7 days free",
+            savingsBadge: nil
         ),
         lifetime: SubscriptionPackage(
             id: "pro_lifetime",

@@ -22,7 +22,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SubscriptionAccess.self) private var subscription
 
-    @State private var selection: Selection = .yearly
+    @State private var selection: PaywallPlan = .yearly
     @State private var isWorking = false
     @State private var errorMessage: String?
     @State private var successTick = 0
@@ -48,8 +48,6 @@ struct PaywallView: View {
         }
     }
 
-    private enum Selection: Hashable { case monthly, yearly, lifetime }
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -73,11 +71,6 @@ struct PaywallView: View {
 
                     pricePicker
                         .padding(.horizontal, 20)
-
-                    if subscription.offering?.lifetime != nil {
-                        lifetimeCard
-                            .padding(.horizontal, 20)
-                    }
 
                     features
                         .padding(.horizontal, 24)
@@ -125,9 +118,9 @@ struct PaywallView: View {
     /// nil when the customer isn't eligible for any. Non-nil == render the
     /// banner. Rides on the offering's win-back state, so it lights up
     /// automatically the moment RC + ASC surface an eligible offer.
+    /// Yearly only. A monthly win-back is not shown — monthly is not a plan.
     private var welcomeBackSummary: String? {
         subscription.offering?.yearly?.winBackOffer?.summary
-            ?? subscription.offering?.monthly?.winBackOffer?.summary
     }
 
     private func winBackBanner(summary: String) -> some View {
@@ -193,52 +186,45 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Two-card price picker
+    // MARK: - Yearly and lifetime, equal weight
 
+    /// While the offering is loading, both peer plans show as placeholders.
+    /// Once it loads, only packages that exist are shown — monthly is never one of them.
     private var pricePicker: some View {
-        HStack(spacing: 10) {
-            priceCard(
-                for: .yearly,
-                package: subscription.offering?.yearly,
-                perLabel: "/year",
-                badge: subscription.offering?.yearly?.savingsBadge
-                    .map { $0.replacingOccurrences(of: " OFF", with: "") }
-            )
-            priceCard(
-                for: .monthly,
-                package: subscription.offering?.monthly,
-                perLabel: "/month",
-                badge: nil
-            )
+        let plans = PaywallCatalog.visiblePlans(in: subscription.offering)
+        let shown: [PaywallPlan] = subscription.offering == nil ? PaywallPlan.allCases : plans
+        return Group {
+            if subscription.offering != nil && plans.isEmpty {
+                Text("Plans aren't available right now.")
+                    .font(.keptFootnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(shown, id: \.self) { plan in
+                        planCard(plan)
+                    }
+                }
+            }
         }
     }
 
-    private func priceCard(
-        for target: Selection,
-        package: SubscriptionPackage?,
-        perLabel: String,
-        badge: String?
-    ) -> some View {
-        let isSelected = selection == target
+    private func planCard(_ plan: PaywallPlan) -> some View {
+        let package = PaywallCatalog.package(plan, in: subscription.offering)
+        let isSelected = activeSelection == plan
         return Button {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                selection = target
+                selection = plan
             }
         } label: {
             VStack(alignment: .leading, spacing: 6) {
-                // Trial badge sits ABOVE the price so users notice it
-                // before selecting — otherwise they miss that yearly is
-                // the only plan with a 7-day free trial and pick monthly
-                // by default. Only yearly currently ships an intro offer
-                // (config verified in ASC), so we only decorate that card.
-                if package?.introOfferString != nil {
-                    Text("7 days free")
-                        .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.accentColor.opacity(0.18)))
-                }
+                Text(planTitle(plan))
+                    .font(KeptFont.sans(17, weight: .semibold, relativeTo: .headline))
+                    .foregroundStyle(isSelected ? Color.primary : .secondary)
+
+                // Same slot on every card so Yearly and Lifetime stay the same height.
+                // Trial length comes from the store intro (`introBadge`), not a fixed "7 days".
+                trialBadge(package?.introBadge)
 
                 if let package {
                     Text(package.priceString)
@@ -253,37 +239,15 @@ struct PaywallView: View {
                         .redacted(reason: .placeholder)
                 }
 
-                HStack(spacing: 6) {
-                    Text(perLabel)
-                        .font(.keptFootnote)
-                        .foregroundStyle(.secondary)
-                    // Win-back offer takes visual priority over the yearly
-                    // SAVE badge — it's a personalised deal for a lapsed
-                    // customer, so it should read first.
-                    if let winBack = package?.winBackOffer {
-                        Text(winBack.summary)
-                            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule().fill(Color.accentColor.opacity(0.18))
-                            )
-                            .foregroundStyle(Color.accentColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    } else if let badge {
-                        Text("SAVE \(badge)")
-                            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule().fill(Color.accentColor.opacity(0.18))
-                            )
-                            .foregroundStyle(Color.accentColor)
-                    }
-                }
+                Text(package?.periodString ?? planPeriodPlaceholder(plan))
+                    .font(.keptFootnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                winBackLine(package?.winBackOffer?.summary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
             .background(
@@ -303,78 +267,70 @@ struct PaywallView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(subscription.offering == nil)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(planAccessibilityLabel(plan, package: package))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    // MARK: - Lifetime one-shot
-
-    /// Full-width card for the non-consumable Lifetime option, rendered
-    /// underneath the sub row. Distinct layout (horizontal, "BEST VALUE"
-    /// chip) so it doesn't compete visually with the yearly SAVE badge.
-    private var lifetimeCard: some View {
-        let package = subscription.offering?.lifetime
-        let isSelected = selection == .lifetime
-        return Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                selection = .lifetime
-            }
-        } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("Lifetime")
-                            .font(KeptFont.sans(17, weight: .semibold, relativeTo: .headline))
-                            .foregroundStyle(isSelected ? Color.primary : .secondary)
-
-                        Text("BEST VALUE")
-                            .font(KeptFont.sans(10, weight: .bold, relativeTo: .caption2))
-                            .kerning(0.6)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(Color.accentColor.opacity(0.18)))
-                            .foregroundStyle(Color.accentColor)
-                    }
-
-                    Text("One-time payment · pay once, own forever")
-                        .font(.keptCaption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-
-                Spacer(minLength: 8)
-
-                if let package {
-                    Text(package.priceString)
-                        .font(KeptFont.sans(20, weight: .bold, relativeTo: .title3))
-                        .foregroundStyle(isSelected ? Color.primary : .secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                } else {
-                    Text("—")
-                        .font(KeptFont.sans(20, weight: .bold, relativeTo: .title3))
-                        .foregroundStyle(.tertiary)
-                        .redacted(reason: .placeholder)
+    private func trialBadge(_ badge: String?) -> some View {
+        Text(badge ?? " ")
+            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(Color.accentColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background {
+                if badge != nil {
+                    Capsule().fill(Color.accentColor.opacity(0.18))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected
-                          ? Color(.secondarySystemGroupedBackground)
-                          : Color(.tertiarySystemGroupedBackground))
-                    .shadow(
-                        color: isSelected ? .black.opacity(0.10) : .clear,
-                        radius: 6, y: 2
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isSelected ? KeptColor.adaptiveInk : Color.primary.opacity(0.08),
-                            lineWidth: isSelected ? 1.5 : 1)
-            )
+            .opacity(badge == nil ? 0 : 1)
+            .accessibilityHidden(badge == nil)
+    }
+
+    private func winBackLine(_ summary: String?) -> some View {
+        Text(summary ?? " ")
+            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+            .foregroundStyle(Color.accentColor)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background {
+                if summary != nil {
+                    Capsule().fill(Color.accentColor.opacity(0.18))
+                }
+            }
+            .opacity(summary == nil ? 0 : 1)
+            .accessibilityHidden(summary == nil)
+    }
+
+    private func planTitle(_ plan: PaywallPlan) -> String {
+        switch plan {
+        case .yearly: String(localized: "Yearly")
+        case .lifetime: String(localized: "Lifetime")
         }
-        .buttonStyle(.plain)
+    }
+
+    private func planPeriodPlaceholder(_ plan: PaywallPlan) -> String {
+        switch plan {
+        case .yearly: String(localized: "per year")
+        case .lifetime: String(localized: "one-time")
+        }
+    }
+
+    private func planAccessibilityLabel(_ plan: PaywallPlan, package: SubscriptionPackage?) -> String {
+        var parts = [planTitle(plan)]
+        if let package {
+            parts.append(package.priceString)
+            parts.append(package.periodString)
+            if let badge = package.introBadge {
+                parts.append(badge)
+            }
+        }
+        return parts.joined(separator: ", ")
     }
 
     // MARK: - Features
@@ -422,7 +378,7 @@ struct PaywallView: View {
                 .background(Capsule().fill(KeptColor.adaptiveInk))
             }
             .buttonStyle(.plain)
-            .disabled(isWorking || subscription.offering == nil)
+            .disabled(isWorking || currentPackage == nil)
 
             legalFineprint
 
@@ -454,22 +410,29 @@ struct PaywallView: View {
     }
 
     private var ctaLabel: String {
-        guard currentPackage != nil else { return String(localized: "Continue") }
-        if selection == .lifetime { return String(localized: "Get Kept Pro forever") }
-        return trialAvailable ? String(localized: "Start 7-day free trial") : String(localized: "Subscribe")
+        guard let plan = activeSelection, currentPackage != nil else {
+            return String(localized: "Continue")
+        }
+        if plan == .lifetime { return String(localized: "Get Kept Pro forever") }
+        return trialAvailable ? String(localized: "Start free trial") : String(localized: "Subscribe")
     }
 
     // Trial ends copy + Terms link — IFTTT-style fine print
     private var legalFineprint: some View {
         VStack(spacing: 4) {
-            if selection == .lifetime {
+            if activeSelection == .lifetime {
                 Text("One-time purchase. No auto-renewal. Family Sharing included.")
                     .font(.keptCaption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-            } else if trialAvailable {
-                Text(trialEndsCopy)
+            } else if trialAvailable, let intro = currentPackage?.introOfferString {
+                Text(intro)
+                    .font(.keptCaption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Cancel anytime before the trial ends at no cost.")
                     .font(.keptCaption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -497,35 +460,22 @@ struct PaywallView: View {
         return attributed
     }
 
-    private var trialEndsCopy: String {
-        guard let package = currentPackage else { return "" }
-        let end = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
-        let dateString = end.formatted(date: .long, time: .omitted)
-        let priceString = package.priceString
-        let periodWord = shortPeriod(from: package.periodString)
-        return String(
-            localized: "Your trial ends on \(dateString). Afterwards, you will be billed \(priceString) \(periodWord)ly. Cancel anytime before the trial ends at no cost.",
-            comment: "Paywall trial-end fine print"
-        )
-    }
-
     // MARK: - Helpers
 
+    /// Yearly stays selected when it exists. A stale yearly choice falls back
+    /// to lifetime when yearly is missing, and the other way around.
+    private var activeSelection: PaywallPlan? {
+        PaywallCatalog.resolvedSelection(selection, in: subscription.offering)
+    }
+
     private var currentPackage: SubscriptionPackage? {
-        guard let offering = subscription.offering else { return nil }
-        switch selection {
-        case .monthly:  return offering.monthly
-        case .yearly:   return offering.yearly
-        case .lifetime: return offering.lifetime
-        }
+        guard let plan = activeSelection else { return nil }
+        return PaywallCatalog.package(plan, in: subscription.offering)
     }
 
+    /// True only when the selected package carries a store free-trial badge.
     private var trialAvailable: Bool {
-        currentPackage?.introOfferString != nil
-    }
-
-    private func shortPeriod(from full: String) -> String {
-        full.replacingOccurrences(of: "per ", with: "")
+        currentPackage?.introBadge != nil
     }
 
     // MARK: - Actions
