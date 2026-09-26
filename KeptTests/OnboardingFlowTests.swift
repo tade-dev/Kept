@@ -100,6 +100,23 @@ struct FirstSavePayoffTests {
     }
 }
 
+@Suite("Front-door paywall ordering")
+struct OnboardingPaywallPolicyTests {
+    @Test("onboarding finish does not request the paywall")
+    func notAfterOnboarding() {
+        #expect(OnboardingPaywallPolicy.trigger(for: .onboardingFinished, hasSeenPaywall: false) == nil)
+        #expect(OnboardingPaywallPolicy.trigger(for: .onboardingFinished, hasSeenPaywall: true) == nil)
+    }
+
+    @Test("first-save sheet dismiss requests the paywall once")
+    func afterFirstSaveSheet() {
+        #expect(
+            OnboardingPaywallPolicy.trigger(for: .firstSaveSheetDismissed, hasSeenPaywall: false) == .showPaywall
+        )
+        #expect(OnboardingPaywallPolicy.trigger(for: .firstSaveSheetDismissed, hasSeenPaywall: true) == nil)
+    }
+}
+
 @Suite("Coverage card mapping")
 struct CoverageCardMappingTests {
     @Test("phase follows the 14-day covered window and treats today as ending soon")

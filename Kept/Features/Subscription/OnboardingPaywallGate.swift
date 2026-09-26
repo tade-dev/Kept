@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Front-door monetisation flow presented once, immediately after the
-/// onboarding cover dismisses. Owns the choreography between three states:
+/// Front-door monetisation flow presented once, after the first-save
+/// payoff sheet is dismissed. Owns the choreography between three states:
 ///
 ///   .paywall   → PaywallView(reason: .onboardingEntry) with a visible
 ///                "Continue with limited version" secondary button.
