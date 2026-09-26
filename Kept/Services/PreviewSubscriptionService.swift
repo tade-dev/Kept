@@ -10,6 +10,7 @@ import Observation
 final class PreviewSubscriptionService: SubscriptionService {
     var isPro: Bool { didSet { onChange?() } }
     var offering: SubscriptionOffering? { didSet { onChange?() } }
+    var offeringLoadFailed: Bool { didSet { onChange?() } }
     var billingIssue: BillingIssue? { didSet { onChange?() } }
     var proAccessExpiry: ProAccessExpiry? { didSet { onChange?() } }
     var appUserID: String = "preview_app_user"
@@ -22,10 +23,12 @@ final class PreviewSubscriptionService: SubscriptionService {
         offering: SubscriptionOffering? = .kept_default,
         billingIssue: BillingIssue? = nil,
         proAccessExpiry: ProAccessExpiry? = nil,
+        offeringLoadFailed: Bool = false,
         nextPurchaseError: SubscriptionServiceError? = nil
     ) {
         self.isPro = isPro
         self.offering = offering
+        self.offeringLoadFailed = offeringLoadFailed
         self.billingIssue = billingIssue
         self.proAccessExpiry = proAccessExpiry
         self.nextPurchaseError = nextPurchaseError
@@ -83,6 +86,8 @@ extension SubscriptionOffering {
             periodString: "per year",
             introOfferString: "7-day free trial, then £41.99/year",
             introBadge: "7 days free",
+            introPeriodCount: 7,
+            introPeriodUnit: "days",
             savingsBadge: nil
         ),
         lifetime: SubscriptionPackage(

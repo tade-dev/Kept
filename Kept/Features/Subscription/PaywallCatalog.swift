@@ -46,4 +46,48 @@ enum PaywallCatalog {
         case .lifetime: offering?.lifetime
         }
     }
+
+    enum OfferState: Equatable {
+        case loading
+        case failed
+        case ready
+        case empty
+    }
+
+    /// Nil offering is still loading, unless the fetch already failed.
+    /// A loaded offering with neither peer plan is empty, not a crash.
+    static func offerState(offering: SubscriptionOffering?, loadFailed: Bool) -> OfferState {
+        guard let offering else { return loadFailed ? .failed : .loading }
+        return visiblePlans(in: offering).isEmpty ? .empty : .ready
+    }
+
+    static func hasIntroTrial(_ package: SubscriptionPackage?) -> Bool {
+        guard let package, let count = package.introPeriodCount, count > 0 else { return false }
+        return package.introPeriodUnit != nil
+    }
+
+    static func buttonTitle(plan: PaywallPlan, hasIntroTrial: Bool) -> String {
+        switch plan {
+        case .lifetime:
+            return String(localized: "Buy Lifetime")
+        case .yearly:
+            return hasIntroTrial
+                ? String(localized: "Start free trial")
+                : String(localized: "Subscribe")
+        }
+    }
+
+    /// N and the price come from the store package. The unit is the store
+    /// intro period ("days", "week", …), not a fixed "7 days".
+    static func yearlyTrialLine(count: Int, unit: String, price: String) -> String {
+        String(localized: "Free for \(count) \(unit), then \(price)/year")
+    }
+
+    static func yearlyRenewalLine(price: String) -> String {
+        String(localized: "Renews at \(price)/year. Cancel anytime in Settings.")
+    }
+
+    static func lifetimePriceLine(price: String) -> String {
+        String(localized: "\(price) once")
+    }
 }

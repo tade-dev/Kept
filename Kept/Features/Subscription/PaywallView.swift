@@ -25,6 +25,8 @@ struct PaywallView: View {
     @State private var selection: PaywallPlan = .yearly
     @State private var isWorking = false
     @State private var errorMessage: String?
+    @State private var restoreNotice: String?
+    @State private var restoreShouldDismiss = false
     @State private var successTick = 0
 
     enum Reason: Equatable {
@@ -43,7 +45,7 @@ struct PaywallView: View {
             case .firstPassAdded:  String(localized: "Unlimited receipts, plus the claim pack for the day it matters.")
             case .manual:          String(localized: "Unlimited receipts and the claim pack for the day it matters.")
             case .claimPack:       String(localized: "Export a signed claim pack in one tap. Included with Pro.")
-            case .onboardingEntry: String(localized: "Try Kept Pro free for 7 days. Unlimited receipts, Apple Wallet passes, and the claim pack when it matters.")
+            case .onboardingEntry: String(localized: "Unlimited receipts, Apple Wallet passes, and the claim pack when it matters.")
             }
         }
     }
@@ -81,19 +83,16 @@ struct PaywallView: View {
             }
             .background(Color(.systemGroupedBackground))
             .toolbar {
-                // In the onboarding-entry flow the user cannot close via ✕ —
-                // they must either start the trial or take the visible skip
-                // button in the CTA bar, so the choice is deliberate rather
-                // than an accidental swipe-away.
-                if onSkip == nil {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(KeptFont.sans(17, weight: .semibold, relativeTo: .body))
-                        }
-                        .accessibilityLabel("Close")
+                // Top-leading, visible from the first frame. Onboarding uses
+                // it to reach the free-tier explainer; every other reason
+                // dismisses.
+                ToolbarItem(placement: .cancellationAction) {
+                    if let onSkip {
+                        Button("Not now", action: onSkip)
+                    } else if reason == .firstPassAdded {
+                        Button("Not now") { dismiss() }
+                    } else {
+                        Button("Close") { dismiss() }
                     }
                 }
             }
@@ -106,6 +105,17 @@ struct PaywallView: View {
                 )
             ) {
                 Button("OK", role: .cancel) {}
+            }
+            .alert(
+                restoreNotice ?? "",
+                isPresented: Binding(
+                    get: { restoreNotice != nil },
+                    set: { if !$0 { restoreNotice = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    if restoreShouldDismiss { dismiss() }
+                }
             }
             .sensoryFeedback(.success, trigger: successTick)
             .task { await subscription.refresh() }
@@ -188,136 +198,129 @@ struct PaywallView: View {
 
     // MARK: - Yearly and lifetime, equal weight
 
-    /// While the offering is loading, both peer plans show as placeholders.
-    /// Once it loads, only packages that exist are shown — monthly is never one of them.
+    /// Loading shows both peer rows redacted. A failed fetch shows a retry.
+    /// A loaded offering shows only yearly and lifetime — monthly is never one of them.
     private var pricePicker: some View {
-        let plans = PaywallCatalog.visiblePlans(in: subscription.offering)
-        let shown: [PaywallPlan] = subscription.offering == nil ? PaywallPlan.allCases : plans
+        let state = PaywallCatalog.offerState(
+            offering: subscription.offering,
+            loadFailed: subscription.offeringLoadFailed
+        )
         return Group {
-            if subscription.offering != nil && plans.isEmpty {
+            switch state {
+            case .loading:
+                VStack(spacing: 10) {
+                    ForEach(PaywallPlan.allCases, id: \.self) { plan in
+                        planRow(plan, redacted: true)
+                    }
+                }
+            case .failed:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Couldn't load prices")
+                        .font(.keptBody)
+                        .foregroundStyle(.primary)
+                    Button("Try again") {
+                        Task { await subscription.refresh() }
+                    }
+                    .font(.keptHeadline)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            case .empty:
                 Text("Plans aren't available right now.")
                     .font(.keptFootnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                HStack(alignment: .top, spacing: 10) {
-                    ForEach(shown, id: \.self) { plan in
-                        planCard(plan)
+            case .ready:
+                VStack(spacing: 10) {
+                    ForEach(PaywallCatalog.visiblePlans(in: subscription.offering), id: \.self) { plan in
+                        planRow(plan, redacted: false)
                     }
                 }
             }
         }
     }
 
-    private func planCard(_ plan: PaywallPlan) -> some View {
+    private func planRow(_ plan: PaywallPlan, redacted: Bool) -> some View {
         let package = PaywallCatalog.package(plan, in: subscription.offering)
-        let isSelected = activeSelection == plan
+        let isSelected = !redacted && activeSelection == plan
+        let showsTrial = plan == .yearly && PaywallCatalog.hasIntroTrial(package)
         return Button {
+            guard !redacted else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                 selection = plan
             }
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(planTitle(plan))
-                    .font(KeptFont.sans(17, weight: .semibold, relativeTo: .headline))
-                    .foregroundStyle(isSelected ? Color.primary : .secondary)
-
-                // Same slot on every card so Yearly and Lifetime stay the same height.
-                // Trial length comes from the store intro (`introBadge`), not a fixed "7 days".
-                trialBadge(package?.introBadge)
-
-                if let package {
-                    Text(package.priceString)
-                        .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
-                        .foregroundStyle(isSelected ? Color.primary : .secondary)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if showsTrial {
+                        Text("Free trial")
+                            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(primaryLine(plan, package: package))
+                        .font(KeptFont.sans(17, weight: .semibold, relativeTo: .headline))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                } else {
-                    Text("—")
-                        .font(KeptFont.sans(26, weight: .bold, relativeTo: .title))
-                        .foregroundStyle(.tertiary)
-                        .redacted(reason: .placeholder)
+                        .minimumScaleFactor(0.7)
+                    if let secondary = secondaryLine(plan, package: package) {
+                        Text(secondary)
+                            .font(.keptFootnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-
-                Text(package?.periodString ?? planPeriodPlaceholder(plan))
-                    .font(.keptFootnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                winBackLine(package?.winBackOffer?.summary)
+                Spacer(minLength: 8)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.keptTitle3)
+                    .foregroundStyle(isSelected ? KeptColor.adaptiveInk : Color.secondary)
             }
-            .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected
-                          ? Color(.secondarySystemGroupedBackground)
-                          : Color(.tertiarySystemGroupedBackground))
-                    .shadow(
-                        color: isSelected ? .black.opacity(0.10) : .clear,
-                        radius: 6, y: 2
-                    )
+                    .fill(Color(.secondarySystemGroupedBackground))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(isSelected ? KeptColor.adaptiveInk : Color.primary.opacity(0.08),
                             lineWidth: isSelected ? 1.5 : 1)
             )
+            .modifier(PlaceholderRedaction(isActive: redacted))
         }
         .buttonStyle(.plain)
-        .disabled(subscription.offering == nil)
+        .disabled(redacted)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(planAccessibilityLabel(plan, package: package))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func trialBadge(_ badge: String?) -> some View {
-        Text(badge ?? " ")
-            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(Color.accentColor)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background {
-                if badge != nil {
-                    Capsule().fill(Color.accentColor.opacity(0.18))
-                }
-            }
-            .opacity(badge == nil ? 0 : 1)
-            .accessibilityHidden(badge == nil)
+    private func primaryLine(_ plan: PaywallPlan, package: SubscriptionPackage?) -> String {
+        guard let package else { return planTitle(plan) }
+        switch plan {
+        case .yearly:
+            return package.priceString
+        case .lifetime:
+            return PaywallCatalog.lifetimePriceLine(price: package.priceString)
+        }
     }
 
-    private func winBackLine(_ summary: String?) -> some View {
-        Text(summary ?? " ")
-            .font(KeptFont.sans(11, weight: .bold, relativeTo: .caption2))
-            .foregroundStyle(Color.accentColor)
-            .lineLimit(2)
-            .minimumScaleFactor(0.8)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background {
-                if summary != nil {
-                    Capsule().fill(Color.accentColor.opacity(0.18))
-                }
-            }
-            .opacity(summary == nil ? 0 : 1)
-            .accessibilityHidden(summary == nil)
+    private func secondaryLine(_ plan: PaywallPlan, package: SubscriptionPackage?) -> String? {
+        switch plan {
+        case .yearly:
+            guard let package,
+                  let count = package.introPeriodCount,
+                  let unit = package.introPeriodUnit,
+                  PaywallCatalog.hasIntroTrial(package) else { return nil }
+            return PaywallCatalog.yearlyTrialLine(count: count, unit: unit, price: package.priceString)
+        case .lifetime:
+            return String(localized: "Pay once. Yours for good.")
+        }
     }
 
     private func planTitle(_ plan: PaywallPlan) -> String {
         switch plan {
         case .yearly: String(localized: "Yearly")
         case .lifetime: String(localized: "Lifetime")
-        }
-    }
-
-    private func planPeriodPlaceholder(_ plan: PaywallPlan) -> String {
-        switch plan {
-        case .yearly: String(localized: "per year")
-        case .lifetime: String(localized: "one-time")
         }
     }
 
@@ -363,15 +366,16 @@ struct PaywallView: View {
     private var ctaBar: some View {
         VStack(spacing: 12) {
             Button(action: { Task { await purchaseSelected() } }) {
-                HStack {
+                ZStack {
                     if isWorking {
                         ProgressView()
                             .controlSize(.small)
                             .tint(KeptColor.adaptiveOnInk)
+                    } else {
+                        Text(ctaLabel)
+                            .font(.keptHeadline)
+                            .foregroundStyle(KeptColor.adaptiveOnInk)
                     }
-                    Text(ctaLabel)
-                        .font(.keptHeadline)
-                        .foregroundStyle(KeptColor.adaptiveOnInk)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
@@ -380,25 +384,26 @@ struct PaywallView: View {
             .buttonStyle(.plain)
             .disabled(isWorking || currentPackage == nil)
 
-            legalFineprint
-
-            if let onSkip {
-                // Visible skip that the App Review team + Apple guideline
-                // 3.1.2 both require — no dark-pattern hiding behind a ✕.
-                Button("Continue with limited version", action: onSkip)
-                    .font(KeptFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+            if activeSelection == .yearly, let price = currentPackage?.priceString {
+                Text(PaywallCatalog.yearlyRenewalLine(price: price))
+                    .font(.keptFootnote)
                     .foregroundStyle(.secondary)
-                    .padding(.top, 4)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 20) {
-                Button("Restore") { Task { await restore() } }
-                if case .firstPassAdded = reason {
-                    Button("Not now") { dismiss() }
+                Button("Restore Purchases") { Task { await restore() } }
+                Button("Terms") {
+                    open(URL(string: "https://getkept.xyz/terms"))
+                }
+                Button("Privacy") {
+                    open(URL(string: "https://getkept.xyz/privacy"))
                 }
             }
             .font(.keptFootnote)
             .foregroundStyle(.secondary)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -413,51 +418,12 @@ struct PaywallView: View {
         guard let plan = activeSelection, currentPackage != nil else {
             return String(localized: "Continue")
         }
-        if plan == .lifetime { return String(localized: "Get Kept Pro forever") }
-        return trialAvailable ? String(localized: "Start free trial") : String(localized: "Subscribe")
+        return PaywallCatalog.buttonTitle(plan: plan, hasIntroTrial: trialAvailable)
     }
 
-    // Trial ends copy + Terms link — IFTTT-style fine print
-    private var legalFineprint: some View {
-        VStack(spacing: 4) {
-            if activeSelection == .lifetime {
-                Text("One-time purchase. No auto-renewal. Family Sharing included.")
-                    .font(.keptCaption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if trialAvailable, let intro = currentPackage?.introOfferString {
-                Text(intro)
-                    .font(.keptCaption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Cancel anytime before the trial ends at no cost.")
-                    .font(.keptCaption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Text(termsAttributedString)
-                .font(.keptCaption)
-                .foregroundStyle(.secondary)
-                .tint(.primary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.horizontal, 20)
-    }
-
-    /// Markdown-linked terms fine print — the `[Terms of Service](...)`
-    /// run gets weight + underline so users clearly read it as tappable
-    /// (SwiftUI otherwise renders markdown links as plain tinted text).
-    private var termsAttributedString: AttributedString {
-        let source = String(localized: "By continuing, you agree to our [Terms of Service](https://getkept.xyz/terms).")
-        var attributed = (try? AttributedString(markdown: source)) ?? AttributedString(source)
-        for run in attributed.runs where run.link != nil {
-            attributed[run.range].underlineStyle = .single
-            attributed[run.range].font = .caption.weight(.semibold)
-        }
-        return attributed
+    private func open(_ url: URL?) {
+        guard let url else { return }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - Helpers
@@ -473,9 +439,9 @@ struct PaywallView: View {
         return PaywallCatalog.package(plan, in: subscription.offering)
     }
 
-    /// True only when the selected package carries a store free-trial badge.
+    /// True only when the selected package carries a store free-trial period.
     private var trialAvailable: Bool {
-        currentPackage?.introBadge != nil
+        PaywallCatalog.hasIntroTrial(currentPackage)
     }
 
     // MARK: - Actions
@@ -509,12 +475,11 @@ struct PaywallView: View {
         defer { isWorking = false }
         do {
             let restored = try await subscription.restorePurchases()
-            if restored {
-                successTick &+= 1
-                dismiss()
-            } else {
-                errorMessage = "No previous purchases were found on this Apple ID."
-            }
+            restoreShouldDismiss = restored
+            restoreNotice = restored
+                ? String(localized: "Kept Pro is restored on this Apple ID.")
+                : String(localized: "Nothing to restore on this Apple ID.")
+            if restored { successTick &+= 1 }
         } catch let error as SubscriptionServiceError {
             errorMessage = error.errorDescription
         } catch {
@@ -539,6 +504,7 @@ struct PaywallView: View {
 final class SubscriptionAccess {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    private(set) var offeringLoadFailed: Bool = false
     private(set) var billingIssue: BillingIssue?
     private(set) var proAccessExpiry: ProAccessExpiry?
     private(set) var appUserID: String = ""
@@ -551,6 +517,7 @@ final class SubscriptionAccess {
         self.service = service
         self.isPro = service.isPro
         self.offering = service.offering
+        self.offeringLoadFailed = service.offeringLoadFailed
         self.billingIssue = service.billingIssue
         self.proAccessExpiry = service.proAccessExpiry
         self.appUserID = service.appUserID
@@ -558,6 +525,7 @@ final class SubscriptionAccess {
             guard let self else { return }
             self.isPro = self.service.isPro
             self.offering = self.service.offering
+            self.offeringLoadFailed = self.service.offeringLoadFailed
             self.billingIssue = self.service.billingIssue
             self.proAccessExpiry = self.service.proAccessExpiry
             self.appUserID = self.service.appUserID
@@ -583,6 +551,19 @@ final class SubscriptionAccess {
 }
 
 // MARK: - Previews
+
+private struct PlaceholderRedaction: ViewModifier {
+    var isActive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isActive {
+            content.redacted(reason: .placeholder)
+        } else {
+            content
+        }
+    }
+}
 
 #Preview("Free — cap reached") {
     PaywallView(reason: .capReached)

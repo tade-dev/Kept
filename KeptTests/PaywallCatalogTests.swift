@@ -68,6 +68,36 @@ struct PaywallCatalogTests {
         #expect(PaywallCatalog.resolvedSelection(nil, in: offering) == .yearly)
     }
 
+    @Test("loading, failure, and an empty offering are different states")
+    func offerStates() {
+        #expect(PaywallCatalog.offerState(offering: nil, loadFailed: false) == .loading)
+        #expect(PaywallCatalog.offerState(offering: nil, loadFailed: true) == .failed)
+        let empty = SubscriptionOffering(monthly: package("pro_monthly", price: "ignored"), yearly: nil, lifetime: nil)
+        #expect(PaywallCatalog.offerState(offering: empty, loadFailed: false) == .empty)
+        let ready = SubscriptionOffering(monthly: nil, yearly: package("pro_yearly", price: "£14.99"), lifetime: nil)
+        #expect(PaywallCatalog.offerState(offering: ready, loadFailed: false) == .ready)
+    }
+
+    @Test("button and trial line use the selected plan and the store trial, not a fixed 7 days")
+    func planCopy() {
+        #expect(PaywallCatalog.buttonTitle(plan: .yearly, hasIntroTrial: true) == "Start free trial")
+        #expect(PaywallCatalog.buttonTitle(plan: .yearly, hasIntroTrial: false) == "Subscribe")
+        #expect(PaywallCatalog.buttonTitle(plan: .lifetime, hasIntroTrial: true) == "Buy Lifetime")
+        #expect(PaywallCatalog.yearlyTrialLine(count: 14, unit: "days", price: "from-store") == "Free for 14 days, then from-store/year")
+        #expect(PaywallCatalog.lifetimePriceLine(price: "from-store") == "from-store once")
+        #expect(PaywallCatalog.hasIntroTrial(package("pro_yearly", price: "x")) == false)
+        let trial = SubscriptionPackage(
+            id: "pro_yearly",
+            priceString: "from-store",
+            periodString: "per year",
+            introOfferString: nil,
+            introPeriodCount: 14,
+            introPeriodUnit: "days",
+            savingsBadge: nil
+        )
+        #expect(PaywallCatalog.hasIntroTrial(trial))
+    }
+
     @Test("a missing offering has no plans")
     func nilOffering() {
         #expect(PaywallCatalog.visiblePlans(in: nil).isEmpty)

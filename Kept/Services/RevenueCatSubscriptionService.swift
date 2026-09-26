@@ -16,6 +16,7 @@ import RevenueCat
 final class RevenueCatSubscriptionService: SubscriptionService {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    private(set) var offeringLoadFailed: Bool = false
     private(set) var billingIssue: BillingIssue?
     private(set) var proAccessExpiry: ProAccessExpiry?
     var appUserID: String { Purchases.shared.appUserID }
@@ -58,6 +59,10 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             return
         }
         let task = Task { [weak self] in
+            if self?.offering == nil {
+                self?.offeringLoadFailed = false
+                self?.onChange?()
+            }
             do {
                 let offerings = try await Purchases.shared.offerings()
                 var mapped = Self.mapOfferings(offerings)
@@ -70,9 +75,13 @@ final class RevenueCatSubscriptionService: SubscriptionService {
                     mapped = await Self.attachingWinBackOffers(to: mapped, from: current)
                 }
                 self?.offering = mapped
+                self?.offeringLoadFailed = false
                 self?.onChange?()
             } catch {
-                // Silent — paywall shows retry.
+                if self?.offering == nil {
+                    self?.offeringLoadFailed = true
+                    self?.onChange?()
+                }
             }
         }
         refreshTask = task
@@ -351,6 +360,8 @@ final class RevenueCatSubscriptionService: SubscriptionService {
                 periodString: "per year",
                 introOfferString: introCopy(for: package, fallbackPeriod: "year"),
                 introBadge: introBadge(for: package),
+                introPeriodCount: introTrial(for: package)?.count,
+                introPeriodUnit: introTrial(for: package)?.unit,
                 savingsBadge: nil
             )
         }
@@ -373,11 +384,16 @@ final class RevenueCatSubscriptionService: SubscriptionService {
 
     /// Free-trial chip copy from the store intro period. Nil for paid intros.
     private static func introBadge(for package: Package) -> String? {
+        guard let trial = introTrial(for: package) else { return nil }
+        return "\(trial.count) \(trial.unit) free"
+    }
+
+    private static func introTrial(for package: Package) -> (count: Int, unit: String)? {
         guard let intro = package.storeProduct.introductoryDiscount,
               intro.paymentMode == .freeTrial else { return nil }
         let count = intro.subscriptionPeriod.value
         let unit = periodString(intro.subscriptionPeriod.unit, count: count)
-        return "\(count) \(unit) free"
+        return (count, unit)
     }
 
     private static func introCopy(for package: Package, fallbackPeriod: String) -> String? {
