@@ -4,14 +4,17 @@ import SwiftUI
 
 /// Ordered first-run steps. Welcome is full-bleed; the progress bar and back
 /// chevron show on every step after it. Categories, the lead-time picker,
-/// and the "Setting up" interstitial stay removed. The key moment is the
-/// first step after Welcome.
+/// and the "Setting up" interstitial stay removed. `whyNow` is a
+/// pause-and-think beat that primes the user before the key-moment demo —
+/// the RevenueCat reviewer's "I don't know why I'd use it" survived a
+/// pure demo, so we bring the stakes forward.
 enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
     case welcome = 0
-    case keyMoment = 1
-    case privacy = 2
-    case existingReceipts = 3
-    case notifications = 4
+    case whyNow = 1
+    case keyMoment = 2
+    case privacy = 3
+    case existingReceipts = 4
+    case notifications = 5
 
     var id: Int { rawValue }
 
@@ -58,7 +61,7 @@ final class OnboardingCoordinator {
     /// Whether the flow has enough state to enable the "Continue" button on the current step.
     var canAdvance: Bool {
         switch step {
-        case .welcome, .keyMoment, .privacy, .existingReceipts, .notifications:
+        case .welcome, .whyNow, .keyMoment, .privacy, .existingReceipts, .notifications:
             return true
         }
     }

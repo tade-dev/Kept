@@ -57,6 +57,8 @@ struct OnboardingView: View {
         switch coordinator.step {
         case .welcome:
             WelcomeStepView()
+        case .whyNow:
+            WhyNowStepView()
         case .keyMoment:
             KeyMomentStepView(coordinator: coordinator)
         case .privacy:
@@ -76,6 +78,8 @@ struct OnboardingView: View {
             switch coordinator.step {
             case .welcome:
                 singleCTA(OnboardingCopy.welcomeCTA, enabled: true) { coordinator.advance() }
+            case .whyNow:
+                singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .keyMoment:
                 singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .privacy:

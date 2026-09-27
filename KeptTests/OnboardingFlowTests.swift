@@ -5,26 +5,31 @@ import Testing
 @Suite("Onboarding flow")
 @MainActor
 struct OnboardingFlowTests {
-    @Test("key moment is the step immediately after welcome")
+    @Test("whyNow is the step immediately after welcome and precedes the key moment")
     func stepOrder() {
         #expect(OnboardingStep.allCases == [
             .welcome,
+            .whyNow,
             .keyMoment,
             .privacy,
             .existingReceipts,
             .notifications
         ])
-        #expect(OnboardingStep.welcome.next == .keyMoment)
-        #expect(OnboardingStep.keyMoment.previous == .welcome)
+        #expect(OnboardingStep.welcome.next == .whyNow)
+        #expect(OnboardingStep.whyNow.previous == .welcome)
+        #expect(OnboardingStep.whyNow.next == .keyMoment)
+        #expect(OnboardingStep.keyMoment.previous == .whyNow)
         #expect(OnboardingStep.notifications.next == nil)
     }
 
-    @Test("chrome starts on the key moment and fills across the remaining steps")
+    @Test("chrome starts on whyNow and fills across the remaining steps")
     func chromeProgress() {
         #expect(OnboardingStep.welcome.showsChrome == false)
         #expect(OnboardingStep.welcome.progressFraction == nil)
+        #expect(OnboardingStep.whyNow.showsChrome)
+        #expect(OnboardingStep.whyNow.progressFraction == 1.0 / 5.0)
         #expect(OnboardingStep.keyMoment.showsChrome)
-        #expect(OnboardingStep.keyMoment.progressFraction == 1.0 / 4.0)
+        #expect(OnboardingStep.keyMoment.progressFraction == 2.0 / 5.0)
         #expect(OnboardingStep.notifications.showsChrome)
         #expect(OnboardingStep.notifications.progressFraction == 1.0)
     }
@@ -94,16 +99,22 @@ struct OnboardingFlowTests {
         #expect(defaults.object(forKey: "settings.notifyMinute") == nil)
     }
 
-    @Test("key moment resolves to covered with 214 days, never expired")
+    @Test("key moment and empty-library sample share the same hero and covered phase")
     func keyMomentResolvesCovered() {
         #expect(KeyMomentScript.phase == .covered)
-        #expect(KeyMomentScript.daysRemaining == 214)
+        #expect(KeyMomentScript.daysRemaining == 486)
         #expect(KeyMomentScript.daysRemaining > CoverageCardMapping.endingSoonWithinDays)
         #expect(KeyMomentScript.questionMilliseconds == 1200)
         #expect(KeyMomentScript.payoffMilliseconds == 550)
-        #expect(SampleCoverageCard.phase == .covered)
-        #expect(SampleCoverageCard.daysRemaining == 608)
-        #expect(SampleCoverageCard.merchant == "Dyson")
+        // The empty-library sample intentionally mirrors the key-moment
+        // script so a new user meets one consistent hero product across
+        // the onboarding flow, the library empty state, and the receipt
+        // image on the key-moment proof row.
+        #expect(SampleCoverageCard.phase == KeyMomentScript.phase)
+        #expect(SampleCoverageCard.merchant == KeyMomentScript.merchant)
+        #expect(SampleCoverageCard.item == KeyMomentScript.item)
+        #expect(SampleCoverageCard.daysRemaining == KeyMomentScript.daysRemaining)
+        #expect(SampleCoverageCard.merchant == "Currys")
     }
 }
 

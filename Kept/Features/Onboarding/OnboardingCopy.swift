@@ -6,6 +6,12 @@ enum OnboardingCopy {
     static let welcomeSubhead = LocalizedStringKey("Scan the receipt once. Kept keeps the cover and the proof.")
     static let welcomeCTA = LocalizedStringKey("See how it works")
 
+    /// Pause-and-think beat between the welcome and the demo. Personal
+    /// scenario framing — the user answers the question mentally — is
+    /// stronger than a third-person statistic and doesn't need a citation.
+    static let whyNowHeadline = LocalizedStringKey("Something's going to break.")
+    static let whyNowSubhead = LocalizedStringKey("The only question is whether you kept the receipt.")
+
     static let keyMomentContext = LocalizedStringKey("Your headphones just stopped working.")
     static let keyMomentQuestion = LocalizedStringKey("Still covered?")
     static let keyMomentPayoff = LocalizedStringKey("Your proof and cover, right there.")
