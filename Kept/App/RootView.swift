@@ -25,6 +25,29 @@ struct RootView: View {
     /// once any payoff sheet has dismissed. Persisted-once via
     /// `hasSeenOnboardingPaywall` so subsequent launches skip it.
     @State private var showsOnboardingPaywall = false
+    /// Owns pending deep-link destinations (App Store In-App Event Open,
+    /// universal-link tap, custom-scheme tap). Held at Root scope so the
+    /// URL can arrive during cold launch — before Library has mounted —
+    /// without losing it while splash/onboarding play out.
+    @State private var deepLinks = DeepLinkRouter()
+
+    /// Whether the deep-link scanner sheet should be showing right now.
+    /// Ties two concerns together: gate readiness (onboarding + trial
+    /// paywall done) AND a pending `.scan` intent. Setter clears the
+    /// pending intent when SwiftUI dismisses the sheet so the same URL
+    /// can be replayed later.
+    private var isDeepLinkScanPresented: Binding<Bool> {
+        Binding(
+            get: {
+                hasOnboarded
+                    && !showsOnboardingPaywall
+                    && deepLinks.pending == .scan
+            },
+            set: { newValue in
+                if !newValue { deepLinks.pending = nil }
+            }
+        )
+    }
 
     /// Total splash budget from process launch to dismissal.
     private static let splashDuration: TimeInterval = 3.0
@@ -83,6 +106,14 @@ struct RootView: View {
                             hasSeenOnboardingPaywall = true
                         }
                     }
+                    // Deep-link CaptureView (from the App Store In-App Event
+                    // Open, or a universal link / custom-scheme tap). Waits
+                    // out onboarding + paywall gates, then presents on top
+                    // of Library. Sits parallel to LibraryView's own capture
+                    // sheet — in practice only one path fires at a time.
+                    .sheet(isPresented: isDeepLinkScanPresented) {
+                        CaptureView()
+                    }
                     .transition(.opacity)
             }
         }
@@ -91,6 +122,17 @@ struct RootView: View {
             withAnimation(.easeInOut(duration: 0.45)) {
                 isSplashShowing = false
             }
+        }
+        // Custom-scheme drop-in (`kept://scan`) fires on both cold-start
+        // (once the scene is up) and warm-open.
+        .onOpenURL { url in deepLinks.handle(url) }
+        // Universal-link drop-in — iOS fires this activity whenever a
+        // `https://getkept.xyz/app/*` link opens the app: App Store event
+        // Open, Notes long-press, Safari smart banner, share sheet. The
+        // string literal matches Foundation's C constant since Swift
+        // doesn't expose `NSUserActivityTypeBrowseWeb` as a symbol.
+        .onContinueUserActivity("NSUserActivityTypeBrowseWeb") { activity in
+            if let url = activity.webpageURL { deepLinks.handle(url) }
         }
         // Apply user's in-app text-size override at the root so every
         // text token adopts it. When set to `.system` this is a no-op

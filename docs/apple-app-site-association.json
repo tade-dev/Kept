@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TU566926VK.com.tade.Kept"],
+        "components": [
+          { "/": "/app/*", "comment": "Kept in-app destinations" }
+        ]
+      }
+    ]
+  }
+}
