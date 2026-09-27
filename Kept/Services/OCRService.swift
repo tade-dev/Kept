@@ -33,7 +33,7 @@ enum OCRServiceError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidImage: "Couldn't read that image."
+        case .invalidImage: String(localized: "Couldn't read that image.")
         case .underlying(let error): error.localizedDescription
         }
     }
