@@ -56,7 +56,10 @@ struct TextSizeSheet: View {
 
     private var previewCard: some View {
         VStack(spacing: 12) {
-            Text("Sony WH-1000XM5")
+            // Uses the same hero product as the onboarding key-moment and
+            // empty-library sample so users see one consistent demo across
+            // the app (see `KeyMomentScript`).
+            Text("Samsung 55″ QLED TV")
                 .font(.keptTitle3)
                 .foregroundStyle(.primary)
                 .lineLimit(1...2)

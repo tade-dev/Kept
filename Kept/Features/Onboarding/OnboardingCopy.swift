@@ -27,10 +27,19 @@ enum OnboardingCopy {
 }
 
 /// Scripted key-moment card. Not a `Purchase`.
+///
+/// Kept meets the user three times with the same hero product — this
+/// scripted card, `SampleCoverageCard` on the empty library, and the
+/// `DemoReceipt` image on the key-moment proof row — so the demo reads
+/// as one coherent story instead of three unrelated products. Currys
+/// with a big-ticket TV is the everyday UK anxiety-driver that matches
+/// the "laptop dies in month 13" note in the App Store description.
 enum KeyMomentScript {
-    static let merchant = "Sony"
-    static let item = "WH-1000XM5 Headphones"
-    static let daysRemaining = 214
+    static let merchant = "Currys"
+    static let item = "Samsung 55″ QLED TV"
+    /// ~16 months into a 24-month guarantee — safely inside the coverage
+    /// window so the covered pill reads as reassurance, not a lucky escape.
+    static let daysRemaining = 486
     static let phase = CoverageCard.Phase.covered
     /// Stillness after the step is inserted, then the card resolves.
     static let questionMilliseconds = 1200
@@ -39,10 +48,11 @@ enum KeyMomentScript {
 }
 
 /// Empty-library sample. Not a `Purchase`, never inserted or counted.
+/// Mirrors `KeyMomentScript` on purpose — see the note there.
 enum SampleCoverageCard {
-    static let merchant = "Dyson"
-    static let item = "V15 Detect"
-    static let daysRemaining = 608
+    static let merchant = "Currys"
+    static let item = "Samsung 55″ QLED TV"
+    static let daysRemaining = 486
     static let phase = CoverageCard.Phase.covered
 }
 
