@@ -28,11 +28,10 @@ enum FirstSavePayoff {
         !hasShown && purchaseCount > 0
     }
 
-    /// Ending soon uses the user's largest warranty lead time (default 14).
-    static func phase(daysRemaining: Int, leadDays: Set<Int>) -> CoverageCard.Phase {
-        if daysRemaining < 0 { return .expired }
-        let window = leadDays.max() ?? 14
-        return daysRemaining <= window ? .endingSoon : .covered
+    /// Ending soon uses the coverage card's fixed 14-day window.
+    /// The lead-time picker that used to widen this is gone.
+    static func phase(daysRemaining: Int) -> CoverageCard.Phase {
+        CoverageCardMapping.phase(daysRemaining: daysRemaining)
     }
 
     static func daysLeft(
@@ -141,6 +140,6 @@ struct FirstSavePayoffSheet: View {
     }
 
     private var phase: CoverageCard.Phase {
-        FirstSavePayoff.phase(daysRemaining: daysLeft, leadDays: SettingsSnapshot.leadDaysSet)
+        FirstSavePayoff.phase(daysRemaining: daysLeft)
     }
 }

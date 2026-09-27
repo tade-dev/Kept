@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// Last onboarding step. The ask is framed by the user's lead-time choice.
-/// Enable / Not now buttons are rendered by OnboardingView, which finishes the flow.
+/// Last onboarding step. Enable / Not now buttons are rendered by OnboardingView,
+/// which finishes the flow without raising the system prompt.
 struct NotificationsStepView: View {
-    @Bindable var coordinator: OnboardingCoordinator
-
     var body: some View {
         OnboardingScaffold(
-            titleText: Text(verbatim: headline),
+            titleText: Text("We'll tell you 30 and 7 days before a warranty ends."),
             subtitleText: Text("No marketing, no upsell. Only the countdown.")
         ) {
             VStack {
@@ -27,31 +25,8 @@ struct NotificationsStepView: View {
             }
         }
     }
-
-    private var headline: String {
-        let sorted = coordinator.result.warningLeadTimes.sorted()
-        switch sorted.count {
-        case 1:
-            return String(
-                localized: "We'll tell you \(sorted[0]) days before cover ends.",
-                comment: "Onboarding notifications summary with a single lead day; needs plural handling"
-            )
-        case 2:
-            return String(
-                localized: "We'll tell you \(sorted[0]) and \(sorted[1]) days before cover ends.",
-                comment: "Onboarding notifications summary with two lead days"
-            )
-        default:
-            let head = sorted.dropLast().map(String.init).joined(separator: ", ")
-            let tail = sorted.last.map(String.init) ?? ""
-            return String(
-                localized: "We'll tell you \(head), and \(tail) days before cover ends.",
-                comment: "Onboarding notifications summary with three or more lead days"
-            )
-        }
-    }
 }
 
 #Preview {
-    NotificationsStepView(coordinator: OnboardingCoordinator())
+    NotificationsStepView()
 }

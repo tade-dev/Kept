@@ -10,11 +10,6 @@ enum OnboardingCopy {
     static let keyMomentQuestion = LocalizedStringKey("Still covered?")
     static let keyMomentPayoff = LocalizedStringKey("Your proof and cover, right there.")
 
-    /// Next step is lead times. At the largest Dynamic Type sizes the long
-    /// label does not fit, and the button falls back to `keyMomentCTACompact`.
-    static let keyMomentCTA = LocalizedStringKey("Choose when to remind me")
-    static let keyMomentCTACompact = LocalizedStringKey("Set reminders")
-
     static let privacyTitle = LocalizedStringKey("Your photos stay yours")
     /// `/extract` receives OCR text only. Photos still sync to the user's own
     /// iCloud, so this line says we never send them to our servers. Keep it

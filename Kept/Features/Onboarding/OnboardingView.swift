@@ -3,7 +3,6 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var coordinator = OnboardingCoordinator()
-    @State private var isRequestingAuth = false
     @State private var finishedTick = 0
 
     /// Fires when the last step completes. Bool = whether the user said "Yes, a few".
@@ -60,14 +59,12 @@ struct OnboardingView: View {
             WelcomeStepView()
         case .keyMoment:
             KeyMomentStepView(coordinator: coordinator)
-        case .leadTimes:
-            LeadTimesStepView(coordinator: coordinator)
         case .privacy:
             PrivacyStepView()
         case .existingReceipts:
             ExistingReceiptsStepView(coordinator: coordinator)
         case .notifications:
-            NotificationsStepView(coordinator: coordinator)
+            NotificationsStepView()
         }
     }
 
@@ -80,9 +77,7 @@ struct OnboardingView: View {
             case .welcome:
                 singleCTA(OnboardingCopy.welcomeCTA, enabled: true) { coordinator.advance() }
             case .keyMoment:
-                keyMomentCTA { coordinator.advance() }
-            case .leadTimes:
-                singleCTA("Continue", enabled: coordinator.canAdvance) { coordinator.advance() }
+                singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .privacy:
                 singleCTA("Continue", enabled: true) { coordinator.advance() }
             case .notifications:
@@ -92,29 +87,6 @@ struct OnboardingView: View {
             }
         }
         .transition(ctaTransition)
-    }
-
-    /// Visible from the first frame. Back does not replay the key moment;
-    /// `OnboardingCoordinator.hasPlayedKeyMoment` keeps the settled frame.
-    /// The compact label is used only when the long one does not fit, including
-    /// accessibility XXXL.
-    private func keyMomentCTA(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            ViewThatFits(in: .horizontal) {
-                Text(OnboardingCopy.keyMomentCTA)
-                    .lineLimit(1)
-                Text(OnboardingCopy.keyMomentCTACompact)
-                    .lineLimit(1)
-            }
-            .font(.keptHeadline)
-            .foregroundStyle(KeptColor.adaptiveOnInk)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md + 2)
-            .background(Capsule().fill(KeptColor.adaptiveInk))
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.top, Spacing.sm)
-        .padding(.bottom, Spacing.md)
     }
 
     private func singleCTA(_ label: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {
@@ -136,22 +108,18 @@ struct OnboardingView: View {
     private var notificationsCTA: some View {
         VStack(spacing: Spacing.sm) {
             Button {
-                Task { await requestAuth() }
+                // The system prompt is not raised during onboarding. It is
+                // requested once, after the first save, and only after the
+                // payoff sheet and front-door paywall have left the screen.
+                finishOnboarding()
             } label: {
-                HStack {
-                    if isRequestingAuth {
-                        ProgressView().tint(KeptColor.adaptiveOnInk)
-                    } else {
-                        Text("Enable notifications")
-                            .font(.keptHeadline)
-                    }
-                }
-                .foregroundStyle(KeptColor.adaptiveOnInk)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.md + 2)
-                .background(Capsule().fill(KeptColor.adaptiveInk))
+                Text("Enable notifications")
+                    .font(.keptHeadline)
+                    .foregroundStyle(KeptColor.adaptiveOnInk)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.md + 2)
+                    .background(Capsule().fill(KeptColor.adaptiveInk))
             }
-            .disabled(isRequestingAuth)
 
             Button("Not now") { finishOnboarding() }
                 .font(KeptFont.sans(15, weight: .medium, relativeTo: .subheadline))
@@ -160,13 +128,6 @@ struct OnboardingView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
         .padding(.bottom, Spacing.md)
-    }
-
-    private func requestAuth() async {
-        isRequestingAuth = true
-        _ = await CoverageNotificationScheduler.requestAuthorizationIfNeeded()
-        isRequestingAuth = false
-        finishOnboarding()
     }
 
     private func finishOnboarding() {

@@ -3,15 +3,15 @@ import Observation
 import SwiftUI
 
 /// Ordered first-run steps. Welcome is full-bleed; the progress bar and back
-/// chevron show on every step after it. Categories and the "Setting up"
-/// interstitial stay removed. The key moment is the first step after Welcome.
+/// chevron show on every step after it. Categories, the lead-time picker,
+/// and the "Setting up" interstitial stay removed. The key moment is the
+/// first step after Welcome.
 enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
     case welcome = 0
     case keyMoment = 1
-    case leadTimes = 2
-    case privacy = 3
-    case existingReceipts = 4
-    case notifications = 5
+    case privacy = 2
+    case existingReceipts = 3
+    case notifications = 4
 
     var id: Int { rawValue }
 
@@ -39,13 +39,9 @@ enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
 }
 
 struct OnboardingResult: Equatable {
-    var warningLeadTimes: Set<Int>
     var hasExistingReceipts: Bool
 
-    static let empty = OnboardingResult(
-        warningLeadTimes: [14],
-        hasExistingReceipts: false
-    )
+    static let empty = OnboardingResult(hasExistingReceipts: false)
 }
 
 /// Owns the current step and collected answers. Presented full-screen; dismissed
@@ -64,8 +60,6 @@ final class OnboardingCoordinator {
         switch step {
         case .welcome, .keyMoment, .privacy, .existingReceipts, .notifications:
             return true
-        case .leadTimes:
-            return !result.warningLeadTimes.isEmpty
         }
     }
 
@@ -81,25 +75,11 @@ final class OnboardingCoordinator {
         step = previous
     }
 
-    // MARK: - Lead-time answers
-
-    func toggleLead(_ days: Int) {
-        if result.warningLeadTimes.contains(days) {
-            // Never let the user clear all — keep at least one.
-            guard result.warningLeadTimes.count > 1 else { return }
-            result.warningLeadTimes.remove(days)
-        } else {
-            result.warningLeadTimes.insert(days)
-        }
-    }
-
     // MARK: - Persistence
 
-    /// Writes lead times and flips `hasOnboarded`. Called from the last step
-    /// (notifications). Does not write `trackedCategoriesCSV` — that key is
-    /// legacy and has no readers.
+    /// Flips `hasOnboarded`. Called from the last step (notifications).
+    /// Does not write `trackedCategoriesCSV` or the retired lead-time keys.
     func finish() {
-        SettingsSnapshot.write(leadDays: result.warningLeadTimes)
         SettingsSnapshot.markOnboarded(hasExistingReceipts: result.hasExistingReceipts)
     }
 }

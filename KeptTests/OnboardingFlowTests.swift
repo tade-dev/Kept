@@ -10,7 +10,6 @@ struct OnboardingFlowTests {
         #expect(OnboardingStep.allCases == [
             .welcome,
             .keyMoment,
-            .leadTimes,
             .privacy,
             .existingReceipts,
             .notifications
@@ -25,30 +24,27 @@ struct OnboardingFlowTests {
         #expect(OnboardingStep.welcome.showsChrome == false)
         #expect(OnboardingStep.welcome.progressFraction == nil)
         #expect(OnboardingStep.keyMoment.showsChrome)
-        #expect(OnboardingStep.keyMoment.progressFraction == 1.0 / 5.0)
+        #expect(OnboardingStep.keyMoment.progressFraction == 1.0 / 4.0)
         #expect(OnboardingStep.notifications.showsChrome)
         #expect(OnboardingStep.notifications.progressFraction == 1.0)
     }
 
-    @Test("every step can advance except an empty lead-time selection")
+    @Test("every step can advance")
     func canAdvance() {
         let coordinator = OnboardingCoordinator()
         for step in OnboardingStep.allCases {
             coordinator.step = step
             #expect(coordinator.canAdvance)
         }
-        coordinator.step = .leadTimes
-        coordinator.result.warningLeadTimes = []
-        #expect(coordinator.canAdvance == false)
     }
 
-    @Test("finish marks onboarded and does not write tracked categories")
+    @Test("finish marks onboarded and does not write tracked categories or lead times")
     func finishLeavesTrackedCategoriesUntouched() {
         let defaults = UserDefaults.standard
         let keys = [
             SettingsKeys.hasOnboarded,
             SettingsKeys.hasExistingReceipts,
-            SettingsKeys.leadDaysCSV,
+            "settings.leadDaysCSV",
             SettingsKeys.trackedCategoriesCSV
         ]
         let snapshot = keys.map { defaults.object(forKey: $0) }
@@ -63,15 +59,39 @@ struct OnboardingFlowTests {
         }
 
         defaults.set("electronics,clothing", forKey: SettingsKeys.trackedCategoriesCSV)
+        defaults.set("14,30", forKey: "settings.leadDaysCSV")
         let coordinator = OnboardingCoordinator()
-        coordinator.result.warningLeadTimes = [14, 30]
         coordinator.result.hasExistingReceipts = true
         coordinator.finish()
 
         #expect(SettingsSnapshot.hasOnboarded)
         #expect(SettingsSnapshot.hasExistingReceipts)
         #expect(defaults.string(forKey: SettingsKeys.trackedCategoriesCSV) == "electronics,clothing")
-        #expect(defaults.string(forKey: SettingsKeys.leadDaysCSV) == "14,30")
+        #expect(defaults.string(forKey: "settings.leadDaysCSV") == "14,30")
+    }
+
+    @Test("retired lead-time settings are removed from UserDefaults")
+    func removesRetiredLeadTimes() {
+        let defaults = UserDefaults.standard
+        let keys = ["settings.leadDaysCSV", "settings.notifyHour", "settings.notifyMinute"]
+        let snapshot = keys.map { defaults.object(forKey: $0) }
+        defer {
+            for (key, value) in zip(keys, snapshot) {
+                if let value {
+                    defaults.set(value, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+
+        defaults.set("14,30", forKey: "settings.leadDaysCSV")
+        defaults.set(9, forKey: "settings.notifyHour")
+        defaults.set(30, forKey: "settings.notifyMinute")
+        SettingsSnapshot.removeRetiredLeadTimeSettings()
+        #expect(defaults.object(forKey: "settings.leadDaysCSV") == nil)
+        #expect(defaults.object(forKey: "settings.notifyHour") == nil)
+        #expect(defaults.object(forKey: "settings.notifyMinute") == nil)
     }
 
     @Test("key moment resolves to covered with 214 days, never expired")
@@ -124,11 +144,12 @@ struct FirstSavePayoffTests {
         #expect(FirstSavePayoff.shouldStampExistingLibrary(hasShown: true, purchaseCount: 3) == false)
     }
 
-    @Test("phase uses the largest lead time, and the day count is whole days")
+    @Test("phase uses the fixed 14-day window, and the day count is whole days")
     func phaseAndDays() {
-        #expect(FirstSavePayoff.phase(daysRemaining: 10, leadDays: [14, 30]) == .endingSoon)
-        #expect(FirstSavePayoff.phase(daysRemaining: 31, leadDays: [14, 30]) == .covered)
-        #expect(FirstSavePayoff.phase(daysRemaining: -1, leadDays: [14]) == .expired)
+        #expect(FirstSavePayoff.phase(daysRemaining: 10) == .endingSoon)
+        #expect(FirstSavePayoff.phase(daysRemaining: 14) == .endingSoon)
+        #expect(FirstSavePayoff.phase(daysRemaining: 15) == .covered)
+        #expect(FirstSavePayoff.phase(daysRemaining: -1) == .expired)
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

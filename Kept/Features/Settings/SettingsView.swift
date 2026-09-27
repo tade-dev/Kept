@@ -5,12 +5,11 @@ import UserNotifications
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var purchases: [Purchase]
 
-    @AppStorage(SettingsKeys.notificationsEnabled) private var notificationsEnabled: Bool = SettingsDefaults.notificationsEnabled
-    @AppStorage(SettingsKeys.leadDaysCSV) private var leadDaysCSV: String = "14"
-    @AppStorage(SettingsKeys.notifyHour) private var notifyHour: Int = SettingsDefaults.notifyHour
-    @AppStorage(SettingsKeys.notifyMinute) private var notifyMinute: Int = SettingsDefaults.notifyMinute
+    @AppStorage(SettingsKeys.expiryRemindersEnabled) private var expiryRemindersEnabled: Bool = SettingsDefaults.notificationsEnabled
+    @AppStorage(SettingsKeys.weeklyReminderEnabled) private var weeklyReminderEnabled: Bool = SettingsDefaults.notificationsEnabled
     @AppStorage(SettingsKeys.appearance) private var appearanceRaw: String = AppearancePreference.system.rawValue
     @AppStorage(SettingsKeys.darkAccent) private var darkAccentRaw: String = DarkAccentPreference.midnight.rawValue
     @AppStorage("kept.textSize") private var userTextSizeRaw: String = KeptTextSize.system.rawValue
@@ -22,20 +21,6 @@ struct SettingsView: View {
     /// user changed it in-app.
     private var userTextSize: KeptTextSize {
         KeptTextSize(rawValue: userTextSizeRaw) ?? .system
-    }
-
-    private var leadDaysSet: Set<Int> {
-        let ints = leadDaysCSV
-            .split(separator: ",")
-            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-        return ints.isEmpty ? SettingsDefaults.leadDays : Set(ints)
-    }
-
-    private func setLead(_ day: Int, on: Bool) {
-        var set = leadDaysSet
-        if on { set.insert(day) } else { set.remove(day) }
-        if set.isEmpty { set = [day] }
-        leadDaysCSV = set.sorted().map(String.init).joined(separator: ",")
     }
 
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
@@ -51,32 +36,17 @@ struct SettingsView: View {
         DarkAccentPreference(rawValue: darkAccentRaw) ?? .midnight
     }
 
-    private var notifyTimeBinding: Binding<Date> {
-        Binding(
-            get: {
-                var comps = DateComponents()
-                comps.hour = notifyHour
-                comps.minute = notifyMinute
-                return Calendar.current.date(from: comps) ?? .now
-            },
-            set: { newDate in
-                let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                notifyHour = comps.hour ?? SettingsDefaults.notifyHour
-                notifyMinute = comps.minute ?? SettingsDefaults.notifyMinute
-            }
-        )
-    }
-
     var body: some View {
         NavigationStack {
             Form {
                 AccountSection(onUpgradeTapped: { showsPaywall = true })
 
-                if notificationsEnabled && authorizationStatus == .denied {
+                if authorizationStatus == .denied {
                     permissionDeniedSection
                 }
 
                 remindersSection
+                notificationDebugSection
                 appearanceSection
                 languageSection
                 AccessibilitySection()
@@ -97,8 +67,13 @@ struct SettingsView: View {
             .preferredColorScheme(appearance.colorScheme)
             .keptTextSize(userTextSize)
             .task {
+                SettingsSnapshot.migrateReminderTogglesIfNeeded()
                 await refreshAuthorizationStatus()
                 refreshExportURL()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await refreshAuthorizationStatus() }
             }
             .alert("Delete everything?", isPresented: $showDeleteConfirm) {
                 Button("Delete all data", role: .destructive) {
@@ -106,19 +81,13 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Removes every purchase, warranty, and pending reminder. This can't be undone.")
+                Text("Removes every purchase and its reminders, including the weekly note. This can't be undone.")
             }
-            .onChange(of: notificationsEnabled) { _, newValue in
-                Task { await handleNotificationsToggle(newValue) }
+            .onChange(of: expiryRemindersEnabled) { _, enabled in
+                Task { await handleExpiryToggle(enabled) }
             }
-            .onChange(of: leadDaysCSV) { _, _ in
-                Task { await rescheduleAll() }
-            }
-            .onChange(of: notifyHour) { _, _ in
-                Task { await rescheduleAll() }
-            }
-            .onChange(of: notifyMinute) { _, _ in
-                Task { await rescheduleAll() }
+            .onChange(of: weeklyReminderEnabled) { _, enabled in
+                Task { await handleWeeklyToggle(enabled) }
             }
         }
     }
@@ -145,40 +114,39 @@ struct SettingsView: View {
 
     private var remindersSection: some View {
         Section {
-            Toggle("Notifications", isOn: $notificationsEnabled)
-
-            if notificationsEnabled {
-                ForEach(LeadDayOption.all, id: \.self) { day in
-                    Toggle(
-                        "\(day) days before",
-                        isOn: Binding(
-                            get: { leadDaysSet.contains(day) },
-                            set: { setLead(day, on: $0) }
-                        )
-                    )
-                }
-                DatePicker(
-                    "Time of day",
-                    selection: notifyTimeBinding,
-                    displayedComponents: .hourAndMinute
-                )
-            }
+            Toggle("Expiry reminders", isOn: $expiryRemindersEnabled)
+            Toggle("Weekly reminder", isOn: $weeklyReminderEnabled)
         } header: {
             Text("Reminders")
         } footer: {
-            if notificationsEnabled {
-                Text(reminderFooter)
-            }
+            Text("Warranty reminders arrive 30 days and 7 days before cover ends, at 9:00. A return window is reminded 14 days before it closes, at 9:30. A weekly note arrives only after a week away, at 6:00 pm.")
         }
     }
 
-    private var reminderFooter: String {
-        let sorted = leadDaysSet.sorted(by: >)
-        let list = sorted.map(String.init).joined(separator: ", ")
-        return String(
-            localized: "Kept nudges you at \(list) days before any warranty or return window ends.",
-            comment: "Reminder-lead-days summary in Settings footer; list is a pre-formatted number list. Needs plural handling on 'days'."
-        )
+    @ViewBuilder
+    private var notificationDebugSection: some View {
+        #if DEBUG
+        Section {
+            Button {
+                Task { await ReminderCoordinator.fireExpiryPreview(purchases: purchases) }
+            } label: {
+                Label("Fire expiry reminder in 10s", systemImage: "bell")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
+            }
+            Button {
+                Task { await ReminderCoordinator.fireWeeklyPreview() }
+            } label: {
+                Label("Fire weekly reminder in 10s", systemImage: "bell.badge")
+                    .labelStyle(.settingsTile(tint: darkAccent.tint))
+            }
+        } header: {
+            Text("Notification debug")
+        } footer: {
+            Text("Debug builds only. Background the app after tapping. Each fires in 10 seconds, and only if notifications are allowed.")
+        }
+        #else
+        EmptyView()
+        #endif
     }
 
     private var appearanceSection: some View {
@@ -303,19 +271,27 @@ struct SettingsView: View {
         authorizationStatus = settings.authorizationStatus
     }
 
-    private func handleNotificationsToggle(_ enabled: Bool) async {
+    private func handleExpiryToggle(_ enabled: Bool) async {
         if enabled {
-            _ = await CoverageNotificationScheduler.requestAuthorizationIfNeeded()
+            await NotificationPermissionPrompt.requestFromSettingsIfUndetermined()
             await refreshAuthorizationStatus()
-            await CoverageNotificationScheduler.rescheduleAll(purchases)
-        } else {
-            CoverageNotificationScheduler.cancelAll()
         }
+        await syncReminderSchedules()
     }
 
-    private func rescheduleAll() async {
-        guard notificationsEnabled else { return }
-        await CoverageNotificationScheduler.rescheduleAll(purchases)
+    private func handleWeeklyToggle(_ enabled: Bool) async {
+        if enabled {
+            await NotificationPermissionPrompt.requestFromSettingsIfUndetermined()
+            await refreshAuthorizationStatus()
+        }
+        await syncReminderSchedules()
+    }
+
+    private func syncReminderSchedules() async {
+        let master = expiryRemindersEnabled || weeklyReminderEnabled
+        SettingsSnapshot.setNotificationsMaster(enabled: master)
+        await ReminderCoordinator.reconcile(purchases: purchases, rescheduleWeekly: false)
+        await ReminderCoordinator.rescheduleWeeklyReminder()
     }
 
     private func refreshExportURL() {
@@ -343,14 +319,18 @@ struct SettingsView: View {
         UserDefaults.standard.set(false, forKey: SettingsKeys.hasSeenOnboardingPaywall)
         UserDefaults.standard.set(false, forKey: SettingsKeys.hasShownFirstSavePayoff)
         UserDefaults.standard.set(false, forKey: "settings.hasSeenFirstSavePayoff")
+        NotificationPermissionPrompt.clearAskedFlag()
         dismiss()
     }
 
     private func deleteAll() {
         for purchase in purchases {
-            CoverageNotificationScheduler.cancel(for: purchase)
+            ReminderCoordinator.cancelExpiryReminders(for: purchase)
             modelContext.delete(purchase)
         }
+        ReminderCoordinator.cancelAllExpiryReminders()
+        ReminderCoordinator.cancelWeeklyReminder()
+        ReminderCoordinator.cancelLegacyWeeklySummary()
         try? modelContext.save()
         refreshExportURL()
     }

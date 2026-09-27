@@ -6,6 +6,8 @@ import SwiftUI
 /// The front-door paywall waits until the first save. If that save has an
 /// active warranty, the payoff sheet comes first. If it does not, the
 /// paywall still appears so it is not lost.
+/// Notification permission is requested only after that paywall (or
+/// immediately, if the paywall is not shown), never on top of either surface.
 ///
 /// On every cold launch a `SplashView` covers the whole scene for ~3s before
 /// fading away — the seal + wordmark springs up from below and settles at
@@ -103,11 +105,14 @@ struct RootView: View {
     ///
     /// Called only from a capture or payoff `onDismiss`, after that sheet
     /// has fully gone. The cover is not presented while the sheet is up.
-    private func presentPaywallAfterFirstSave(_ event: OnboardingPaywallPolicy.Event) {
+    /// Returns whether the paywall cover was presented, so the library can
+    /// hold the notification prompt until the cover dismisses.
+    private func presentPaywallAfterFirstSave(_ event: OnboardingPaywallPolicy.Event) -> Bool {
         guard OnboardingPaywallPolicy.trigger(
             for: event,
             hasSeenPaywall: hasSeenOnboardingPaywall
-        ) == .showPaywall else { return }
+        ) == .showPaywall else { return false }
         showsOnboardingPaywall = true
+        return true
     }
 }
