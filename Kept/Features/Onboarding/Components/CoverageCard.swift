@@ -293,7 +293,7 @@ struct CoverageCard: View {
             .frame(width: 36, height: 44)
             .accessibilityHidden(true)
 
-        Group {
+        return Group {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     thumbnail
@@ -399,8 +399,8 @@ private struct CardShadow: ViewModifier {
         merchant: "Dyson",
         item: "V15 Detect",
         daysRemaining: 608,
-        remainingStyle: .adaptive,
         proof: .init(receiptImage: nil, showsClaimPackReady: false),
+        remainingStyle: .adaptive,
         isSample: true
     )
     .padding()

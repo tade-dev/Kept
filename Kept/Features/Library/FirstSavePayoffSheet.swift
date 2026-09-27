@@ -83,11 +83,11 @@ struct FirstSavePayoffSheet: View {
                         merchant: purchase.displayMerchant,
                         item: purchase.displayItem,
                         daysRemaining: daysLeft,
-                        remainingStyle: .adaptive,
                         proof: .init(
                             receiptImage: purchase.receiptImage,
                             showsClaimPackReady: subscription.isPro
-                        )
+                        ),
+                        remainingStyle: .adaptive
                     )
 
                     if FirstSavePayoff.walletAvailable {

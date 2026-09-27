@@ -28,8 +28,8 @@ struct EmptyLibraryState: View {
                     merchant: SampleCoverageCard.merchant,
                     item: SampleCoverageCard.item,
                     daysRemaining: SampleCoverageCard.daysRemaining,
-                    remainingStyle: .adaptive,
                     proof: .init(receiptImage: nil, showsClaimPackReady: false),
+                    remainingStyle: .adaptive,
                     isSample: true
                 )
                 .contentShape(RoundedRectangle(cornerRadius: Radius.xl, style: .continuous))

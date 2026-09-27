@@ -66,9 +66,12 @@ extension SubscriptionOffering {
     /// renders without a live RevenueCat customer. Not a monthly plan.
     static var kept_withWinBack: SubscriptionOffering {
         var o = kept_default
+        // Snapshot the priceString before mutating winBackOffer so the read
+        // + write of `o.yearly` don't overlap (Swift exclusivity check).
+        let yearlyPrice = o.yearly?.priceString ?? ""
         o.yearly?.winBackOffer = WinBackOffer(
             identifier: "winback_yearly",
-            priceString: o.yearly?.priceString ?? "",
+            priceString: yearlyPrice,
             summary: "Welcome back offer"
         )
         return o
