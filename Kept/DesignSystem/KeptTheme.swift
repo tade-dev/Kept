@@ -7,7 +7,13 @@ enum KeptColor {
     static let ink = Color(red: 0.055, green: 0.090, blue: 0.165)
 
     /// "Everything's fine, plenty of time left." Cool, calm.
-    static let covered = Color(red: 0.392, green: 0.455, blue: 0.545)
+    /// Light `#475569` (5.5:1 on the 12pt pill), dark `#9FB0C6`.
+    /// The old `#64748B` failed WCAG AA at that size.
+    static let covered = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 159.0 / 255.0, green: 176.0 / 255.0, blue: 198.0 / 255.0, alpha: 1)
+            : UIColor(red: 71.0 / 255.0, green: 85.0 / 255.0, blue: 105.0 / 255.0, alpha: 1)
+    })
 
     /// Inside the lead window. Warm without being alarming.
     static let endingSoon = Color(red: 0.961, green: 0.620, blue: 0.043)

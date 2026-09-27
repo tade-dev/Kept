@@ -18,9 +18,14 @@ protocol SubscriptionService: AnyObject {
     /// True when the customer has the `pro` entitlement active.
     var isPro: Bool { get }
 
-    /// The current offering (containing `pro_monthly` and `pro_yearly`
-    /// packages), or nil if not yet fetched / offline / not configured.
+    /// The current offering, or nil if not yet fetched / offline / not configured.
+    /// The paywall shows yearly and lifetime only. A monthly package may still
+    /// be present on the offering during rollout; `PaywallCatalog` filters it out.
     var offering: SubscriptionOffering? { get }
+
+    /// True after a fetch failed and no offering is available. Distinct from
+    /// the initial load, which leaves this false while `offering` is nil.
+    var offeringLoadFailed: Bool { get }
 
     /// Non-nil when Apple has flagged a billing issue on the active Pro
     /// entitlement — card declined, expired, etc. The subscription is still
@@ -69,10 +74,9 @@ protocol SubscriptionService: AnyObject {
     func grantTrialBoost() async throws
 }
 
-/// Provider-agnostic offering: recurring packages (monthly + yearly) plus an
-/// optional lifetime one-shot. `lifetime` is a non-consumable IAP surfaced
-/// alongside the subscriptions so users who won't tolerate recurring billing
-/// still have a way in.
+/// Provider-agnostic offering. `monthly` may still be filled from the store
+/// during rollout; the paywall must not display it. `lifetime` is a
+/// non-consumable surfaced as a peer of yearly.
 struct SubscriptionOffering: Equatable, Sendable {
     var monthly: SubscriptionPackage?
     var yearly: SubscriptionPackage?
@@ -117,10 +121,19 @@ struct SubscriptionPackage: Equatable, Hashable, Sendable, Identifiable {
     var priceString: String
     /// Localised period like "per year" / "per month".
     var periodString: String
-    /// Localised intro-offer copy like "7-day free trial, then £29.99/year".
-    /// Nil when the current customer isn't eligible for an intro offer.
+    /// Intro-offer sentence built from the store product (trial length and
+    /// `localizedPriceString`). Nil when this customer isn't eligible.
     var introOfferString: String?
-    /// Optional badge like "50% OFF" for the yearly package on the paywall.
+    /// Short free-trial label built from the store intro period, like
+    /// "7 days free". Nil unless the intro is a free trial.
+    var introBadge: String? = nil
+    /// Store intro free-trial length. Nil unless the intro is a free trial.
+    /// The paywall uses this with `priceString` for "Free for N days".
+    var introPeriodCount: Int? = nil
+    /// Store intro unit already pluralized ("day" / "days"). Nil with the count.
+    var introPeriodUnit: String? = nil
+    /// Unused. Kept so older call sites still compile. The paywall does not
+    /// show a savings percentage — that maths compared yearly to monthly.
     var savingsBadge: String?
     /// Non-nil when the customer is a lapsed subscriber Apple has flagged as
     /// eligible for a win-back offer on this specific package. Populated from

@@ -1,7 +1,11 @@
 import SwiftUI
 
 /// Presents the library. When the user hasn't onboarded, overlays onboarding full-screen.
-/// If step 4 was "Yes, a few", opens capture immediately after the cover dismisses.
+/// If the existing-receipts step was "Yes, a few", LibraryView opens capture
+/// once the front-door paywall is not showing.
+/// The front-door paywall waits until the first save. If that save has an
+/// active warranty, the payoff sheet comes first. If it does not, the
+/// paywall still appears so it is not lost.
 ///
 /// On every cold launch a `SplashView` covers the whole scene for ~3s before
 /// fading away — the seal + wordmark springs up from below and settles at
@@ -15,9 +19,8 @@ struct RootView: View {
     @AppStorage("kept.textSize") private var textSizeRaw: String = KeptTextSize.system.rawValue
     @State private var openCaptureAfterOnboarding = false
     @State private var isSplashShowing = true
-    /// Bound to the trial-entry paywall cover. Flips true the moment the
-    /// onboarding cover dismisses so the paywall lands immediately after —
-    /// no gap frame of Library between the two covers. Persisted-once via
+    /// Bound to the trial-entry paywall cover. Presented after the first save,
+    /// once any payoff sheet has dismissed. Persisted-once via
     /// `hasSeenOnboardingPaywall` so subsequent launches skip it.
     @State private var showsOnboardingPaywall = false
 
@@ -48,21 +51,15 @@ struct RootView: View {
                 SplashView()
                     .transition(.opacity)
             } else {
-                LibraryView()
+                LibraryView(
+                    captureAfterOnboarding: $openCaptureAfterOnboarding,
+                    paywallIsShowing: showsOnboardingPaywall,
+                    onFirstSaveMomentFinished: presentPaywallAfterFirstSave
+                )
                     .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                         OnboardingView { hasExistingReceipts in
                             openCaptureAfterOnboarding = hasExistingReceipts
                             hasOnboarded = true
-                            // Chain the trial-entry paywall on next runloop
-                            // tick so SwiftUI has time to dismiss the
-                            // onboarding cover before the paywall cover
-                            // presents (two full-screen covers can't animate
-                            // simultaneously otherwise).
-                            if !hasSeenOnboardingPaywall {
-                                DispatchQueue.main.async {
-                                    showsOnboardingPaywall = true
-                                }
-                            }
                         }
                         // Belt-and-braces: keep the status bar visible even if
                         // any nested view accidentally sets .persistentSystemOverlays(.hidden).
@@ -72,21 +69,17 @@ struct RootView: View {
                         OnboardingPaywallGate()
                             .persistentSystemOverlays(.visible)
                     }
-                    // Post-capture routing waits for the paywall gate to
-                    // clear — no point auto-opening the scanner while the
-                    // trial-entry sheet still owns the screen.
-                    .sheet(isPresented: Binding(
-                        get: { openCaptureAfterOnboarding && !showsOnboardingPaywall },
-                        set: { openCaptureAfterOnboarding = $0 }
-                    )) {
-                        CaptureView()
-                    }
                     .onChange(of: showsOnboardingPaywall) { _, isPresented in
-                        // Stamp the flag when the gate dismisses so subsequent
-                        // launches never re-show it (regardless of whether
-                        // the user bought, started a trial, or continued
-                        // with free — every exit counts as "seen").
-                        if !isPresented { hasSeenOnboardingPaywall = true }
+                        if isPresented {
+                            // The front-door gate is the paywall for this
+                            // moment. Consume the one-time Wallet soft prompt
+                            // so Add to Wallet cannot raise a second paywall.
+                            UserDefaults.standard.set(true, forKey: "kept.hasShownPaywallAfterFirstPass")
+                        } else {
+                            // Stamp when the gate dismisses so subsequent
+                            // launches never re-show it (buy, trial, or skip).
+                            hasSeenOnboardingPaywall = true
+                        }
                     }
                     .transition(.opacity)
             }
@@ -103,5 +96,18 @@ struct RootView: View {
         .keptTextSize(userTextSize)
         .preferredColorScheme(appearance.colorScheme)
         .tint(darkAccent.tint)
+    }
+
+    /// Front-door paywall after the first save, whether or not the payoff
+    /// sheet was shown. Not after onboarding.
+    ///
+    /// Called only from a capture or payoff `onDismiss`, after that sheet
+    /// has fully gone. The cover is not presented while the sheet is up.
+    private func presentPaywallAfterFirstSave(_ event: OnboardingPaywallPolicy.Event) {
+        guard OnboardingPaywallPolicy.trigger(
+            for: event,
+            hasSeenPaywall: hasSeenOnboardingPaywall
+        ) == .showPaywall else { return }
+        showsOnboardingPaywall = true
     }
 }

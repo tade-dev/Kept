@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Step 6 — the ask is framed by the user's lead-time choice. Enable / Not now buttons
-/// are rendered by OnboardingView so this step only owns the icon + copy.
+/// Last onboarding step. The ask is framed by the user's lead-time choice.
+/// Enable / Not now buttons are rendered by OnboardingView, which finishes the flow.
 struct NotificationsStepView: View {
     @Bindable var coordinator: OnboardingCoordinator
 

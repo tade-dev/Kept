@@ -455,7 +455,7 @@ struct CaptureView: View {
             Label("Point at a receipt", systemImage: "doc.viewfinder")
                 .font(.keptTitle3)
         } description: {
-            Text("Kept will crop, straighten, and read it on-device.")
+            Text(OnboardingCopy.privacyLine)
                 .font(.keptSubheadline)
         }
     }
@@ -669,6 +669,7 @@ struct CaptureView: View {
         Task {
             await CoverageNotificationScheduler.reschedule(for: purchase)
         }
+        onSave?(purchase)
         dismiss()
     }
 }

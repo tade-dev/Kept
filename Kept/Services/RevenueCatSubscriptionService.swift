@@ -16,6 +16,7 @@ import RevenueCat
 final class RevenueCatSubscriptionService: SubscriptionService {
     private(set) var isPro: Bool = false
     private(set) var offering: SubscriptionOffering?
+    private(set) var offeringLoadFailed: Bool = false
     private(set) var billingIssue: BillingIssue?
     private(set) var proAccessExpiry: ProAccessExpiry?
     var appUserID: String { Purchases.shared.appUserID }
@@ -58,6 +59,10 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             return
         }
         let task = Task { [weak self] in
+            if self?.offering == nil {
+                self?.offeringLoadFailed = false
+                self?.onChange?()
+            }
             do {
                 let offerings = try await Purchases.shared.offerings()
                 var mapped = Self.mapOfferings(offerings)
@@ -70,9 +75,13 @@ final class RevenueCatSubscriptionService: SubscriptionService {
                     mapped = await Self.attachingWinBackOffers(to: mapped, from: current)
                 }
                 self?.offering = mapped
+                self?.offeringLoadFailed = false
                 self?.onChange?()
             } catch {
-                // Silent — paywall shows retry.
+                if self?.offering == nil {
+                    self?.offeringLoadFailed = true
+                    self?.onChange?()
+                }
             }
         }
         refreshTask = task
@@ -339,27 +348,21 @@ final class RevenueCatSubscriptionService: SubscriptionService {
                 priceString: package.storeProduct.localizedPriceString,
                 periodString: "per month",
                 introOfferString: introCopy(for: package, fallbackPeriod: "month"),
+                introBadge: introBadge(for: package),
                 savingsBadge: nil
             )
         }
 
         let yearly = yearlyRC.map { package -> SubscriptionPackage in
-            let badge: String? = {
-                guard let m = monthlyRC else { return nil }
-                let monthlyPer12 = m.storeProduct.price * Decimal(12)
-                let yearlyPrice = package.storeProduct.price
-                guard monthlyPer12 > 0 else { return nil }
-                let saved = (monthlyPer12 - yearlyPrice) / monthlyPer12
-                let pctNS = NSDecimalNumber(decimal: saved * Decimal(100))
-                let pct = Int(pctNS.doubleValue.rounded())
-                return pct >= 10 ? "\(pct)% OFF" : nil
-            }()
-            return SubscriptionPackage(
+            SubscriptionPackage(
                 id: package.storeProduct.productIdentifier,
                 priceString: package.storeProduct.localizedPriceString,
                 periodString: "per year",
                 introOfferString: introCopy(for: package, fallbackPeriod: "year"),
-                savingsBadge: badge
+                introBadge: introBadge(for: package),
+                introPeriodCount: introTrial(for: package)?.count,
+                introPeriodUnit: introTrial(for: package)?.unit,
+                savingsBadge: nil
             )
         }
 
@@ -377,6 +380,20 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         }
 
         return SubscriptionOffering(monthly: monthly, yearly: yearly, lifetime: lifetime)
+    }
+
+    /// Free-trial chip copy from the store intro period. Nil for paid intros.
+    private static func introBadge(for package: Package) -> String? {
+        guard let trial = introTrial(for: package) else { return nil }
+        return "\(trial.count) \(trial.unit) free"
+    }
+
+    private static func introTrial(for package: Package) -> (count: Int, unit: String)? {
+        guard let intro = package.storeProduct.introductoryDiscount,
+              intro.paymentMode == .freeTrial else { return nil }
+        let count = intro.subscriptionPeriod.value
+        let unit = periodString(intro.subscriptionPeriod.unit, count: count)
+        return (count, unit)
     }
 
     private static func introCopy(for package: Package, fallbackPeriod: String) -> String? {

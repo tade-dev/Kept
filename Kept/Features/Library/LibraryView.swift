@@ -10,6 +10,14 @@ struct LibraryView: View {
     @Environment(SubscriptionAccess.self) private var subscription
     @Query(sort: \Purchase.purchaseDate, order: .reverse) private var purchases: [Purchase]
 
+    /// Set by RootView when onboarding ended with "Yes, a few".
+    var captureAfterOnboarding: Binding<Bool> = .constant(false)
+    /// True while the front-door paywall cover is up, so capture waits.
+    var paywallIsShowing: Bool = false
+    /// Called after the first-save sheet dismisses, and when that sheet is
+    /// skipped because the first save has no active warranty.
+    var onFirstSaveMomentFinished: (OnboardingPaywallPolicy.Event) -> Void = { _ in }
+
     @AppStorage("libraryViewMode") private var viewModeRaw: String = LibraryViewMode.icons.rawValue
     /// Zoom navigation into purchase detail.
     @Namespace private var receiptNamespace
@@ -29,6 +37,16 @@ struct LibraryView: View {
     /// Delete haptic trigger. Not debug-only — the sensoryFeedback
     /// modifier reads it in release too, so it lives outside the #if.
     @State private var deletedTick = 0
+    @AppStorage(FirstSavePayoff.shownKey) private var hasShownFirstSavePayoff = false
+    @State private var pendingPayoff: Purchase?
+    @State private var payoffPurchase: Purchase?
+    @State private var pendingPaywallWithoutSheet = false
+    /// Trial-boost celebration waits until the payoff sheet (and the capture
+    /// sheet that presents it) has closed.
+    @State private var heldTrialBoostAlert = false
+    /// Stops the existing-library migration from treating this session's own
+    /// first save as a library that was already here.
+    @State private var userDidSaveThisSession = false
     #if DEBUG
     @State private var isPhotoPickerPresented = false
     @State private var isFixtureCapturePresented = false
@@ -65,6 +83,10 @@ struct LibraryView: View {
                     modeContent
                 }
             }
+            .animation(
+                reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.32),
+                value: purchases.isEmpty
+            )
             .safeAreaInset(edge: .top, spacing: 0) {
                 if let issue = subscription.billingIssue {
                     BillingIssueBanner(issue: issue)
@@ -81,6 +103,13 @@ struct LibraryView: View {
             .task {
                 await CoverageNotificationScheduler.rescheduleAll(purchases)
                 await WeeklySummaryScheduler.reschedule(with: purchases)
+                stampExistingLibraryIfNeeded()
+            }
+            .onChange(of: purchases.count) { _, _ in
+                stampExistingLibraryIfNeeded()
+            }
+            .onChange(of: paywallIsShowing) { _, showing in
+                if !showing { releaseHeldTrialBoostAlert() }
             }
             .task(id: purchases.count) {
                 await evaluateTrialBoost()
@@ -184,11 +213,25 @@ struct LibraryView: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $isCapturing) {
+            .sheet(isPresented: $isCapturing, onDismiss: handOffAfterCapture) {
                 CaptureView(onSave: flagNewlyAdded)
             }
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
+            }
+            .sheet(item: $payoffPurchase, onDismiss: {
+                // The sheet is fully gone. The front-door gate is a cover
+                // on the library, not a sheet stacked on this one.
+                onFirstSaveMomentFinished(.firstSaveSheetDismissed)
+                scheduleTrialBoostRelease()
+            }) { purchase in
+                FirstSavePayoffSheet(purchase: purchase)
+            }
+            .sheet(isPresented: Binding(
+                get: { captureAfterOnboarding.wrappedValue && !paywallIsShowing },
+                set: { captureAfterOnboarding.wrappedValue = $0 }
+            ), onDismiss: handOffAfterCapture) {
+                CaptureView(onSave: flagNewlyAdded)
             }
             #if DEBUG
             .sheet(isPresented: $isFixtureCapturePresented) {
@@ -287,7 +330,7 @@ struct LibraryView: View {
         do {
             try await subscription.grantTrialBoost()
             TrialBoostEngagement.markGranted()
-            isTrialBoostAlertPresented = true
+            presentTrialBoostAlert()
             await OfferNotificationScheduler.scheduleTrialBoostGrantedNudge()
         } catch {
             // Swallowed intentionally — the boost is a bonus, not a
@@ -319,13 +362,90 @@ struct LibraryView: View {
 
     /// Flags a freshly-saved purchase so the grid can animate its entry.
     /// Clears after ~1.5s so a subsequent view refresh doesn't re-trigger.
+    /// The payoff sheet waits for capture to dismiss, and only if this
+    /// purchase still has an active warranty.
     private func flagNewlyAdded(_ purchase: Purchase) {
+        userDidSaveThisSession = true
         justAddedClearTask?.cancel()
         justAddedPurchaseID = purchase.persistentModelID
         justAddedClearTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1600))
             justAddedPurchaseID = nil
         }
+
+        let willShowSheet = FirstSavePayoff.isEligible(
+            warrantyExpiry: purchase.primaryWarranty?.expiryDate,
+            hasShown: hasShownFirstSavePayoff
+        )
+        if willShowSheet {
+            pendingPayoff = purchase
+            pendingPaywallWithoutSheet = false
+        } else if FirstSavePayoff.shouldRequestPaywallWithoutSheet(
+            previousCount: countBefore(purchase),
+            newCount: countBefore(purchase) + 1,
+            willShowSheet: false
+        ) {
+            pendingPaywallWithoutSheet = true
+        }
+    }
+
+    private func countBefore(_ purchase: Purchase) -> Int {
+        let alreadyListed = purchases.contains { $0.persistentModelID == purchase.persistentModelID }
+        return alreadyListed ? max(0, purchases.count - 1) : purchases.count
+    }
+
+    /// Capture has finished dismissing. Present the payoff sheet, or the
+    /// front-door paywall when the sheet does not apply.
+    private func handOffAfterCapture() {
+        if let pending = pendingPayoff {
+            payoffPurchase = pending
+            pendingPayoff = nil
+            return
+        }
+        if pendingPaywallWithoutSheet {
+            pendingPaywallWithoutSheet = false
+            onFirstSaveMomentFinished(.firstSaveWithoutPayoffSheet)
+        }
+        scheduleTrialBoostRelease()
+    }
+
+    /// Libraries that already have purchases on appear never see the sheet.
+    /// Skipped while a capture sheet is up so the user's own first save is
+    /// not treated as an existing library.
+    private func stampExistingLibraryIfNeeded() {
+        guard !userDidSaveThisSession else { return }
+        guard !isCapturing, !captureAfterOnboarding.wrappedValue else { return }
+        guard pendingPayoff == nil, payoffPurchase == nil else { return }
+        guard FirstSavePayoff.shouldStampExistingLibrary(
+            hasShown: hasShownFirstSavePayoff,
+            purchaseCount: purchases.count
+        ) else { return }
+        hasShownFirstSavePayoff = true
+    }
+
+    private func presentTrialBoostAlert() {
+        if isCapturing || captureAfterOnboarding.wrappedValue || payoffPurchase != nil || pendingPayoff != nil {
+            heldTrialBoostAlert = true
+        } else {
+            isTrialBoostAlertPresented = true
+        }
+    }
+
+    /// The paywall cover is scheduled on the next run loop, so wait until
+    /// that flag has landed before deciding the alert has a clear stage.
+    private func scheduleTrialBoostRelease() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            releaseHeldTrialBoostAlert()
+        }
+    }
+
+    private func releaseHeldTrialBoostAlert() {
+        guard heldTrialBoostAlert else { return }
+        guard payoffPurchase == nil, pendingPayoff == nil, !paywallIsShowing else { return }
+        guard !isCapturing, !captureAfterOnboarding.wrappedValue else { return }
+        heldTrialBoostAlert = false
+        isTrialBoostAlertPresented = true
     }
 
     #if DEBUG

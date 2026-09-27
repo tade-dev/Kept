@@ -10,7 +10,9 @@ enum SettingsKeys {
     static let appearance = "settings.appearance"
     static let darkAccent = "settings.darkAccent"
     static let hasOnboarded = "settings.hasOnboarded"
-    /// CSV of TrackedCategory rawValues from onboarding.
+    /// Legacy key from the removed onboarding categories step.
+    /// Older installs may still have a value. Nothing reads it, and onboarding
+    /// `finish()` must not write it.
     static let trackedCategoriesCSV = "settings.trackedCategoriesCSV"
     /// Set true when onboarding ends with "Yes, a few" — Library uses it to route.
     static let hasExistingReceipts = "settings.hasExistingReceipts"
@@ -18,6 +20,9 @@ enum SettingsKeys {
     /// Ensures the front-door paywall + explainer sheet fire exactly once per
     /// install — subsequent conversions happen on premium-feature moments.
     static let hasSeenOnboardingPaywall = "settings.hasSeenOnboardingPaywall"
+    /// Same key as `FirstSavePayoff.shownKey`. Stamped when the payoff sheet
+    /// appears. An ineligible save does not set it.
+    static let hasShownFirstSavePayoff = FirstSavePayoff.shownKey
 }
 
 enum SettingsDefaults {
@@ -87,11 +92,6 @@ extension SettingsSnapshot {
     static func write(leadDays: Set<Int>) {
         let csv = leadDays.sorted().map(String.init).joined(separator: ",")
         UserDefaults.standard.set(csv, forKey: SettingsKeys.leadDaysCSV)
-    }
-
-    static func write(trackedCategories: Set<String>) {
-        let csv = trackedCategories.sorted().joined(separator: ",")
-        UserDefaults.standard.set(csv, forKey: SettingsKeys.trackedCategoriesCSV)
     }
 
     static func markOnboarded(hasExistingReceipts: Bool) {

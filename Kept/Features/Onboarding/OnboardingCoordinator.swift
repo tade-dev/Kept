@@ -2,27 +2,30 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// Eight ordered steps. Progress bar + back chevron only on 1–6.
-enum OnboardingStep: Int, CaseIterable, Identifiable {
+/// Ordered first-run steps. Welcome is full-bleed; the progress bar and back
+/// chevron show on every step after it. Categories and the "Setting up"
+/// interstitial stay removed. The key moment is the first step after Welcome.
+enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
     case welcome = 0
-    case categories = 1
+    case keyMoment = 1
     case leadTimes = 2
-    case valueBeat = 3
-    case privacy = 4
-    case existingReceipts = 5
-    case notifications = 6
-    case settingUp = 7
+    case privacy = 3
+    case existingReceipts = 4
+    case notifications = 5
 
     var id: Int { rawValue }
 
     var showsChrome: Bool {
-        (1...6).contains(rawValue)
+        self != .welcome
     }
 
-    /// Fraction 0–1 across steps 1–6, or nil when the bar is hidden.
+    /// Fraction 0–1 across the chrome steps (a contiguous 1...n range), or nil
+    /// when the bar is hidden.
     var progressFraction: Double? {
         guard showsChrome else { return nil }
-        return Double(rawValue) / 6.0
+        let chromeCount = Double(Self.allCases.filter(\.showsChrome).count)
+        guard chromeCount > 0 else { return nil }
+        return Double(rawValue) / chromeCount
     }
 
     var next: OnboardingStep? {
@@ -35,68 +38,32 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     }
 }
 
-enum TrackedCategory: String, CaseIterable, Identifiable, Codable, Hashable {
-    case electronics
-    case appliances
-    case furniture
-    case clothing
-    case everything
-
-    var id: String { rawValue }
-
-    var label: LocalizedStringKey {
-        switch self {
-        case .electronics: "Electronics"
-        case .appliances: "Appliances"
-        case .furniture:  "Furniture"
-        case .clothing:   "Clothing"
-        case .everything: "Everything"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .electronics: "laptopcomputer"
-        case .appliances:  "washer"
-        case .furniture:   "sofa"
-        case .clothing:    "tshirt"
-        case .everything:  "square.grid.2x2"
-        }
-    }
-
-    /// The four concrete categories — used when the user taps "Everything".
-    static var concrete: [TrackedCategory] {
-        [.electronics, .appliances, .furniture, .clothing]
-    }
-}
-
 struct OnboardingResult: Equatable {
-    var categories: Set<TrackedCategory>
     var warningLeadTimes: Set<Int>
     var hasExistingReceipts: Bool
 
     static let empty = OnboardingResult(
-        categories: [],
         warningLeadTimes: [14],
         hasExistingReceipts: false
     )
 }
 
 /// Owns the current step and collected answers. Presented full-screen; dismissed
-/// by writing `hasOnboarded`. Persists all answers to Settings on `finish()`.
+/// by writing `hasOnboarded`. Persists answers to Settings on `finish()`.
 @MainActor
 @Observable
 final class OnboardingCoordinator {
     var step: OnboardingStep = .welcome
     var result: OnboardingResult = .empty
+    /// After the key moment has resolved once, returning to the step shows
+    /// the final frame with no replay.
+    var hasPlayedKeyMoment = false
 
     /// Whether the flow has enough state to enable the "Continue" button on the current step.
     var canAdvance: Bool {
         switch step {
-        case .welcome, .valueBeat, .privacy, .existingReceipts, .notifications, .settingUp:
+        case .welcome, .keyMoment, .privacy, .existingReceipts, .notifications:
             return true
-        case .categories:
-            return !result.categories.isEmpty
         case .leadTimes:
             return !result.warningLeadTimes.isEmpty
         }
@@ -114,31 +81,6 @@ final class OnboardingCoordinator {
         step = previous
     }
 
-    // MARK: - Category answers
-
-    func toggle(_ category: TrackedCategory) {
-        if category == .everything {
-            let concrete = Set(TrackedCategory.concrete)
-            if result.categories.isSuperset(of: concrete) {
-                result.categories.removeAll()
-            } else {
-                result.categories = concrete
-            }
-            return
-        }
-
-        if result.categories.contains(category) {
-            result.categories.remove(category)
-        } else {
-            result.categories.insert(category)
-        }
-    }
-
-    /// True when all four concrete categories are selected — the "Everything" card lights up.
-    var isEverythingSelected: Bool {
-        result.categories.isSuperset(of: Set(TrackedCategory.concrete))
-    }
-
     // MARK: - Lead-time answers
 
     func toggleLead(_ days: Int) {
@@ -153,11 +95,11 @@ final class OnboardingCoordinator {
 
     // MARK: - Persistence
 
-    /// Writes every answer to app-wide settings and flips `hasOnboarded`.
-    /// Called from step 6 after the "Setting up" delay.
+    /// Writes lead times and flips `hasOnboarded`. Called from the last step
+    /// (notifications). Does not write `trackedCategoriesCSV` — that key is
+    /// legacy and has no readers.
     func finish() {
         SettingsSnapshot.write(leadDays: result.warningLeadTimes)
-        SettingsSnapshot.write(trackedCategories: Set(result.categories.map(\.rawValue)))
         SettingsSnapshot.markOnboarded(hasExistingReceipts: result.hasExistingReceipts)
     }
 }

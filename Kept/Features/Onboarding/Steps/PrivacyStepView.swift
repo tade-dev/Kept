@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Step 4 — Privacy reassurance. Assurances card renders as the footer with flat bottom
-/// corners so it visually joins the Continue button below.
+/// Privacy reassurance. The step title stays "Your photos stay yours".
+/// The subtitle says we never send photos to our servers, because the
+/// photos still sync to the user's own iCloud. Extraction sends text only.
+/// Rows 2 and 3 are the existing assurances.
 struct PrivacyStepView: View {
-    @Bindable var coordinator: OnboardingCoordinator
-
     var body: some View {
         OnboardingScaffold(
-            title: "Your receipts stay yours.",
+            title: OnboardingCopy.privacyTitle,
             subtitle: "Kept was built for people who don't want another app sitting on their private stuff."
         ) {
             VStack {
@@ -19,8 +19,6 @@ struct PrivacyStepView: View {
             assurances
         }
     }
-
-    // MARK: - Halo
 
     private var haloSymbol: some View {
         ZStack {
@@ -51,14 +49,12 @@ struct PrivacyStepView: View {
         .accessibilityHidden(true)
     }
 
-    // MARK: - Assurances card (banner-style — flat bottom to fuse with button)
-
     private var assurances: some View {
         VStack(spacing: 0) {
             row(
-                symbol: "camera",
-                title: "Photos never leave your phone",
-                subtitle: "Receipt images live only on this device."
+                symbol: "photo",
+                title: OnboardingCopy.privacyTitle,
+                subtitle: OnboardingCopy.privacyLine
             )
             divider
             row(
@@ -74,8 +70,6 @@ struct PrivacyStepView: View {
             )
         }
         .padding(Spacing.md)
-        // Extra bottom padding so the assurance rows aren't hidden when the CTA button
-        // pulls up and Z-covers this card's bottom.
         .padding(.bottom, Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -111,5 +105,5 @@ struct PrivacyStepView: View {
 }
 
 #Preview {
-    PrivacyStepView(coordinator: OnboardingCoordinator())
+    PrivacyStepView()
 }

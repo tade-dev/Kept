@@ -130,9 +130,9 @@ struct AccountSection: View {
     private var footerText: String {
         guard didFinishInitialCheck else { return " " }
         if isICloudAvailable {
-            return "Your receipts sync across every device signed in to this iCloud account. Sync is free, Pro only unlocks unlimited items and the claim pack."
+            return String(localized: "Your receipts, including photos, sync across every device signed in to this iCloud account. Sync is on for everyone. Pro only unlocks unlimited items and the claim pack.")
         }
-        return "Sign in to iCloud in Settings to sync your receipts across devices. Kept works fully offline without it."
+        return String(localized: "Sign in to iCloud in Settings to sync your receipts, including photos, across devices. Sync is on for everyone and isn't part of Pro. Kept works fully offline without it.")
     }
 
     // MARK: - Actions

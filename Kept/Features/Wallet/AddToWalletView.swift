@@ -87,6 +87,9 @@ private struct PKAddPassButtonView: UIViewRepresentable {
 struct AddToWalletButton: View {
     let purchase: Purchase
     var signingService: PassSigningService? = PassSigningService.makeDefault()
+    /// The first-save sheet sets this. The front-door gate follows that
+    /// sheet, so a Wallet add from the sheet must not raise its own paywall.
+    var suppressesFollowUpPaywall: Bool = false
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
@@ -227,11 +230,22 @@ struct AddToWalletButton: View {
     /// add. Soft prompt with a "Not now" option, dismissed = no penalty.
     /// See AGENTS.md / Monetisation.
     private func maybeShowFirstPassPaywall() {
-        guard !subscription.isPro, !hasShownPaywallAfterFirstPass else { return }
-        hasShownPaywallAfterFirstPass = true
-        // Small delay so the Wallet add sheet fully dismisses first — stacking
-        // sheets on the same run loop tick is visually jarring.
+        guard !subscription.isPro, !suppressesFollowUpPaywall else { return }
+        guard !hasShownPaywallAfterFirstPass else { return }
+        if UserDefaults.standard.bool(forKey: SettingsKeys.hasSeenOnboardingPaywall) {
+            hasShownPaywallAfterFirstPass = true
+            return
+        }
+        // Delay so the system add-pass sheet finishes first. Re-check at
+        // presentation time: the front-door gate may have appeared and
+        // consumed this prompt while we waited.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            if hasShownPaywallAfterFirstPass { return }
+            if UserDefaults.standard.bool(forKey: SettingsKeys.hasSeenOnboardingPaywall) {
+                hasShownPaywallAfterFirstPass = true
+                return
+            }
+            hasShownPaywallAfterFirstPass = true
             isPresentingPaywall = true
         }
     }

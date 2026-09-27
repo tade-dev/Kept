@@ -1,19 +1,20 @@
 import SwiftUI
 
-/// Front-door monetisation flow presented once, immediately after the
-/// onboarding cover dismisses. Owns the choreography between three states:
+/// Front-door monetisation flow presented once, after the first-save
+/// payoff sheet is dismissed. Owns the choreography between three states:
 ///
 ///   .paywall   → PaywallView(reason: .onboardingEntry) with a visible
 ///                "Continue with limited version" secondary button.
 ///   .explainer → FreeTierExplainerSheet showing what Free actually gets
-///                + a persistent "Start 7-day free trial" CTA that can
+///                + a persistent trial CTA that can
 ///                bounce back to .paywall without dismissing anything.
 ///
 /// Either purchasing Pro OR tapping "Continue" on the explainer dismisses
 /// the whole gate. RootView sets a UserDefaults flag on first present so
 /// the gate never fires again — post-install conversion happens on the
-/// per-feature paywalls (wallet pass add, claim-pack export, 6th save on
-/// free, Settings › Upgrade).
+/// per-feature paywalls (after the first Wallet pass, claim-pack export,
+/// 6th save on free, Settings › Upgrade). Adding a Wallet pass is available
+/// on Free; the pass moment is a soft prompt, not a lock.
 struct OnboardingPaywallGate: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SubscriptionAccess.self) private var subscription
@@ -51,6 +52,8 @@ struct OnboardingPaywallGate: View {
 struct FreeTierExplainerSheet: View {
     var onStartTrial: () -> Void
     var onContinue: () -> Void
+
+    @Environment(SubscriptionAccess.self) private var subscription
 
     var body: some View {
         NavigationStack {
@@ -104,7 +107,8 @@ struct FreeTierExplainerSheet: View {
                 rows: [
                     .init(icon: "checkmark", included: true,  text: String(localized: "Scan and save up to 5 receipts")),
                     .init(icon: "checkmark", included: true,  text: String(localized: "Warranty & return deadline reminders")),
-                    .init(icon: "checkmark", included: true,  text: String(localized: "Category, price, and merchant capture"))
+                    .init(icon: "checkmark", included: true,  text: String(localized: "Category, price, and merchant capture")),
+                    .init(icon: "wallet.pass", included: true, text: String(localized: "Add receipts to Apple Wallet"))
                 ]
             )
 
@@ -113,7 +117,6 @@ struct FreeTierExplainerSheet: View {
                 tint: KeptColor.adaptiveInk.opacity(0.08),
                 rows: [
                     .init(icon: "sparkles",       included: true, text: String(localized: "Unlimited receipts")),
-                    .init(icon: "wallet.pass",    included: true, text: String(localized: "Add receipts to Apple Wallet")),
                     .init(icon: "doc.text",       included: true, text: String(localized: "One-tap Claim Pack export")),
                     .init(icon: "cpu",            included: true, text: String(localized: "Pro-tier extraction model")),
                     .init(icon: "person.2",       included: true, text: String(localized: "Family Sharing"))
@@ -158,12 +161,21 @@ struct FreeTierExplainerSheet: View {
         )
     }
 
+    /// Sends the user back to the paywall. The trial length is the yearly
+    /// package's store intro, so this button does not name a day count.
+    private var trialButtonTitle: LocalizedStringKey {
+        if subscription.offering?.yearly?.introBadge != nil {
+            return "Start free trial"
+        }
+        return "See Kept Pro"
+    }
+
     // MARK: - CTA bar
 
     private var ctaBar: some View {
         VStack(spacing: 10) {
             Button(action: onStartTrial) {
-                Text("Start 7-day free trial")
+                Text(trialButtonTitle)
                     .font(.keptHeadline)
                     .foregroundStyle(KeptColor.adaptiveOnInk)
                     .frame(maxWidth: .infinity)
