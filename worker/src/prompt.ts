@@ -1,4 +1,10 @@
-import type { OCRLine } from "./types";
+import type { ExtractSource, OCRLine } from "./types";
+import {
+  analyseProse,
+  isProseSource,
+  prepareProseLines,
+  type ProseReadingGuide,
+} from "./prose";
 
 export const SYSTEM_PROMPT = `You extract structured purchase data from OCR lines of a photographed retail receipt. Return JSON matching the provided schema. Every field is independently nullable; return null when unsure. Never fabricate.
 
@@ -249,7 +255,111 @@ Notes on this case:
   - Never invent a currency code. Null is correct when there's genuinely no signal.
   - Rules-based fallback in the client will fill from device Locale.`;
 
-export function buildUserPrompt(lines: OCRLine[]): string {
+export const EMAIL_SYSTEM_PROMPT = `You extract structured purchase data from an order email or a plain-text share of one (including Mail → Select All → Share). Return JSON matching the provided schema. Every field is independently nullable; return null when unsure. Never fabricate.
+
+This is NOT a photographed receipt. There is no reliable page geometry. Bounding boxes are placeholders — ignore x/y/width/height completely. Do not treat the first line as a storefront header just because it is first, and do not treat a price near the top as the total.
+
+# FIRST STEP — CLASSIFY
+Set "documentType" to "receipt" when the text is an order confirmation, invoice, payment receipt, or shipping notice that includes a purchase amount. These ARE receipts even though they are emails.
+Use "letter" or "other" only when nothing was purchased (newsletter, password reset, shipping-status ping with no amount, a conversation). Then return null for every extraction field and items=[].
+
+# HOW TO READ THE MESSAGE (only when documentType == "receipt")
+The user message may start with a reading guide. Treat it as a hint: if a hinted merchant, order date, or amount is actually in the body, prefer it. If a hint is absent from the body, ignore the hint.
+Fill "reasoning" with one or two short sentences naming the merchant you chose, which date you kept (and which you rejected), and which amount is the charge. Under 40 words.
+
+# MERCHANT
+- The company that sold the goods.
+- Prefer, in order: the From: display name (the text before the email address), the brand in the subject ("Your Northwind order"), then the brand printed above the order lines.
+- NEVER use the recipient (the To: name, "Hi Jordan", "Thanks for your order, Ade").
+- NEVER use a street address, a payment processor (PayPal, Apple Pay, Visa) unless they are clearly the seller, or a promotional tagline.
+
+# ITEM NAME AND ITEMS
+- items[] is the products purchased in THIS order only. One entry per product, price = that line's price (not the order total unless there is a single item and no separate charge).
+- Exclude postage, shipping, tax/VAT, subtotal, and the order-total row.
+- Do not include products that appear only inside a quoted earlier message.
+- itemName: one product → that product. Several products → a short summary ("Grocery shop", "Lunch") for food/grocery/fuel, otherwise the highest-priced product is enough — the worker may relabel from items[].
+- Category must be exactly one of: Groceries, Restaurant, Fashion, Electronics, Home, Repair, Fuel, Travel, Beauty, Books, Other. Or null if you cannot tell.
+
+# TOTAL
+- The amount actually charged. Prefer lines labelled Order Total, Grand Total, Amount charged, Amount paid, Total charged, You paid.
+- NEVER the subtotal, item price, postage alone, tax alone, or a price from a quoted reply ("it was £19 last week").
+- If several labelled totals exist, the order total / amount charged wins over a bare "Total".
+
+# CURRENCY (ISO 4217)
+- £ → GBP, € → EUR, explicit USD/GBP/EUR codes → that code.
+- Bare "$" is ambiguous. Use USD only when the message says USD or a US address. Otherwise null. Never guess.
+
+# PURCHASE DATE (YYYY-MM-DD)
+- Prefer a labelled order date / ordered-on / purchase date.
+- Do NOT use delivery, arrival, ship-by, or dispatch dates when an order date is present.
+- The email's Date: header is only a fallback when no order date is labelled.
+- Ignore dates inside quoted replies.
+
+# RETURN WINDOW AND WARRANTY
+- Only when this message states them. "You have 30 days to return" → returnWindowDays 30, returnWindowIsInferred false.
+- If the message is silent, both are null and both inferred flags are false. Do not invent a default.
+
+# CONFIDENCE
+- Per-field, 0…1. Lower when several candidates competed (two dates, two totals) or the body was mostly boilerplate.
+
+# EXAMPLE
+Input (plain-text share):
+  From: Northwind Outfitters <orders@northwind.example>
+  Subject: Your Northwind order
+  Order date: 4 May 2026
+  Arriving: 8 May 2026
+  Trail Jacket £89.00
+  Subtotal: £89.00
+  Postage: £4.50
+  Order Total: £93.50
+  On 1 May 2026, Sam wrote:
+  > The jacket was £70 last week
+Correct:
+{
+  "reasoning": "Sender Northwind Outfitters; order date 4 May 2026 not the 8 May arrival; amount charged is Order Total £93.50, not the £89 subtotal or the quoted £70.",
+  "documentType": "receipt",
+  "merchant": "Northwind Outfitters",
+  "itemName": "Trail Jacket",
+  "category": "Fashion",
+  "items": [{"name":"Trail Jacket","price":89.00}],
+  "total": 93.50,
+  "currencyCode": "GBP",
+  "purchaseDate": "2026-05-04",
+  "returnWindowDays": null,
+  "returnWindowIsInferred": false,
+  "warrantyDurationMonths": null,
+  "warrantyIsInferred": false,
+  "confidence": {"merchant":0.9,"total":0.95,"purchaseDate":0.9}
+}
+Wrong outputs to avoid:
+  - merchant: "Sam" or "Hi Sam"          (recipient / quoted author)
+  - purchaseDate: "2026-05-08"           (arrival, not the order)
+  - total: 89 or 70                      (subtotal, or a price from the quoted reply)
+  - documentType: "letter"               (this is an order confirmation)`;
+
+export function systemPromptFor(source: ExtractSource): string {
+  return isProseSource(source) ? EMAIL_SYSTEM_PROMPT : SYSTEM_PROMPT;
+}
+
+export function buildExtractionMessages(
+  source: ExtractSource,
+  lines: OCRLine[],
+): { source: ExtractSource; lines: OCRLine[]; system: string; user: string } {
+  const prepared = isProseSource(source) ? prepareProseLines(lines) : lines;
+  return {
+    source,
+    lines: prepared,
+    system: systemPromptFor(source),
+    user: buildUserPrompt(prepared, source),
+  };
+}
+
+export function buildUserPrompt(lines: OCRLine[], source: ExtractSource = "receipt"): string {
+  if (isProseSource(source)) return buildProseUserPrompt(lines, source);
+  return buildReceiptUserPrompt(lines);
+}
+
+function buildReceiptUserPrompt(lines: OCRLine[]): string {
   const payload = lines.map((line, index) => ({
     i: index,
     text: line.text,
@@ -259,4 +369,48 @@ export function buildUserPrompt(lines: OCRLine[]): string {
     h: line.height,
   }));
   return `OCR lines (top→bottom reading order already applied by the client). Extract per the schema and rules above.\n${JSON.stringify(payload)}`;
+}
+
+function buildProseUserPrompt(lines: OCRLine[], source: ExtractSource): string {
+  const raw = lines.map((line) => line.text).join("\n");
+  const { body, guide } = analyseProse(raw);
+  const kind =
+    source === "text"
+      ? "plain-text share (often Mail → Select All → Share)"
+      : "email share, already reduced to text lines";
+  return `${formatGuide(guide, kind)}
+
+Body (quoted replies, signatures, and legal footers already removed):
+${body}`;
+}
+
+function formatGuide(guide: ProseReadingGuide, kind: string): string {
+  const merchant = guide.merchantHint
+    ? `Likely merchant: ${guide.merchantHint}. This is the seller, not the recipient.`
+    : "No sender display name detected. Take the merchant from the brand on the order, not the recipient.";
+  const date = guide.orderDate
+    ? `Likely order date: ${guide.orderDate}. Do not replace it with a delivery, arrival, or ship date.`
+    : "No labelled order date detected. Do not use a delivery or ship date as the purchase date.";
+  const total = guide.chargedTotal
+    ? `Likely amount charged: ${formatMoney(guide.chargedTotal.amount, guide.chargedTotal.currency)}, from "${guide.chargedTotal.label}".`
+    : "No labelled order total detected. Do not promote a subtotal, postage line, or item price to the total.";
+  const ignored =
+    guide.ignoredAmounts.length > 0
+      ? `Do not use these other amounts: ${guide.ignoredAmounts
+          .slice(0, 6)
+          .map((item) => `${formatMoney(item.amount, item.currency)} ("${item.label}")`)
+          .join("; ")}.`
+      : "No separate subtotal or postage line was labelled.";
+  return `Input type: ${kind}. Not a photographed receipt — ignore bounding boxes.
+
+Reading guide (use a hint only when the same fact appears in the body):
+- ${merchant}
+- ${date}
+- ${total}
+- ${ignored}`;
+}
+
+function formatMoney(amount: number, currency: string | null): string {
+  const value = amount.toFixed(2);
+  return currency ? `${value} ${currency}` : value;
 }

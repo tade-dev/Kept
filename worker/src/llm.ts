@@ -1,6 +1,6 @@
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
-import { extractionResponseSchema, type ExtractionResponse } from "./schema";
-import type { Env, OCRLine } from "./types";
+import { buildExtractionMessages } from "./prompt";
+import { extractionSchemaFor, type ExtractionResponse } from "./schema";
+import type { Env, ExtractSource, OCRLine } from "./types";
 
 type CompatChatResponse = {
   choices?: Array<{
@@ -21,6 +21,7 @@ export async function extractWithLLM(
   env: Env,
   lines: OCRLine[],
   modelOverride?: string,
+  source: ExtractSource = "receipt",
 ): Promise<ExtractionResponse> {
   const accountId = env.CF_ACCOUNT_ID;
   const gatewayId = env.AI_GATEWAY_ID;
@@ -53,19 +54,20 @@ export async function extractWithLLM(
     headers["cf-aig-authorization"] = `Bearer ${env.CF_AIG_TOKEN}`;
   }
 
+  const messages = buildExtractionMessages(source, lines);
   const body = {
     model,
     temperature: 0.1,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(lines) },
+      { role: "system", content: messages.system },
+      { role: "user", content: messages.user },
     ],
     response_format: {
       type: "json_schema",
       json_schema: {
         name: "receipt_extraction",
         strict: true,
-        schema: extractionResponseSchema,
+        schema: extractionSchemaFor(source),
       },
     },
   };

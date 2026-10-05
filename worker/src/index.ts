@@ -2,7 +2,8 @@ import { extractWithLLM, UpstreamError } from "./llm";
 import { buildSignedPass, parsePassRequest } from "./pass";
 import { grantTrialBoost, parseTrialBoostRequest } from "./trialBoost";
 import { isKeptPro } from "./proVerification";
-import type { Env, ExtractRequest, OCRLine } from "./types";
+import { normaliseSource } from "./prose";
+import type { Env, ExtractRequest, ExtractSource, OCRLine } from "./types";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -111,7 +112,12 @@ async function handleExtract(request: Request, env: Env): Promise<Response> {
     }
   }
 
-  const extraction = await extractWithLLM(env, lines, modelOverride);
+  // Missing / unknown source stays on the receipt OCR prompt. Email and
+  // plain-text shares (Mail Select-All) take the prose prompt instead.
+  const source: ExtractSource = normaliseSource(
+    (body as { source?: unknown }).source,
+  );
+  const extraction = await extractWithLLM(env, lines, modelOverride, source);
   return json(extraction, 200);
 }
 

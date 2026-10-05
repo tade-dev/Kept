@@ -6,8 +6,19 @@ export type OCRLine = {
   height: number;
 };
 
+/**
+ * What the client captured.
+ * - `receipt` — photographed / imported receipt OCR (default).
+ * - `email` — HTML order email, already stripped to text lines.
+ * - `text` — plain-text share, including Mail → Select All → Share.
+ * Unknown or missing values are treated as `receipt`.
+ */
+export type ExtractSource = "receipt" | "email" | "text";
+
 export type ExtractRequest = {
   lines: OCRLine[];
+  /** Optional. Absent on builds that predate email import. */
+  source?: ExtractSource;
   /**
    * Optional RC customer identifier. When present + `isProClaimed` is true,
    * the worker verifies with RC before routing to the Pro-tier model.
