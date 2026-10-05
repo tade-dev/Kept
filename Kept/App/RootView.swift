@@ -81,6 +81,7 @@ struct RootView: View {
                     paywallIsShowing: showsOnboardingPaywall,
                     onFirstSaveMomentFinished: presentPaywallAfterFirstSave
                 )
+                    .presentsPendingImports()
                     .fullScreenCover(isPresented: .constant(!hasOnboarded)) {
                         OnboardingView { hasExistingReceipts in
                             openCaptureAfterOnboarding = hasExistingReceipts

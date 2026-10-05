@@ -211,6 +211,35 @@ struct CloudExtractorTests {
         #expect(deduped[0].price == 72.25)
     }
 
+    @Test("sends source=receipt by default and the caller source otherwise")
+    func encodesExtractionSource() async throws {
+        let ok = Data(
+            #"{"merchant":"X","itemName":null,"items":[],"total":1,"currencyCode":"GBP","purchaseDate":"2026-01-01","confidence":{"merchant":1,"total":1,"purchaseDate":1}}"#.utf8
+        )
+        nonisolated(unsafe) var seenSource: String?
+        MockURLProtocol.requestHandler = { request in
+            seenSource = try requestBodyJSON(request)["source"] as? String
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, ok)
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        _ = try await makeExtractor().extract(from: sampleLines)
+        #expect(seenSource == "receipt")
+
+        _ = try await makeExtractor().extract(
+            from: sampleLines,
+            source: .text,
+            proContext: nil
+        )
+        #expect(seenSource == "text")
+    }
+
     @Test("merge prefers printed cloud return/warranty over rules inference")
     func mergePrefersPrintedCoverage() {
         let rules = ExtractedReceipt(
@@ -274,6 +303,31 @@ struct CloudExtractorTests {
 }
 
 // MARK: - Helpers
+private nonisolated func requestBodyJSON(_ request: URLRequest) throws -> [String: Any] {
+    let data = try requestBodyData(request)
+    let object = try JSONSerialization.jsonObject(with: data)
+    return object as? [String: Any] ?? [:]
+}
+
+private nonisolated func requestBodyData(_ request: URLRequest) throws -> Data {
+    if let body = request.httpBody { return body }
+    guard let stream = request.httpBodyStream else {
+        throw CloudExtractionError.invalidResponse
+    }
+    stream.open()
+    defer { stream.close() }
+    var data = Data()
+    let bufferSize = 1024
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer { buffer.deallocate() }
+    while stream.hasBytesAvailable {
+        let count = stream.read(buffer, maxLength: bufferSize)
+        if count <= 0 { break }
+        data.append(buffer, count: count)
+    }
+    return data
+}
+
 private final class RequestCounter: @unchecked Sendable {
     private let lock = NSLock()
     nonisolated(unsafe) private var count = 0
