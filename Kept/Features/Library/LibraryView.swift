@@ -86,8 +86,12 @@ struct LibraryView: View {
         )
     }
 
+    /// Side-by-side on iPhone Duo (regular width), stacked on iPhone.
+    /// `.doubleColumn` keeps both panes visible when unfolded.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
+
     var body: some View {
-        NavigationStack {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             Group {
                 if purchases.isEmpty {
                     emptyState
@@ -95,6 +99,7 @@ struct LibraryView: View {
                     modeContent
                 }
             }
+            .navigationSplitViewColumnWidth(min: 420, ideal: 520, max: 640)
             .animation(
                 reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.32),
                 value: purchases.isEmpty
@@ -300,7 +305,20 @@ struct LibraryView: View {
                 FixtureCaptureView()
             }
             #endif
+        } detail: {
+            detailPlaceholder
         }
+    }
+
+    /// Shown in the detail column of iPhone Duo (and iPad) when no receipt
+    /// is selected. On compact-width iPhone, NavigationSplitView collapses
+    /// to a stack so this never renders.
+    private var detailPlaceholder: some View {
+        ContentUnavailableView(
+            "Choose a receipt",
+            systemImage: "doc.text.magnifyingglass",
+            description: Text("Pick one from the left to see its warranty, return window, and claim pack.")
+        )
     }
 
     @ViewBuilder
