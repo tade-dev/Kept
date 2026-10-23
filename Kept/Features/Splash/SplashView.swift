@@ -16,7 +16,7 @@ struct SplashView: View {
         ZStack {
             // Paper background. Matches the onboarding aesthetic so the
             // splash-to-Welcome transition doesn't flash different bgs.
-            Color(uiColor: .systemBackground).ignoresSafeArea()
+            Color(uiColor: .systemBackground)
 
             Image("KeptStacked")
                 .renderingMode(.template)
@@ -30,6 +30,11 @@ struct SplashView: View {
                 .offset(y: didLand ? 0 : 500)
                 .opacity(didLand ? 1 : 0)
         }
+        // Lift ignoresSafeArea to the ZStack so the Image centres against
+        // the physical display, not the shrunken safe area. Fixes the
+        // off-centre logo on iPhone Duo (hinge-reserved region) and any
+        // other arrangement that insets the safe area.
+        .ignoresSafeArea()
         .task { await runEntrance() }
     }
 
