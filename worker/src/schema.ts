@@ -1,3 +1,6 @@
+import type { ExtractSource } from "./types";
+import { isProseSource } from "./prose";
+
 /**
  * Structured extraction schema for OpenAI-compatible `response_format.json_schema`.
  * Every field independently nullable (except items — use []). Never fabricate.
@@ -127,6 +130,48 @@ export const extractionResponseSchema = {
     "confidence",
   ],
 } as const;
+
+/**
+ * Receipt captures keep the OCR-oriented field descriptions. Email and
+ * plain-text shares rewrite the descriptions the model sees in the schema
+ * so "top of the page" / "printed storefront" stop winning over the sender,
+ * the order date, and the amount charged.
+ */
+export function extractionSchemaFor(source: ExtractSource) {
+  if (!isProseSource(source)) return extractionResponseSchema;
+  const base = extractionResponseSchema;
+  return {
+    ...base,
+    properties: {
+      ...base.properties,
+      reasoning: {
+        ...base.properties.reasoning,
+        description:
+          "One or two short sentences: name the seller you treated as the merchant, which date you kept (order date, not delivery), and which amount is the charge rather than a subtotal or a quoted price. Under 40 words. Client discards this field.",
+      },
+      documentType: {
+        ...base.properties.documentType,
+        description:
+          "Use 'receipt' for an order confirmation, invoice, payment receipt, or shipping notice that includes a purchase amount, even though the input is an email or plain text. Use 'letter' or 'other' only when nothing was purchased. When not 'receipt', return null for every extraction field.",
+      },
+      merchant: {
+        ...base.properties.merchant,
+        description:
+          "The company that sold the goods. Prefer the From: display name or the brand in the subject. Not the recipient, not a street address, not a payment processor.",
+      },
+      purchaseDate: {
+        ...base.properties.purchaseDate,
+        description:
+          "Order / purchase date as YYYY-MM-DD. Prefer a labelled order date over a delivery date, a ship date, or the email Date: header.",
+      },
+      total: {
+        ...base.properties.total,
+        description:
+          "Amount actually charged (Order Total / Amount charged / Grand total). Not subtotal, tax, postage alone, or a price from a quoted earlier message.",
+      },
+    },
+  };
+}
 
 export type ExtractionResponse = {
   /** Scratchpad the model uses to think before answering. Dropped in llm.ts. */

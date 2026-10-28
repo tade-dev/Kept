@@ -1,0 +1,22 @@
+From: "Cedar Supply" <billing@cedarsupply.example>
+To: avery.ng@example.com
+Subject: Receipt for your Cedar Supply order
+Date: Tue, 3 Mar 2026 16:40:00 +0000
+
+Avery,
+
+Thanks for shopping with us.
+
+Ordered on March 3, 2026
+Ships by March 9, 2026
+
+Cedar oak cutting board
+Item price: $42.00
+Shipping: $6.20
+Subtotal: $42.00
+Amount charged: USD 48.20
+
+On Mon, Mar 2, 2026 at 9:12 AM Avery Ng wrote:
+> Please hold the cutting board — I saw a similar one for $29.00.
+
+Sent from my iPhone

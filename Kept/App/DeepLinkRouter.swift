@@ -51,6 +51,8 @@ extension DeepLinkRouter.Destination {
         if url.scheme?.lowercased() == "kept" {
             switch url.host?.lowercased() {
             case "scan": self = .scan; return
+            // `kept://import` is the Share Extension's launch ping so the
+            // inbox drain runs. It is not a scan destination.
             default:     return nil
             }
         }

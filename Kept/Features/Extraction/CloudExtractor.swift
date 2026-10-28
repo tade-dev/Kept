@@ -125,28 +125,38 @@ struct CloudExtractor: ExtractionService {
     }
 
     func extract(from lines: [RecognizedLine]) async throws -> ExtractedReceipt {
-        try await extractDetailed(from: lines, proContext: nil).receipt
+        try await extract(from: lines, source: .receipt, proContext: nil)
     }
 
     func extract(
         from lines: [RecognizedLine],
         proContext: ExtractionProContext?
     ) async throws -> ExtractedReceipt {
-        try await extractDetailed(from: lines, proContext: proContext).receipt
+        try await extract(from: lines, source: .receipt, proContext: proContext)
     }
 
-    func extractDetailed(from lines: [RecognizedLine]) async throws -> CloudExtractionPayload {
-        try await extractDetailed(from: lines, proContext: nil)
+    func extract(
+        from lines: [RecognizedLine],
+        source: ExtractionSource,
+        proContext: ExtractionProContext?
+    ) async throws -> ExtractedReceipt {
+        try await extractDetailed(from: lines, source: source, proContext: proContext).receipt
     }
 
     func extractDetailed(
         from lines: [RecognizedLine],
-        proContext: ExtractionProContext?
+        source: ExtractionSource = .receipt,
+        proContext: ExtractionProContext? = nil
     ) async throws -> CloudExtractionPayload {
         guard !lines.isEmpty else { throw CloudExtractionError.emptyInput }
 
         do {
-            return try await perform(lines: lines, proContext: proContext, allowRetry: true)
+            return try await perform(
+                lines: lines,
+                source: source,
+                proContext: proContext,
+                allowRetry: true
+            )
         } catch let error as CloudExtractionError {
             throw error
         } catch {
@@ -158,6 +168,7 @@ struct CloudExtractor: ExtractionService {
 
     private func perform(
         lines: [RecognizedLine],
+        source: ExtractionSource,
         proContext: ExtractionProContext?,
         allowRetry: Bool
     ) async throws -> CloudExtractionPayload {
@@ -172,6 +183,7 @@ struct CloudExtractor: ExtractionService {
         request.timeoutInterval = configuration.timeout
         request.httpBody = try JSONEncoder().encode(CloudExtractRequest(
             lines: lines.map(CloudOCRLine.init),
+            source: source.rawValue,
             appUserID: proContext?.appUserID,
             isProClaimed: proContext?.isProClaimed
         ))
@@ -197,7 +209,12 @@ struct CloudExtractor: ExtractionService {
             throw CloudExtractionError.rateLimited
         case 500...599:
             if allowRetry {
-                return try await perform(lines: lines, proContext: proContext, allowRetry: false)
+                return try await perform(
+                    lines: lines,
+                    source: source,
+                    proContext: proContext,
+                    allowRetry: false
+                )
             }
             throw CloudExtractionError.serverUnavailable
         default:
@@ -235,6 +252,11 @@ struct CloudExtractor: ExtractionService {
 
 private struct CloudExtractRequest: Encodable {
     var lines: [CloudOCRLine]
+    /// "receipt" (camera / photo / PDF), "email" (HTML share), or "text"
+    /// (Mail Select-All plain text and other prose shares). The worker
+    /// branches its prompt on this. Omitted or unknown values are treated
+    /// as a receipt, so older workers that ignore the field stay compatible.
+    var source: String
     var appUserID: String?
     var isProClaimed: Bool?
 }

@@ -1,0 +1,37 @@
+From: Harbor & Co <receipts@harborandco.example>
+To: riley.chen@example.com
+Subject: Your Harbor & Co order of "Linen apron"
+Date: 18 June 2026 at 14:02:11 GMT
+
+Hi Riley,
+
+Thanks for your order.
+
+Order number: HC-88421
+Order date: 18 June 2026
+Estimated delivery: 22 June 2026
+
+Linen apron, oat
+Qty: 1
+Item price: £34.00
+Postage & packing: £3.95
+Subtotal: £34.00
+Order Total: £37.95
+
+We'll deliver to:
+Riley Chen
+8 Quay Lane
+Bristol
+BS1 4QA
+
+On 2 June 2026, Riley Chen <riley.chen@example.com> wrote:
+> Do you still have the linen apron at the sale price of £19.00?
+
+-- 
+Riley Chen
+Sent from my iPhone
+
+Harbor & Co Ltd. Registered office: 1 Example Wharf, Bristol.
+You are receiving this email because you placed an order.
+Unsubscribe | Privacy policy | Terms and conditions
+Please do not reply to this email.
